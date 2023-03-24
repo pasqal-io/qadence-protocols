@@ -3,9 +3,6 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "3.10"
-  jobs:
-    post_build:
-      - bash .no_tracebacks.sh
   commands:
     - pip install hatch
     - hatch -v run docs:build
