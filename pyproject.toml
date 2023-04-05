@@ -133,6 +133,9 @@ extend-ignore = """
     E741,
     E742,
 """
+per-file-ignores = """i
+    __init__.py: F401
+"""
 ban-relative-imports = true
 
 [tool.isort]
