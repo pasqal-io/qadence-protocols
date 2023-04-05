@@ -8,11 +8,19 @@ repos:
       - id: check-added-large-files
 
 -   repo: https://github.com/ambv/black
-    rev: 22.3.0
+    rev: 22.10.0
     hooks:
       - id: black
 
 -   repo: https://github.com/pycqa/flake8
-    rev: 3.9.2
+    rev: 6.0.0
     hooks:
       - id: flake8
+        entry: pflake8
+        additional_dependencies: [pyproject-flake8]
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.1.1
+    hooks:
+      - id: mypy
+        exclude: examples|docs
