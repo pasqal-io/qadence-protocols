@@ -9,6 +9,10 @@ stages:
   - test
   - publish
 
+# select the autoscaled Gitlab runner
+default:
+  tags:
+    - autoscaled
 
 before_script:
   - python -m pip install --upgrade pip

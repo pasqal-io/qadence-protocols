@@ -1,5 +1,6 @@
-from template_python.main import main
+from __future__ import annotations
 
+from template_python.main import main
 
 expected_msg = "Pasqal template Python project"
 
