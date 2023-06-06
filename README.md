@@ -12,6 +12,19 @@ The library uses the following tools:
 * [mypy](https://mypy.readthedocs.io/en/stable/) for static type checking
 * [pre-commit](https://pre-commit.com/) for applying linting and formatting automatically before committing new code
 
+We recommend to use [`pyenv`](https://github.com/pyenv/pyenv) for managing
+python versions for managing python versions both globally and locally:
+```bash
+# System-wide install of a python version.
+pyenv install 3.10
+
+# Use 3.10 everywhere.
+pyenv global 3.10
+
+# Or locally in the current directory.
+pyenv local 3.10
+```
+
 
 ## Install from registry
 
