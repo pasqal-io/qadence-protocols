@@ -27,7 +27,7 @@ classifiers = [
 # always specify a version for each package
 # to maintain consistency
 dependencies = [
-  "qucint>=0.3.0",
+  "qucint>=0.5.0",
   "pulser>=0.10.0"
 ]
 
@@ -38,7 +38,7 @@ allow-ambiguous-features = true
 # add one or more extras in the dependencies
 [project.optional-dependencies]
 extras = [
-  "pyqtorch @ git+https://git@github.com/pasqal-io/PyQ.git@v0.1.5dev",
+  "pyqtorch",
   "matplotlib>=3.5.0"
 ]
 
@@ -58,7 +58,6 @@ features = ["extras"]
 dependencies = [
   "pytest",
   "pytest-cov",
-  "pytest-mypy",
   "pytest-xdist",
   "nbconvert",
   "ipykernel",
@@ -69,8 +68,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = """-vvv --cov-report=term-missing --cov-config=pyproject.toml --cov=template_python \
---cov=tests --mypy template_python --mypy tests"""
+addopts = """-vvv --cov-report=term-missing --cov-config=pyproject.toml --cov=template_python --cov=tests"""
 xfail_strict = true
 filterwarnings = [
   "ignore:Call to deprecated create function FieldDescriptor",
