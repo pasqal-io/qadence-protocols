@@ -49,11 +49,6 @@ test-py3.10:
   image: python:3.10
   stage: test
 
-test-py3.11:
-  extends: ".test"
-  image: python:3.11
-  stage: test
-
 publish:
   stage: publish
   rules:
