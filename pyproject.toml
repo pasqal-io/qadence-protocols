@@ -7,7 +7,7 @@ name = "template_python"
 description = "Pasqal quantum libraries template project in Python"
 readme = "README.md"
 version = "0.1.0"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "Proprietary"}
 keywords = ["quantum"]
 authors = [
@@ -16,7 +16,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -99,7 +98,7 @@ build = "mkdocs build --clean --strict"
 serve = "mkdocs serve --dev-addr localhost:8000"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["38", "39", "310", "311"]
+python = ["39", "310", "311"]
 
 [tool.coverage.run]
 branch = true
