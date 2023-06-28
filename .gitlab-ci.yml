@@ -39,11 +39,6 @@ lint:
     - chmod 644 ~/.ssh/known_hosts
     - python -m hatch -v run pytest
 
-test-py3.8:
-  extends: ".test"
-  image: python:3.8
-  stage: test
-
 test-py3.9:
   extends: ".test"
   image: python:3.9
@@ -52,6 +47,11 @@ test-py3.9:
 test-py3.10:
   extends: ".test"
   image: python:3.10
+  stage: test
+
+test-py3.11:
+  extends: ".test"
+  image: python:3.11
   stage: test
 
 publish:

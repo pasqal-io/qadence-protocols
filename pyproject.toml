@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "template_python"
-description = "Pasqal quantum libraries template project in Python"
+name = "Block Proto"
+description = "Pasqal quantum libraries prototype project for symbolic blocks."
 readme = "README.md"
 version = "0.1.0"
 requires-python = ">=3.9"
@@ -12,6 +12,7 @@ license = {text = "Proprietary"}
 keywords = ["quantum"]
 authors = [
   { name = "Mario Dagrada", email = "mario.dagrada@pasqal.com" },
+  { name = "Roland Guichard", email = "roland.guichard@pasqal.com" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -27,7 +28,7 @@ classifiers = [
 # to maintain consistency
 dependencies = [
   "qucint>=0.5.0",
-  "pulser>=0.10.0"
+  "pulser>=0.10.0",
 ]
 
 [tool.hatch.metadata]
