@@ -3,18 +3,19 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "template_python"
-description = "Pasqal quantum libraries template project in Python"
+name = "qadence-protocols"
+description = "Protocols interface for running experiments using Qadence."
 readme = "README.md"
 version = "0.1.0"
-requires-python = ">=3.9"
-license = {text = "Proprietary"}
+requires-python = ">=3.9,<3.12"
+license = {text = "Apache 2.0"}
 keywords = ["quantum"]
 authors = [
   { name = "Mario Dagrada", email = "mario.dagrada@pasqal.com" },
+  { name = "Roland Guichard", email = "roland.guichard@pasqal.com" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -22,13 +23,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-
-# always specify a version for each package
-# to maintain consistency
-dependencies = [
-  "qucint>=0.5.0",
-  "pulser>=0.10.0"
-]
+dependencies = ["torch","qadence==1.2.3"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -36,34 +31,31 @@ allow-ambiguous-features = true
 
 # add one or more extras in the dependencies
 [project.optional-dependencies]
-extras = [
-  "pyqtorch",
-  "matplotlib>=3.5.0"
-]
-
-# install libraries from the Pasqal quantum libraries private PyPi repository
-# ask in the relevant code Slack channels if you do not have the credentials
-# to access the PyPi repository
-[tool.hatch.envs.default.env-vars]
-PIP_EXTRA_INDEX_URL = "https://{env:PYPI_USERNAME}:{env:PYPI_PASSWORD}@gitlab.pasqal.com/api/v4/projects/190/packages/pypi/simple"
-
-[project.urls]
-Documentation = ""
-Issues = "https://gitlab.pasqal.com/pqs/template-python-project/-/issues"
-Source = "https://gitlab.pasqal.com/pqs/template-python-project"
+pyqtorch = ["pyqtorch==1.0.3"]
+visualization = ["qadence[visualization]==1.2.3"]
+all = ["pyqtorch==1.0.3", "qadence[visualization]==1.2.3"]
 
 [tool.hatch.envs.default]
-features = ["extras"]
 dependencies = [
   "pytest",
   "pytest-cov",
+  "pytest-mypy",
   "pytest-xdist",
-  "nbconvert",
   "ipykernel",
   "pre-commit",
   "black",
-  "ruff"
+  "isort",
+  "ruff",
+  "pydocstringformatter",
 ]
+features = ["all"]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest -n auto --cov-report lcov --cov-config=pyproject.toml --cov=qadence_protocols --cov=tests {args}"
+test-examples = "pytest ./tests/test_examples.py {args}"
+no-cov = "cov --no-cov {args}"
+test-docs = "mkdocs build --clean --strict"
+test-all = "pytest -n auto {args}  && mkdocs build --clean --strict"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -87,28 +79,38 @@ dependencies = [
   "mkdocstrings",
   "mkdocstrings-python",
   "mkdocs-section-index",
-  "mkdocs-jupyter",
   "mkdocs-exclude",
   "markdown-exec",
-  "jupyter_contrib_nbextensions"
+  "mike"
 ]
+features = ["all"]
 
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build --clean --strict"
 serve = "mkdocs serve --dev-addr localhost:8000"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["39", "310", "311"]
+python = ["39", "310"]
+
+[tool.hatch.envs.tests]
+features = ["all"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.gitignore",
+  "/.gitlab-ci-yml",
+  "/.pre-commit-config.yml",
+  "/tests",
+  "/docs",
+  "/examples",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["qadence-extensions"]
 
 [tool.coverage.run]
 branch = true
 parallel = true
-# uncomment to omit any file from the
-# coverage. Regexps can be used
-# to select all files from a folder
-#omit = [
-#  "template_python/to_omit.py",
-#]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -133,6 +135,23 @@ max-complexity = 15
 
 [tool.ruff.flake8-quotes]
 docstring-quotes = "double"
+
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
 
 [tool.mypy]
 python_version = "3.10"
