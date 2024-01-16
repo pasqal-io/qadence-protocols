@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Template Python project
 
 This is a template Python project which can be used to bootstrap a new library in the Pasqal quantum software codebase.
@@ -115,7 +114,3 @@ python -m pip install -r docs/requirements.txt
 mkdocs build
 mkdocs serve
 ```
-=======
-# qadence-protocols
-Protocols for running Qadence experiments.
->>>>>>> main
