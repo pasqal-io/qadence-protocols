@@ -49,7 +49,7 @@ jobs:
     needs: test_protocols_ubuntu
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Qadence
+      - name: Check out Qadence-protocols
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -69,7 +69,7 @@ jobs:
         timeout-minutes: 5
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          until pip download qadence==$VERSION
+          until pip download qadence-protocols==$VERSION
           do
             echo "Failed to download from PyPI, will wait for upload and retry."
             sleep 1
@@ -78,10 +78,10 @@ jobs:
   deploy_docs:
     name: Deploy Qadence-protocols docs (ubuntu)
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: test_qadence_ubuntu
+    needs: test_protocols_ubuntu
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Qadence
+    - name: Checkout Qadence-protocols
       uses: actions/checkout@v4
     - name: Install JetBrains Mono font
       run: |
