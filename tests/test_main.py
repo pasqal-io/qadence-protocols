@@ -52,8 +52,6 @@ def test_readout_mitigation_quantum_model(
     observable: list,
     backend: BackendName,
 ) -> None:
-
-
     circuit = QuantumCircuit(block.n_qubits, block)
     Z_obs = sum([kron(*[Z(i) for i in a]) for a in observable])
 
