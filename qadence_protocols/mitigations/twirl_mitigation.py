@@ -3,8 +3,7 @@ from __future__ import annotations
 import itertools
 from functools import reduce
 
-import numpy as np
-
+import torch
 # import pytest
 from qadence import (
     QuantumCircuit,
@@ -29,9 +28,9 @@ def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
 
 def compute_exp(n_qubits: int, samples_twirl_list: list, observable: list) -> float:
     out: float = 0
-    Z_mat = np.eye(2)
+    Z_mat = torch.eye(2)
     Z_mat[1, 1] = -1
-    o = reduce(np.kron, [Z_mat if i in observable else np.eye(2) for i in range(n_qubits)])
+    o = reduce(torch.kron, [Z_mat if i in observable else torch.eye(2) for i in range(n_qubits)])
 
     for samples_twirl in samples_twirl_list:
         shots = sum(samples_twirl.values())

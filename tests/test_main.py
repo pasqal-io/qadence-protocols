@@ -20,7 +20,7 @@ from qadence_protocols.mitigations.twirl_mitigation import twirl_mitigation
 
 
 @pytest.mark.parametrize(
-    "error_probability, n_shots, block, backend, optimization_type",
+    "error_probability, n_shots, n_qubits, block, observable, backend",
     [
         (
             0.2,
@@ -32,7 +32,7 @@ from qadence_protocols.mitigations.twirl_mitigation import twirl_mitigation
         )
     ],
 )
-def test_readout_mitigation_quantum_model(
+def test_readout_twirl_mitigation(
     error_probability: float,
     n_shots: int,
     n_qubits: int,
@@ -64,6 +64,5 @@ def test_readout_mitigation_quantum_model(
 
     expectation_mitigated = twirl_mitigation(n_qubits, circuit, backend, noise, n_shots, observable)
 
-    # print(expectation_noisless,expectation_noisy,expectation_mitigated)
+    assert torch.allclose(expectation_mitigated, expectation_noisless, atol=1.0e-2, rtol=1.0e-1)
 
-    assert torch.allclose(expectation_mitigated, expectation_noisless, atol=1.0e-1)
