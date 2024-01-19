@@ -6,37 +6,37 @@ build-backend = "hatchling.build"
 name = "qadence-protocols"
 description = "Protocols interface for running experiments using Qadence."
 readme = "README.md"
-version = "0.1.0"
+authors = [
+    { name = "Mario Dagrada", email = "mario.dagrada@pasqal.com" },
+    { name = "Roland Guichard", email = "roland.guichard@pasqal.com" },
+]
 requires-python = ">=3.9,<3.12"
 license = {text = "Apache 2.0"}
 keywords = ["quantum"]
-authors = [
-  { name = "Mario Dagrada", email = "mario.dagrada@pasqal.com" },
-  { name = "Roland Guichard", email = "roland.guichard@pasqal.com" },
+version = "0.1.0"
+classifiers=[
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
 ]
-classifiers = [
-  "License :: OSI Approved :: Apache Software License",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
+dependencies = [
+    "torch",
+    "qadence==1.2.3",
 ]
-dependencies = ["torch","qadence==1.2.3"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 allow-ambiguous-features = true
 
-# add one or more extras in the dependencies
-[project.optional-dependencies]
-pyqtorch = ["pyqtorch==1.0.3"]
-visualization = ["qadence[visualization]==1.2.3"]
-all = ["pyqtorch==1.0.3", "qadence[visualization]==1.2.3"]
-
 [tool.hatch.envs.default]
 dependencies = [
+  "flaky",
+  "hypothesis",
   "pytest",
   "pytest-cov",
   "pytest-mypy",
@@ -48,10 +48,9 @@ dependencies = [
   "ruff",
   "pydocstringformatter",
 ]
-features = ["all"]
 
 [tool.hatch.envs.default.scripts]
-test = "pytest -n auto --cov-report lcov --cov-config=pyproject.toml --cov=qadence_protocols --cov=tests {args}"
+test = "pytest -n auto --cov-report lcov --cov-config=pyproject.toml --cov=qadence_protocols --cov=tests --ignore=./tests/test_examples.py {args}"
 test-examples = "pytest ./tests/test_examples.py {args}"
 no-cov = "cov --no-cov {args}"
 test-docs = "mkdocs build --clean --strict"
@@ -59,7 +58,7 @@ test-all = "pytest -n auto {args}  && mkdocs build --clean --strict"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = """-vvv --cov-report=term-missing --cov-config=pyproject.toml --cov=template_python --cov=tests"""
+addopts = """-vvv"""
 xfail_strict = true
 filterwarnings = [
   "ignore:Call to deprecated create function FieldDescriptor",
@@ -68,11 +67,12 @@ filterwarnings = [
   "ignore:Call to deprecated create function EnumValueDescriptor",
   "ignore:Call to deprecated create function FileDescriptor",
   "ignore:Call to deprecated create function OneofDescriptor",
-  "ignore:distutils Version classes are deprecated."
+  "ignore:distutils Version classes are deprecated.",
+  "ignore::DeprecationWarning"
 ]
 
+
 [tool.hatch.envs.docs]
-detached = true
 dependencies = [
   "mkdocs",
   "mkdocs-material",
@@ -81,9 +81,8 @@ dependencies = [
   "mkdocs-section-index",
   "mkdocs-exclude",
   "markdown-exec",
-  "mike"
+  "mike",
 ]
-features = ["all"]
 
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build --clean --strict"
@@ -92,8 +91,8 @@ serve = "mkdocs serve --dev-addr localhost:8000"
 [[tool.hatch.envs.test.matrix]]
 python = ["39", "310"]
 
-[tool.hatch.envs.tests]
-features = ["all"]
+# [tool.hatch.envs.tests]
+# features = ["all"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -106,7 +105,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["qadence-extensions"]
+packages = ["qadence_protocols"]
 
 [tool.coverage.run]
 branch = true
@@ -121,7 +120,7 @@ exclude_lines = [
 
 [tool.ruff]
 select = ["E", "F", "I", "Q"]
-extend-ignore = ["F841"]
+extend-ignore = ["F841","F403"]
 line-length = 100
 
 [tool.ruff.isort]

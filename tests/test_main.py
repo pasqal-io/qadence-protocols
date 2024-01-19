@@ -14,7 +14,8 @@ from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, Z
 from qadence.types import BackendName
 
-from qadence_protocols.twirl_mitigation import twirl_mitigation
+# from qadence_protocols.twirl_mitigation import twirl_mitigation
+import qadence_protocols
 
 
 @pytest.mark.parametrize(
