@@ -65,4 +65,3 @@ def test_readout_twirl_mitigation(
     expectation_mitigated = twirl_mitigation(n_qubits, circuit, backend, noise, n_shots, observable)
 
     assert torch.allclose(expectation_mitigated, expectation_noisless, atol=1.0e-2, rtol=1.0e-1)
-

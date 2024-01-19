@@ -4,6 +4,7 @@ import itertools
 from functools import reduce
 
 import torch
+
 # import pytest
 from qadence import (
     QuantumCircuit,
