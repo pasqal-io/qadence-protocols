@@ -1,21 +1,15 @@
 from __future__ import annotations
 
 import itertools
-from functools import reduce
 
 import torch
 
 # import pytest
-from qadence import (
-    QuantumCircuit,
-    QuantumModel,
-    chain,
-)
+from qadence import QuantumCircuit, QuantumModel, block_to_tensor, chain
 from qadence.noise.protocols import Noise
-from qadence.operations import X, kron
+from qadence.operations import I, X, Z, kron
 from qadence.types import BackendName
-
-# from metrics import MIDDLE_ACCEPTANCE
+from torch import tensor
 
 
 def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
@@ -27,16 +21,16 @@ def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
     return output
 
 
-def compute_exp(n_qubits: int, samples_twirl_list: list, observable: list) -> float:
+def compute_exp(n_qubits: int, samples_twirl: list, observable: list) -> float:
     out: float = 0
-    Z_mat = torch.eye(2)
-    Z_mat[1, 1] = -1
-    o = reduce(torch.kron, [Z_mat if i in observable else torch.eye(2) for i in range(n_qubits)])
+    o = block_to_tensor(
+        kron(*[Z(i) if i in observable else I(i) for i in range(n_qubits)])
+    ).squeeze()
 
-    for samples_twirl in samples_twirl_list:
-        shots = sum(samples_twirl.values())
-        for key in samples_twirl.keys():
-            out += o[int(key, 2), int(key, 2)] * samples_twirl[key] / shots
+    for sample_twirl in samples_twirl:
+        shots = sum(sample_twirl.values())
+        for key in sample_twirl.keys():
+            out += o[int(key, 2), int(key, 2)] * sample_twirl[key] / shots
     return out
 
 
@@ -47,12 +41,21 @@ def twirl_mitigation(
     noise: Noise,
     n_shots: int,
     observable: list,
-) -> float:
-    ## check if observable is in the Z basis
-    ## extend protocol to sum of Z basis observables
-    ### by default lets do all twirling and specialize later for user inputs
+) -> tensor:
+    """Corrects for readout errors on expectation values using all possible twirl operations.
 
-    twirl_list = list(
+    See Equation at the end of page 3
+    See Page(2) in https://arxiv.org/pdf/2012.09738.pdf for implementation
+
+    Args:
+        noise: Specifies confusion matrix and default error probability
+        observable: a list of pauli Z strings specified by index locations
+
+    Returns:
+        Mitigated output is returned
+    """
+
+    twirls = list(
         itertools.chain.from_iterable(
             [list(itertools.combinations(range(n_qubits), k)) for k in range(1, n_qubits)]
         )
@@ -61,23 +64,19 @@ def twirl_mitigation(
     ###generate samples for all twirls of circuit
     samples_twirl_num_list = []
     samples_twirl_den_list = []
-    for twirl in twirl_list:
+    for twirl in twirls:
         layer = [X(i) for i in twirl]
         block_twirl = chain(circuit.block, kron(*layer))
 
         circ_twirl_num = QuantumCircuit(block_twirl.n_qubits, block_twirl)
-        model_twirl_num = QuantumModel(circuit=circ_twirl_num, backend=BackendName.PYQTORCH)
+        model_twirl_num = QuantumModel(circuit=circ_twirl_num, backend=backend)
         samples_twirl_num = model_twirl_num.sample(noise=noise, n_shots=n_shots)[0]
-
-        samples_twirl_num = twirl_swap(n_qubits, twirl, samples_twirl_num)
-        samples_twirl_num_list.append(samples_twirl_num)
+        samples_twirl_num_list.append(twirl_swap(n_qubits, twirl, samples_twirl_num))
 
         circ_twirl_den = QuantumCircuit(block_twirl.n_qubits, kron(*layer))
         model_twirl_den = QuantumModel(circuit=circ_twirl_den, backend=backend)
         samples_twirl_den = model_twirl_den.sample(noise=noise, n_shots=n_shots)[0]
-
-        samples_twirl_den = twirl_swap(n_qubits, twirl, samples_twirl_den)
-        samples_twirl_den_list.append(samples_twirl_den)
+        samples_twirl_den_list.append(twirl_swap(n_qubits, twirl, samples_twirl_den))
 
     expectation: float = 0
 
@@ -86,4 +85,4 @@ def twirl_mitigation(
         expectation_den = compute_exp(n_qubits, samples_twirl_den_list, o)
         expectation += expectation_num / expectation_den
 
-    return expectation
+    return torch.real(expectation)

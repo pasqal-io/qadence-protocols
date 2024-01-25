@@ -9,6 +9,9 @@ readme = "README.md"
 authors = [
     { name = "Mario Dagrada", email = "mario.dagrada@pasqal.com" },
     { name = "Roland Guichard", email = "roland.guichard@pasqal.com" },
+    { name = "Raja Selvarajan", email = "raja.selvarajan@pasqal.com" },
+    { name = "Gergana Velikova", email = "gergana.velikova@pasqal.com" },
+
 ]
 requires-python = ">=3.9,<3.12"
 license = {text = "Apache 2.0"}
@@ -92,7 +95,6 @@ serve = "mkdocs serve --dev-addr localhost:8000"
 python = ["39", "310"]
 
 # [tool.hatch.envs.tests]
-# features = ["all"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [

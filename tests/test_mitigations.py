@@ -14,7 +14,7 @@ from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, Z
 from qadence.types import BackendName
 
-from qadence_protocols.mitigations.twirl_mitigation import twirl_mitigation
+from qadence_protocols.mitigations.twirl import twirl_mitigation
 
 # from qadence_protocols.twirl_mitigation import twirl_mitigation
 
@@ -24,7 +24,7 @@ from qadence_protocols.mitigations.twirl_mitigation import twirl_mitigation
     [
         (
             0.2,
-            100000,
+            10000,
             2,
             chain(kron(RX(0, torch.pi / 3), RX(1, torch.pi / 3)), CNOT(0, 1)),
             [[0, 1], [1]],
