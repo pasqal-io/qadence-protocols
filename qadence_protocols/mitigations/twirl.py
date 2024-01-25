@@ -21,8 +21,8 @@ def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
     return output
 
 
-def compute_exp(n_qubits: int, samples_twirl: list, observable: list) -> float:
-    out: float = 0
+def compute_exp(n_qubits: int, samples_twirl: list, observable: list) -> tensor:
+    out = 0
     o = block_to_tensor(
         kron(*[Z(i) if i in observable else I(i) for i in range(n_qubits)])
     ).squeeze()
