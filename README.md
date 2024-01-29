@@ -1,121 +1,116 @@
-<<<<<<< HEAD
-# Template Python project
+# Qadence-Protocols
 
-This is a template Python project which can be used to bootstrap a new library in the Pasqal quantum software codebase.
+**Qadence-Protocols** is a Python package that provides extra functionality for Qadence.
 
-## Development tools
+[![Linting](https://github.com/pasqal-io/qadence-protocols/actions/workflows/lint.yml/badge.svg)](https://github.com/pasqal-io/qadence-protocols/actions/workflows/lint.yml)
+[![Tests](https://github.com/pasqal-io/qadence-protocols/actions/workflows/test_fast.yml/badge.svg)](https://github.com/pasqal-io/qadence-protocols/actions/workflows/test.yml)
+[![Documentation](https://github.com/pasqal-io/qadence-protocols/actions/workflows/build_docs.yml/badge.svg)](https://pasqal-io.github.io/qadence-protocols/latest)
+<!-- [![Pypi](https://badge.fury.io/py/qadence-protocols.svg)](https://pypi.org/project/qadence-protocols/) -->
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-The library uses the following tools:
+## Feature highlights
 
-* [hatch](https://hatch.pypa.io/latest/) for managing virtual environment and dependencies
-* [pytest](https://docs.pytest.org/en/7.2.x/contents.html) for building the unit tests suite
-* [black](https://black.readthedocs.io/en/stable/), [isort](https://pycqa.github.io/isort/) and [flake8](https://flake8.pycqa.org/en/latest/) for code formatting and linting
-* [mypy](https://mypy.readthedocs.io/en/stable/) for static type checking
-* [pre-commit](https://pre-commit.com/) for applying linting and formatting automatically before committing new code
+* A [block-based system](docs/tutorials/getting_started.md) for composing _**complex digital-analog
+  programs**_ in a flexible and scalable manner, inspired by the Julia quantum SDK
+  [Yao.jl](https://github.com/QuantumBFS/Yao.jl) and functional programming concepts.
 
-We recommend to use [`pyenv`](https://github.com/pyenv/pyenv) for managing
-python versions for managing python versions both globally and locally:
-```bash
-# System-wide install of a python version.
-pyenv install 3.10
+* A [simple interface](docs/digital_analog_qc/analog-basics.md) to work with _**interacting neutral-atom qubit systems**_
+  using [arbitrary registers topologies](docs/tutorials/register.md).
 
-# Use 3.10 everywhere.
-pyenv global 3.10
+* An intuitive [expression-based system](docs/tutorials/parameters.md) developed on top of the symbolic library [Sympy](https://www.sympy.org/en/index.html) to construct _**parametric quantum programs**_ easily.
 
-# Or locally in the current directory.
-pyenv local 3.10
-```
+* [High-order generalized parameter shift rules](docs/advanced_tutorials/differentiability.md) for _**differentiating parametrized quantum operations**_.
 
+* Out-of-the-box _**automatic differentiability**_ of quantum programs with [PyTorch](https://pytorch.org/) integration.
 
-## Install from registry
+* _**Efficient execution**_ on a variety of different purpose backends: from state vector simulators to tensor network emulators and real devices.
 
-Before you can install the library from the private Pasqal PyPi, make sure to ask for `PYPI_USERNAME` and `PYPI_PASSWORD` on the relevant Slack channel.
-You can then set the credentials as environment variables via:
+## Installation guide
+
+Qadence-Protocols will soon be available on PyPI. 
+<!-- [PyPI](https://pypi.org/project/qadence-protocols/) and can be installed using `pip` as follows: -->
 
 ```bash
-export PYPI_USERNAME=MYUSERNAME
-export PYPI_PASSWORD=THEPASSWORD
+pip install qadence_protocols
 ```
 
-You are then able to install the latest version of `template-python-project` from the Pasqal private PyPi.
+<!-- The default, pre-installed backend for Qadence is [PyQTorch](https://github.com/pasqal-io/pyqtorch), a differentiable state vector simulator for digital-analog simulation based on `PyTorch`. It is possible to install additional, `PyTorch` -based backends and the circuit visualization library using the following extras: -->
+
+<!-- * `pulser`: The [Pulser](https://github.com/pasqal-io/Pulser) backend for composing, simulating and executing pulse sequences for neutral-atom quantum devices. -->
+<!-- * `braket`: The [Braket](https://github.com/amazon-braket/amazon-braket-sdk-python) backend, an open source library that provides a framework for interacting with quantum computing hardware devices through Amazon Braket. -->
+<!-- * `visualization`: A visualization library to display quantum circuit diagrams. -->
+
+<!-- Qadence also supports a `JAX` engine which is currently supporting the [Horqrux](https://github.com/pasqal-io/horqrux) backend. `horqrux` is currently only available via the [low-level API](examples/backends/low_level/horqrux_backend.py). -->
 
 
-## Install from source
+<!-- To install individual extras, use the following syntax (**IMPORTANT** Make sure to use quotes): -->
 
-All Pasqal quantum libraries require Python >=3.8. For development, the preferred method to install this package is
-to use `hatch`. You can install from source by cloning this repository and run:
+<!-- ```bash -->
+<!-- pip install "qadence[braket,pulser,visualization]" -->
+<!-- ``` -->
+
+<!-- To install all available extras, simply do: -->
+
+<!-- ```bash -->
+<!-- pip install "qadence[all]" -->
+<!-- ``` -->
+
+<!-- **IMPORTANT** -->
+<!-- Before installing `qadence` with the `visualization` extra, make sure to install the `graphviz` package -->
+<!-- on your system: -->
+
+<!-- ```bash -->
+<!-- # For Debian-based distributions (e.g. Debian, Ubuntu) -->
+<!-- sudo apt install graphviz -->
+
+<!-- # on MacOS -->
+<!-- brew install graphviz -->
+
+<!-- # via conda -->
+<!-- conda install python-graphviz -->
+<!-- ``` -->
+
+## Contributing
+
+Before making a contribution, please review our [code of conduct](docs/CODE_OF_CONDUCT.md).
+
+- **Submitting Issues:** To submit bug reports or feature requests, please use our [issue tracker](https://github.com/pasqal-io/qadence-protocols/issues).
+- **Developing in qadence:** To learn more about how to develop within `qadence`, please refer to [contributing guidelines](docs/CONTRIBUTING.md).
+
+### Setting up qadence in development mode
+
+We recommend to use the [`hatch`](https://hatch.pypa.io/latest/) environment manager to install `qadence_protocols` from source:
 
 ```bash
 python -m pip install hatch
-python -m hatch -v shell
 
-# execute any script using the library
-python my_script.py
+# get into a shell with all the dependencies
+python -m hatch shell
+
+# run a command within the virtual environment with all the dependencies
+python -m hatch run python my_script.py
 ```
 
-Alternatively, you can also:
-
-* install with `pip` in development mode by simply running `pip install -e .`. Notice that in this way
-  you will install all the dependencies, including extras.
-* install it with `conda` by simply using `pip` inside the Conda environment.
-
-
-## Develop
-
-When developing the package, the recommended way is to create a virtual environment with `hatch` as shown above:
+**WARNING**
+`hatch` will not combine nicely with other environment managers such as Conda. If you still want to use Conda,
+install it from source using `pip`:
 
 ```bash
-python -m pip install hatch
-python -m hatch -v shell
+# within the Conda environment
+python -m pip install -e .
 ```
 
-When inside the shell with development dependencies, install first the pre-commit hook:
-```
-pre-commit install
-```
+## Citation
 
-In this way, you will get automatic linting and formatting every time you commit new code. Do not
-forget to run the unit test suite by simply running the `pytest` command.
+If you use Qadence-Protocols for a publication, we kindly ask you to cite our work using the following BibTex entry:
 
-If you do not want to get into the Hatch shell, you can alternatively do the following:
-
-```bash
-python -m pip install hatch
-python -m hatch -v shell
-
-# install the pre-commit
-python -m hatch run pre-commit install
-
-# commit some code
-python -m hatch run git commit -m "My awesome commit"
-
-# run the unit tests suite
-python -m hatch run pytest
-
+```latex
+@misc{qadence2023pasqal,
+  url = {https://github.com/pasqal-io/qadence},
+  title = {Qadence: {A} {D}igital-analog quantum programming interface.},
+  year = {2023}
+}
 ```
 
-## Document
-
-You can improve the documentation of the package by editing this file for the landing page or adding new
-markdown or Jupyter notebooks to the `docs/` folder in the root of the project. In order to modify the
-table of contents, edit the `mkdocs.yml` file in the root of the project.
-
-In order to build and serve the documentation locally, you can use `hatch` with the right environment:
-
-```bash
-python -m hatch -v run docs:build
-python -m hatch -v run docs:serve
-```
-
-If you don't want to use `hatch`, just check into your favorite virtual environment and
-execute the following commands:
-
-```bash
-python -m pip install -r docs/requirements.txt
-mkdocs build
-mkdocs serve
-```
-=======
-# qadence-protocols
-Protocols for running Qadence experiments.
->>>>>>> main
+## License
+Qadence-Protocols is a free and open source software package, released under the Apache License, Version 2.0.
