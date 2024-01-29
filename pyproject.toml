@@ -37,6 +37,8 @@ all = ["pyqtorch==1.0.3", "qadence[visualization]==1.2.3"]
 
 [tool.hatch.envs.default]
 dependencies = [
+  "flaky",
+  "hypothesis",
   "pytest",
   "pytest-cov",
   "pytest-mypy",
@@ -59,7 +61,7 @@ test-all = "pytest -n auto {args}  && mkdocs build --clean --strict"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = """-vvv --cov-report=term-missing --cov-config=pyproject.toml --cov=template_python --cov=tests"""
+addopts = """-vvv --cov-report=term-missing --cov-config=pyproject.toml --cov=qadence_protocols --cov=tests"""
 xfail_strict = true
 filterwarnings = [
   "ignore:Call to deprecated create function FieldDescriptor",
