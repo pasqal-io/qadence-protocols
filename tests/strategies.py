@@ -7,9 +7,6 @@ from typing import Any, Callable, Set
 
 import hypothesis.strategies as st
 from hypothesis.strategies._internal import SearchStrategy
-from sympy import Basic, Expr, acos, asin, atan, cos, sin, tan
-from torch import Tensor
-
 from qadence.blocks import (
     AbstractBlock,
     ParametricBlock,
@@ -31,6 +28,8 @@ from qadence.operations import (
 )
 from qadence.parameters import FeatureParameter, Parameter, VariationalParameter
 from qadence.types import PI, BackendName, ParameterType, TNumber
+from sympy import Basic, Expr, acos, asin, atan, cos, sin, tan
+from torch import Tensor
 
 PARAM_NAME_LENGTH = 1
 MIN_SYMBOLS = 1
