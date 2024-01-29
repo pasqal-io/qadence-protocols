@@ -5,8 +5,6 @@ from functools import reduce
 
 import numpy as np
 import torch
-from torch import Tensor
-
 from qadence.backends import backend_factory
 from qadence.blocks import AbstractBlock, PrimitiveBlock
 from qadence.blocks.utils import unroll_block_with_scaling
@@ -16,6 +14,7 @@ from qadence.operations import H, SDagger, X, Y, Z, chain
 from qadence.parameters import evaluate
 from qadence.types import BackendName, DiffMode
 from qadence.utils import Endianness
+from torch import Tensor
 
 
 def get_qubit_indices_for_op(pauli_term: tuple, op: PrimitiveBlock | None = None) -> list[int]:

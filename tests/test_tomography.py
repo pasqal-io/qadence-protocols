@@ -7,8 +7,6 @@ import pytest
 import strategies as st  # type: ignore
 from hypothesis import given, settings
 from metrics import HIGH_ACCEPTANCE, LOW_ACCEPTANCE, MIDDLE_ACCEPTANCE  # type: ignore
-from torch import allclose, autograd, flatten, manual_seed, ones_like, rand, tensor
-
 from qadence.backends import backend_factory
 from qadence.blocks import (
     AbstractBlock,
@@ -40,6 +38,7 @@ from qadence.models import QNN, QuantumModel
 from qadence.operations import RX, RY, H, SDagger, X, Y, Z
 from qadence.parameters import Parameter
 from qadence.types import BackendName, BasisSet, DiffMode
+from torch import allclose, autograd, flatten, manual_seed, ones_like, rand, tensor
 
 manual_seed(1)
 

@@ -27,7 +27,7 @@
 
 ## Installation guide
 
-Qadence-Protocols will soon be available on PyPI. 
+Qadence-Protocols will soon be available on PyPI.
 <!-- [PyPI](https://pypi.org/project/qadence-protocols/) and can be installed using `pip` as follows: -->
 
 ```bash

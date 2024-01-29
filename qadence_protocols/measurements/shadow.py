@@ -5,8 +5,6 @@ from functools import reduce
 
 import numpy as np
 import torch
-from torch import Tensor
-
 from qadence.backends import backend_factory
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.block_to_tensor import (
@@ -24,6 +22,7 @@ from qadence.noise import Noise
 from qadence.operations import X, Y, Z, chain, kron
 from qadence.states import one_state, zero_state
 from qadence.types import BackendName, DiffMode, Endianness
+from torch import Tensor
 
 pauli_gates = [X, Y, Z]
 

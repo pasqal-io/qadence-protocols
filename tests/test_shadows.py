@@ -6,8 +6,6 @@ from collections import Counter
 
 import pytest
 import torch
-from torch import Tensor
-
 from qadence.backends.api import backend_factory
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.block_to_tensor import IMAT
@@ -31,6 +29,7 @@ from qadence.operations import RX, RY, H, I, X, Y, Z
 from qadence.parameters import Parameter
 from qadence.serialization import deserialize
 from qadence.types import BackendName, DiffMode
+from torch import Tensor
 
 
 @pytest.mark.parametrize(
