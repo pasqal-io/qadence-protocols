@@ -50,7 +50,7 @@ def apply_mitigation(
     noise: Noise, mitigation: Mitigations, samples: list[Counter]
 ) -> list[Counter]:
     """Apply mitigation to samples."""
-    mitigation_fn = mitigation.get_mitigation_fn()
+    mitigation_fn = mitigation.mitigation()
     mitigated_samples: list[Counter] = mitigation_fn(
         noise=noise, mitigation=mitigation, samples=samples
     )
