@@ -1,6 +1,6 @@
-site_name: Template Python project
-repo_url: "https://gitlab.pasqal.com/pqs/template-python-project"
-repo_name: "template_python_project"
+site_name: Qadence Protocols
+repo_url: "https://github.com/pasqal-io/qadence-protocols.git"
+repo_name: "qadence_protocols"
 
 nav:
   - Overview: index.md
@@ -49,8 +49,6 @@ plugins:
           filters:
             - "!^_"  # exlude all members starting with _
             - "^__init__$"  # but always include __init__ modules and methods
-    watch:
-      - template_python
 
 - mkdocs-jupyter:
     theme: light
@@ -65,3 +63,6 @@ extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+watch:
+  - qadence_protocols
