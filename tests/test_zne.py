@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-from collections import Counter
-
 import pytest
 import torch
-from metrics import MIDDLE_ACCEPTANCE
-from torch import Tensor
-
 from qadence import (
     AbstractBlock,
     AnalogRX,
@@ -18,10 +13,10 @@ from qadence import (
     entangle,
     hamiltonian_factory,
 )
-from qadence.divergences import js_divergence
 from qadence.noise.protocols import Noise
-from qadence.operations import CNOT, RX, RY, RZ, HamEvo, X, Y, Z, add, kron
-from qadence.types import PI, BackendName, DiffMode, ReadOutOptimization
+from qadence.operations import RY, Z
+from qadence.types import PI, BackendName, DiffMode
+from torch import Tensor
 
 
 @pytest.mark.parametrize(
