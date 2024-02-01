@@ -4,8 +4,6 @@ from typing import cast
 
 import numpy as np
 import torch
-from torch import Tensor
-
 from qadence import BackendName
 from qadence.backends.api import backend_factory
 from qadence.backends.pulser.backend import Backend
@@ -19,6 +17,7 @@ from qadence.noise import Noise
 from qadence.operations import AnalogRot
 from qadence.transpile import apply_fn_to_blocks
 from qadence.utils import Endianness
+from torch import Tensor
 
 
 def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
