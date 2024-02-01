@@ -210,18 +210,19 @@ def test_compare_readout_methods(
     noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
 
     mitigation_mle = Mitigations(
-        protocol=Mitigations.READOUT, options={"optimization_type": ReadOutOptimization.CONSTRAINED}
-    )
-    mitigated_samples_mle: list[Counter] = model.sample(
-        noise=noise, mitigation=mitigation_mle, n_shots=n_shots
-    )
+        protocol=Mitigations.READOUT,
+        options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots},
+    ).mitigation()
+    mitigated_samples_mle: list[Counter] = mitigation_mle(model=model, noise=noise)
 
     mitigation_constrained_opt = Mitigations(
-        protocol=Mitigations.READOUT, options={"optimization_type": ReadOutOptimization.MLE}
+        protocol=Mitigations.READOUT,
+        options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots},
+    ).mitigation()
+    mitigated_samples_constrained_opt: list[Counter] = mitigation_constrained_opt(
+        model=model, noise=noise
     )
-    mitigated_samples_constrained_opt: list[Counter] = model.sample(
-        noise=noise, mitigation=mitigation_constrained_opt, n_shots=n_shots
-    )
+
     js_mitigated_mle = js_divergence(mitigated_samples_mle[0], noiseless_samples[0])
     js_mitigated_constrained_opt = js_divergence(
         mitigated_samples_constrained_opt[0], noiseless_samples[0]

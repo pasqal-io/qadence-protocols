@@ -156,7 +156,6 @@ def mitigation_minimization(
 
 
 def mitigate(model: QuantumModel, options: dict, noise: Noise | None = None) -> list[Counter]:
-    # breakpoint()
     if noise is None or noise.protocol != Noise.READOUT:
         if model._noise is None or model._noise.protocol != Noise.READOUT:
             raise ValueError(
