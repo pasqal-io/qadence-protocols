@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import Callable, cast
 
 PROTOCOL_TO_MODULE = {
-    "tomography": "qadence.measurements.tomography",
-    "shadow": "qadence.measurements.shadow",
+    "tomography": "qadence_protocols.measurements.tomography",
+    "shadow": "qadence_protocols.measurements.shadow",
 }
 
 
@@ -20,12 +20,14 @@ class Measurements:
         self.protocol: str = protocol
         self.options: dict = options
 
-    def get_measurement_fn(self) -> Callable:
+    def measure(self) -> Callable:
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
-            ImportError(f"The module corresponding to the protocol {self.protocol} is not found.")
-        fn = getattr(module, "compute_expectation")
+            ImportError(
+                f"The module corresponding to the protocol {self.protocol} is not implemented."
+            )
+        fn = getattr(module, "measure")
         return cast(Callable, fn)
 
     def _to_dict(self) -> dict:
