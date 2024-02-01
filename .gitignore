@@ -45,6 +45,7 @@ Pipfile
 runs/
 *venv
 *~
+*lcov
 
 # Mkdocs
 site/

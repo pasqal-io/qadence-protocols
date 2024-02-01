@@ -14,9 +14,7 @@ from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, Z
 from qadence.types import BackendName
 
-from qadence_protocols.mitigations.twirl import twirl_mitigation
-
-# from qadence_protocols.twirl_mitigation import twirl_mitigation
+from qadence_protocols.mitigations.protocols import Mitigations
 
 
 @pytest.mark.parametrize(
@@ -57,11 +55,12 @@ def test_readout_twirl_mitigation(
         measurement=tomo_measurement,
     )
 
-    expectation_noisless = model.expectation(
+    expectation_noiseless = model.expectation(
         measurement=tomo_measurement,
     )
-    # expectation_noisy = model.expectation(measurement=tomo_measurement,noise=noise)
 
-    expectation_mitigated = twirl_mitigation(n_qubits, circuit, backend, noise, n_shots, observable)
+    mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
 
-    assert torch.allclose(expectation_mitigated, expectation_noisless, atol=1.0e-2, rtol=1.0e-1)
+    expectation_mitigated = mitigate(n_qubits, circuit, backend, noise, n_shots, observable)
+
+    assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-2, rtol=1.0e-1)

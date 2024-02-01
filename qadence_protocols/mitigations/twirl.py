@@ -34,7 +34,7 @@ def compute_exp(n_qubits: int, samples_twirl: list, observable: list) -> tensor:
     return out
 
 
-def twirl_mitigation(
+def mitigate(
     n_qubits: int,
     circuit: QuantumCircuit,
     backend: BackendName,
@@ -61,7 +61,7 @@ def twirl_mitigation(
         )
     )
 
-    ###generate samples for all twirls of circuit
+    # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
     samples_twirl_den_list = []
     for twirl in twirls:
