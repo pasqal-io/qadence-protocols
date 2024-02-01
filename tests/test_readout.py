@@ -3,25 +3,19 @@ from __future__ import annotations
 from collections import Counter
 
 import pytest
-import torch
 from metrics import MIDDLE_ACCEPTANCE
-from torch import Tensor
-
 from qadence import (
     AbstractBlock,
-    AnalogRX,
-    AnalogRZ,
-    Mitigations,
     QuantumCircuit,
     QuantumModel,
-    chain,
-    entangle,
     hamiltonian_factory,
 )
 from qadence.divergences import js_divergence
 from qadence.noise.protocols import Noise
-from qadence.operations import CNOT, RX, RY, RZ, HamEvo, X, Y, Z, add, kron
-from qadence.types import PI, BackendName, DiffMode, ReadOutOptimization
+from qadence.operations import CNOT, RX, RZ, HamEvo, X, Y, Z, add, kron
+from qadence.types import BackendName, ReadOutOptimization
+
+from qadence_protocols.mitigations.protocols import Mitigations
 
 
 @pytest.mark.flaky(max_runs=5)
@@ -151,18 +145,42 @@ def test_readout_mitigation_quantum_model(
 ) -> None:
     diff_mode = "ad" if backend == BackendName.PYQTORCH else "gpsr"
     circuit = QuantumCircuit(block.n_qubits, block)
+    noise = Noise(protocol=Noise.READOUT)
     model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
 
-    noise = Noise(protocol=Noise.READOUT)
-    mitigation = Mitigations(
-        protocol=Mitigations.READOUT, options={"optimization_type": optimization_type}
-    )
     noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
+    # Run noisy simulations through samples.
     noisy_samples: list[Counter] = model.sample(noise=noise, n_shots=n_shots)
-    mitigated_samples: list[Counter] = model.sample(
-        noise=noise, mitigation=mitigation, n_shots=n_shots
-    )
+    # Pass the noisy samples to the mitigation protocol.
+    mitigate = Mitigations(
+        protocol=Mitigations.READOUT,
+        options={"optimization_type": optimization_type, "samples": noisy_samples},
+    ).mitigation()
+    mitigated_samples = mitigate(model=model)
 
+    js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
+    js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
+    assert js_mitigated < js_noisy
+
+    # Noisy simulations through the QM.
+    noisy_model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode, noise=noise)
+    noisy_samples = model.sample(noise=noise, n_shots=n_shots)
+    mitigate = Mitigations(
+        protocol=Mitigations.READOUT,
+        options={"optimization_type": optimization_type, "samples": noisy_samples},
+    ).mitigation()
+    mitigated_samples = mitigate(model=model)
+    js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
+    js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
+    assert js_mitigated < js_noisy
+
+    # Noisy simulations through the protocol.
+    model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
+    mitigate = Mitigations(
+        protocol=Mitigations.READOUT,
+        options={"optimization_type": optimization_type, "n_shots": n_shots},
+    ).mitigation()
+    mitigated_samples = mitigate(model=model, noise=noise)
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
     assert js_mitigated < js_noisy
