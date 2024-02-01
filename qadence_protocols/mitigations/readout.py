@@ -7,12 +7,11 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from numpy.linalg import inv, matrix_rank, pinv
-from scipy.linalg import norm
-from scipy.optimize import LinearConstraint, minimize
-
-from qadence.mitigations.protocols import Mitigations
+from qadence import QuantumModel
 from qadence.noise.protocols import Noise
 from qadence.types import ReadOutOptimization
+from scipy.linalg import norm
+from scipy.optimize import LinearConstraint, minimize
 
 
 def corrected_probas(p_corr: npt.NDArray, T: npt.NDArray, p_raw: npt.NDArray) -> np.double:
@@ -70,7 +69,7 @@ def matrix_inv(K: npt.NDArray) -> npt.NDArray:
 
 def mitigation_minimization(
     noise: Noise,
-    mitigation: Mitigations,
+    options: dict,
     samples: list[Counter],
 ) -> list[Counter]:
     """Minimize a correction matrix subjected to stochasticity constraints.
@@ -89,7 +88,7 @@ def mitigation_minimization(
         Mitigated counts computed by the algorithm
     """
     noise_matrices = noise.options.get("noise_matrix", noise.options["confusion_matrices"])
-    optimization_type = mitigation.options.get("optimization_type", ReadOutOptimization.MLE)
+    optimization_type = options.get("optimization_type", ReadOutOptimization.MLE)
     n_qubits = len(list(samples[0].keys())[0])
     n_shots = sum(samples[0].values())
     corrected_counters: list[Counter] = []
@@ -156,5 +155,19 @@ def mitigation_minimization(
     return corrected_counters
 
 
-def mitigate(noise: Noise, mitigation: Mitigations, samples: list[Counter]) -> list[Counter]:
-    return mitigation_minimization(noise=noise, mitigation=mitigation, samples=samples)
+def mitigate(model: QuantumModel, options: dict, noise: Noise | None = None) -> list[Counter]:
+    # breakpoint()
+    if noise is None or noise.protocol != Noise.READOUT:
+        if model._noise is None or model._noise.protocol != Noise.READOUT:
+            raise ValueError(
+                "A Noise.READOUT model must be provided either to .mitigate()"
+                " or through the <class QuantumModel>."
+            )
+        noise = model._noise
+    samples = options.get("samples", None)
+    if samples is None:
+        n_shots = options.get("n_shots", None)
+        if n_shots is None:
+            raise ValueError("A n_shots option must be provided.")
+        samples = model.sample(noise=noise, n_shots=n_shots)
+    return mitigation_minimization(noise=noise, options=options, samples=samples)
