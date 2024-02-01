@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import importlib
-from collections import Counter
 from dataclasses import dataclass
-from typing import Callable, cast
-
-from qadence.noise.protocols import Noise
+from functools import partial
+from typing import Callable
 
 PROTOCOL_TO_MODULE = {
     "twirl": "qadence_protocols.mitigations.twirl",
@@ -29,8 +27,8 @@ class Mitigations:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
             ImportError(f"The module for the protocol {self.protocol} is not implemented.")
-        fn = getattr(module, "mitigate")
-        return cast(Callable, fn)
+        # Partially pass the options.
+        return partial(getattr(module, "mitigate"), options=self.options)
 
     def _to_dict(self) -> dict:
         return {"protocol": self.protocol, "options": self.options}
