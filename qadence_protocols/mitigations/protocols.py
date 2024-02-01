@@ -42,14 +42,3 @@ class Mitigations:
     @classmethod
     def list(cls) -> list:
         return list(filter(lambda el: not el.startswith("__"), dir(cls)))
-
-
-def apply_mitigation(
-    noise: Noise, mitigation: Mitigations, samples: list[Counter]
-) -> list[Counter]:
-    """Apply mitigation to samples."""
-    mitigation_fn = mitigation.mitigation()
-    mitigated_samples: list[Counter] = mitigation_fn(
-        noise=noise, mitigation=mitigation, samples=samples
-    )
-    return mitigated_samples
