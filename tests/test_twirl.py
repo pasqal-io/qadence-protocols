@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-from qadence_protocols.mitigations.twirl import mitigate
 import torch
 from qadence import (
     AbstractBlock,
@@ -61,7 +60,7 @@ def test_readout_twirl_mitigation(
     )
 
     mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
-    
+
     expectation_mitigated = mitigate(n_qubits, circuit, backend, noise, n_shots, observable)
 
     assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-2, rtol=1.0e-1)
