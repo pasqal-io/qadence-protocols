@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from typing import cast
-
 import numpy as np
 import torch
-from qadence import BackendName
+from qadence import BackendName, QuantumModel
 from qadence.backends.api import backend_factory
 from qadence.backends.pulser.backend import Backend
 from qadence.blocks import block_to_tensor
 from qadence.blocks.abstract import AbstractBlock
-from qadence.blocks.analog import ConstantAnalogRotation, WaitBlock
+from qadence.blocks.analog import ConstantAnalogRotation, InteractionBlock
 from qadence.circuit import QuantumCircuit
-from qadence.measurements import Measurements
-from qadence.mitigations import Mitigations
 from qadence.noise import Noise
 from qadence.operations import AnalogRot
 from qadence.transpile import apply_fn_to_blocks
 from qadence.utils import Endianness
 from torch import Tensor
+
+supported_noise_models = [Noise.DEPOLARIZING, Noise.DEPHASING]
 
 
 def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
@@ -51,7 +49,7 @@ def pulse_experiment(
     def mutate_params(block: AbstractBlock, stretch: float) -> AbstractBlock:
         """Closure to retrieve and stretch analog parameters."""
         # Check for stretchable analog block.
-        if isinstance(block, (ConstantAnalogRotation, WaitBlock)):
+        if isinstance(block, (ConstantAnalogRotation, InteractionBlock)):
             stretched_duration = block.parameters.duration * stretch
             stretched_omega = block.parameters.omega / stretch
             stretched_delta = block.parameters.delta / stretch
@@ -145,29 +143,22 @@ def noise_level_experiment(
 
 
 def analog_zne(
-    backend_name: BackendName,
-    circuit: QuantumCircuit,
-    observable: list[AbstractBlock],
-    param_values: dict[str, Tensor] = {},
+    model: QuantumModel,
+    options: dict,
+    noise: Noise,
+    param_values: dict[str, Tensor],
     state: Tensor | None = None,
-    measurement: Measurements | None = None,
-    noise: Noise | None = None,
-    mitigation: Mitigations | None = None,
     endianness: Endianness = Endianness.BIG,
 ) -> Tensor:
-    assert noise
-    assert mitigation
-    backend = backend_factory(backend=BackendName.PULSER, diff_mode=None)
-    backend = cast(Backend, backend)
-    noise_model = mitigation.options.get("noise_model", None)
-    if noise_model is None:
-        KeyError(f"A noise model should be choosen from {Noise.list()}. Got {noise_model}.")
-    stretches = mitigation.options.get("stretches", None)
+    if model._backend_name != BackendName.PULSER:
+        raise ValueError("Only BackendName.PULSER supports analog simulations.")
+    backend = backend_factory(backend=model._backend_name, diff_mode=None)
+    stretches = options.get("stretches", None)
     if stretches is not None:
         extrapolated_exp_values = pulse_experiment(
             backend=backend,
-            circuit=circuit,
-            observable=observable,
+            circuit=model._circuit.original,
+            observable=[obs.original for obs in model._observable],
             param_values=param_values,
             noise=noise,
             stretches=stretches,
@@ -177,8 +168,8 @@ def analog_zne(
     else:
         extrapolated_exp_values = noise_level_experiment(
             backend=backend,
-            circuit=circuit,
-            observable=observable,
+            circuit=model._circuit.original,
+            observable=[obs.original for obs in model._observable],
             param_values=param_values,
             noise=noise,
             endianness=endianness,
@@ -188,25 +179,20 @@ def analog_zne(
 
 
 def mitigate(
-    backend_name: BackendName,
-    circuit: QuantumCircuit,
-    observable: list[AbstractBlock],
-    param_values: dict[str, Tensor] = {},
-    state: Tensor | None = None,
-    measurement: Measurements | None = None,
+    model: QuantumModel,
+    options: dict,
     noise: Noise | None = None,
-    mitigation: Mitigations | None = None,
-    endianness: Endianness = Endianness.BIG,
+    param_values: dict[str, Tensor] = dict(),
 ) -> Tensor:
-    mitigated_exp = analog_zne(
-        backend_name=backend_name,
-        circuit=circuit,
-        observable=observable,
-        param_values=param_values,
-        state=state,
-        measurement=measurement,
-        noise=noise,
-        mitigation=mitigation,
-        endianness=endianness,
+    if noise is None or noise.protocol not in supported_noise_models:
+        if model._noise is None or model._noise.protocol not in supported_noise_models:
+            raise ValueError(
+                "A Noise.DEPOLARIZING or Noise.DEPHASING model must be provided"
+                " either to .mitigate() or through the <class QuantumModel>."
+            )
+        noise = model._noise
+
+    mitigation_zne = analog_zne(
+        model=model, options=options, noise=noise, param_values=param_values
     )
-    return mitigated_exp
+    return mitigation_zne

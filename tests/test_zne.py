@@ -6,17 +6,17 @@ from qadence import (
     AbstractBlock,
     AnalogRX,
     AnalogRZ,
-    Mitigations,
     QuantumCircuit,
     QuantumModel,
     chain,
-    entangle,
     hamiltonian_factory,
 )
 from qadence.noise.protocols import Noise
-from qadence.operations import RY, Z
+from qadence.operations import RY, Z, entangle
 from qadence.types import PI, BackendName, DiffMode
 from torch import Tensor
+
+from qadence_protocols.mitigations.protocols import Mitigations
 
 
 @pytest.mark.parametrize(
@@ -49,9 +49,9 @@ def test_analog_zne_with_noise_levels(
     )
     options = {"noise_probs": noise_probs}
     noise = Noise(protocol=noise_type, options=options)
-    mitigation = Mitigations(protocol=Mitigations.ANALOG_ZNE)
+    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE).mitigation()
     exact_expectation = model.expectation()
-    mitigated_expectation = model.expectation(noise=noise, mitigation=mitigation)
+    mitigated_expectation = mitigate(model=model, noise=noise)
     assert torch.allclose(mitigated_expectation, exact_expectation, atol=1.0e-2)
 
 
@@ -93,9 +93,7 @@ def test_analog_zne_with_pulse_stretching(
     options = {"noise_probs": noise_probs}
     noise = Noise(protocol=noise_type, options=options)
     options = {"stretches": torch.tensor([1.0, 1.5, 2.0, 2.5, 3.0])}
-    mitigation = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options)
-    mitigated_expectation = model.expectation(
-        values=param_values, noise=noise, mitigation=mitigation
-    )
+    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options).mitigation()
+    mitigated_expectation = mitigate(model=model, noise=noise, param_values=param_values)
     exact_expectation = model.expectation(values=param_values)
     assert torch.allclose(mitigated_expectation, exact_expectation, atol=2.0e-1)
