@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from functools import reduce
 
 import numpy as np
 import numpy.typing as npt
@@ -15,26 +14,25 @@ from scipy.optimize import LinearConstraint, minimize
 
 
 def tensor_rank_mult(qubit_matrices: torch.Tensor, prob_vect: npt.NDArray) -> npt.NDArray:
+    N = int(np.log2(len(prob_vect)))
 
-    N = int(np.log2(len(prob_vect))) 
-    
     # Reshape meausurements into a rank N tensor
-    prob_vect_t = prob_vect.reshape(N*[2]).transpose()
-    
+    prob_vect_t = prob_vect.reshape(N * [2]).transpose()
+
     # Contract each tensor index (qubit) with the inverse of the single-qubit
     for i in range(N):
-        prob_vect_t = np.tensordot(qubit_matrices[i], prob_vect_t, axes = (1, i))
-        
+        prob_vect_t = np.tensordot(qubit_matrices[i], prob_vect_t, axes=(1, i))
+
     # Obtain corrected measurements by shaping back into a vector
     return prob_vect_t.reshape(2**N)
-    
 
 
-def corrected_probas(p_corr: npt.NDArray, noise_matrices: torch.Tensor, p_raw: npt.NDArray) -> np.double:
+def corrected_probas(
+    p_corr: npt.NDArray, noise_matrices: torch.Tensor, p_raw: npt.NDArray
+) -> np.double:
     ## computing rectified probabilites without computing the full T matrix
     p_estim = tensor_rank_mult(noise_matrices, p_corr.T)
     return norm(p_estim - p_raw.T, ord=2) ** 2
-
 
 
 def mle_solve(p_raw: npt.NDArray) -> npt.NDArray:
@@ -111,8 +109,6 @@ def mitigation_minimization(
     n_qubits = len(list(samples[0].keys())[0])
     n_shots = sum(samples[0].values())
     corrected_counters: list[Counter] = []
-
-
 
     for sample in samples:
         bitstring_length = 2**n_qubits
