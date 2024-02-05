@@ -22,7 +22,12 @@ from qadence_protocols.mitigations.protocols import Mitigations
 @pytest.mark.parametrize(
     "error_probability, n_shots, block, backend, optimization_type",
     [
-        (0.1, 100, kron(X(0), X(1)), BackendName.BRAKET, ReadOutOptimization.MLE),
+        (
+            0.1, 
+            100,
+            kron(X(0), X(1)), 
+            BackendName.BRAKET, 
+            ReadOutOptimization.MLE),
         (
             0.1,
             1000,
@@ -30,7 +35,13 @@ from qadence_protocols.mitigations.protocols import Mitigations
             BackendName.BRAKET,
             ReadOutOptimization.MLE,
         ),
-        (0.15, 1000, add(Z(0), Z(1), Z(2)), BackendName.BRAKET, ReadOutOptimization.CONSTRAINED),
+        (
+            0.15, 
+            1000, 
+            add(Z(0), Z(1), Z(2)), 
+            BackendName.BRAKET, 
+            ReadOutOptimization.CONSTRAINED
+        ),
         (
             0.1,
             5000,
