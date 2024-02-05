@@ -41,6 +41,7 @@ def mitigate(
     noise: Noise,
     n_shots: int,
     observable: list,
+    options: dict,
 ) -> tensor:
     """Corrects for readout errors on expectation values using all possible twirl operations.
 
