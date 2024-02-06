@@ -14,9 +14,9 @@ class StrEnum(str, Enum):
         return list(map(lambda c: c.value, cls))  # type: ignore
 
 
-
 class Protocols(StrEnum):
     """The available protocols for running experiments."""
+
     MITIGATIONS = "mitigations"
     """The Mitigations protocol."""
     # TODO: Placeholder for the measurements protocol.
