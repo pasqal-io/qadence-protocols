@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import torch
-from torch import Tensor
 from qadence.blocks import AbstractBlock
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence_protocols.measurements.utils import *
-from qadence.types import BackendName, DiffMode
-from qadence.utils import Endianness
-from qadence.noise import Noise
 from qadence.circuit import QuantumCircuit
+from qadence.noise import Noise
+from qadence.types import BackendName
+from qadence.utils import Endianness
+from torch import Tensor
 
+from qadence_protocols.measurements.utils import iterate_pauli_decomposition
 
 
 def compute_expectation(
@@ -22,7 +21,6 @@ def compute_expectation(
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
 ) -> Tensor:
-    
     """Basic tomography protocol with rotations.
 
     Given a circuit and a list of observables, apply basic tomography protocol to estimate
@@ -35,7 +33,7 @@ def compute_expectation(
             Here, shadow_size (int), accuracy (float) and confidence (float) are supported.
         samples (List | None): List of samples against which expectation value is to be computed
     """
-    
+
     ## add test to see if all observables are in the Z basis
     if not isinstance(observables, list):
         raise TypeError(
@@ -45,4 +43,4 @@ def compute_expectation(
         )
 
     pauli_decomposition = unroll_block_with_scaling(observables[0])
-    return iterate_pauli_decomposition(pauli_decomposition,options["samples"])
+    return iterate_pauli_decomposition(pauli_decomposition, options["samples"])

@@ -4,16 +4,13 @@ import importlib
 from dataclasses import dataclass
 from typing import Callable, cast
 
-PROTOCOL_TO_MODULE = {
-    "samples": "qadence_protocols.measurements.samples"
-}
+PROTOCOL_TO_MODULE = {"samples": "qadence_protocols.measurements.samples"}
 
 
 # TODO: make this a StrEnum to keep consistency with the rest of the interface
 @dataclass
 class Measurements:
     SAMPLES = "samples"
-
 
     def __init__(self, protocol: str, options: dict) -> None:
         self.protocol: str = protocol
