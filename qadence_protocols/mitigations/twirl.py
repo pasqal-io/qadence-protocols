@@ -4,10 +4,10 @@ import itertools
 
 import torch
 
-# import pytest
+from qadence import kron
 from qadence import QuantumCircuit, QuantumModel, block_to_tensor, chain
 from qadence.noise.protocols import Noise
-from qadence.operations import I, X, Z, kron
+from qadence.operations import I, X, Z
 from qadence.types import BackendName
 from torch import tensor
 
