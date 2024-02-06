@@ -7,18 +7,24 @@ import torch
 # import pytest
 from qadence import QuantumCircuit, QuantumModel, block_to_tensor, chain
 from qadence.noise.protocols import Noise
-from qadence.operations import I, X, Z, kron
+from qadence.operations import I, X, Z, kron, RX,RY
+from qadence.blocks.utils import unroll_block_with_scaling
 from qadence.types import BackendName
 from torch import tensor
+from qadence_protocols.measurements import Measurements
+from collections import Counter
+from qadence.parameters import evaluate
+
+
 
 
 def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
     output = {}
     operand = "".join(map(str, [1 if i in twirl else 0 for i in range(n_qubits)]))
     for key in samples_twirl.keys():
-        output["{0:b}".format(int(key, 2) ^ int(operand, 2))] = samples_twirl[key]
+        output[("{:0"+str(n_qubits)+"b}").format(int(key, 2) ^ int(operand, 2))] = samples_twirl[key]
 
-    return output
+    return Counter(output)
 
 
 def compute_exp(n_qubits: int, samples_twirl: list, observable: list) -> tensor:
@@ -40,7 +46,7 @@ def mitigate(
     backend: BackendName,
     noise: Noise,
     n_shots: int,
-    observable: list,
+    observables: list,
     options: dict,
 ) -> tensor:
     """Corrects for readout errors on expectation values using all possible twirl operations.
@@ -62,6 +68,7 @@ def mitigate(
         )
     )
 
+
     # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
     samples_twirl_den_list = []
@@ -77,13 +84,30 @@ def mitigate(
         circ_twirl_den = QuantumCircuit(block_twirl.n_qubits, kron(*layer))
         model_twirl_den = QuantumModel(circuit=circ_twirl_den, backend=backend)
         samples_twirl_den = model_twirl_den.sample(noise=noise, n_shots=n_shots)[0]
+
         samples_twirl_den_list.append(twirl_swap(n_qubits, twirl, samples_twirl_den))
 
-    expectation: float = 0
+    dummy = QuantumCircuit(2, chain(
+        kron(RX(0, 0), RY(1, 0)),
+        kron(RX(0, 0), RY(1, 0)),
+    ))
 
-    for o in observable:
-        expectation_num = compute_exp(n_qubits, samples_twirl_num_list, o)
-        expectation_den = compute_exp(n_qubits, samples_twirl_den_list, o)
-        expectation += expectation_num / expectation_den
+    
+    output_exp = []
+    for observable in observables:
 
-    return torch.real(expectation)
+        expectation: float = 0
+
+        for pauli in unroll_block_with_scaling(observable):
+            
+            sample_measurement_num= Measurements(protocol=Measurements.SAMPLES,options={"samples": samples_twirl_num_list})
+            expectation_num = torch.sum(QuantumModel(circuit= dummy,observable=pauli[0], backend=backend).expectation(measurement=sample_measurement_num))
+
+            sample_measurement_den= Measurements(protocol=Measurements.SAMPLES,options={"samples": samples_twirl_den_list})
+            expectation_den = torch.sum(QuantumModel(circuit= dummy,observable=pauli[0], backend=backend).expectation(measurement=sample_measurement_den))
+
+            expectation += expectation_num / expectation_den * torch.tensor(pauli[1],dtype=float)
+
+        output_exp.append(expectation)
+
+    return torch.tensor(output_exp)
