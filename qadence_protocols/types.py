@@ -24,4 +24,4 @@ class Protocols(StrEnum):
     # """The Measurements protocol."""
 
 
-qadence_protocols = Protocols.list()
+qadence_available_protocols = Protocols.list()
