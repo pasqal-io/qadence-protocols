@@ -85,6 +85,7 @@ dependencies = [
   "mkdocs-section-index",
   "mkdocs-exclude",
   "markdown-exec",
+  "mkdocs-jupyter",
   "mike",
 ]
 
