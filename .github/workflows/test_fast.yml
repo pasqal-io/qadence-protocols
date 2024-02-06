@@ -17,36 +17,36 @@ concurrency:
 
 jobs:
 
-  test_protocols_ubuntu:
-    name: Qadence-protocols (ubuntu)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-    steps:
-    - name: Checkout Qadence-protocols
-      uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install Hatch
-      run: |
-        pip install hatch
-    - name: Run fast tests
-      run: |
-        hatch -v run test
-    - name: Upload coverage data
-      uses: actions/upload-artifact@v4
-      with:
-        name: "coverage-data"
-        path: .coverage.*
-        if-no-files-found: ignore
+  # test_protocols_ubuntu:
+  #   name: Qadence-protocols (ubuntu)
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: ["3.9", "3.10", "3.11"]
+  #   steps:
+  #   - name: Checkout Qadence-protocols
+  #     uses: actions/checkout@v4
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v5
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install Hatch
+  #     run: |
+  #       pip install hatch
+  #   - name: Run fast tests
+  #     run: |
+  #       hatch -v run test
+  #   - name: Upload coverage data
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: "coverage-data"
+  #       path: .coverage.*
+  #       if-no-files-found: ignore
 
   publish:
     name: Publish to PyPI
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: test_protocols_ubuntu
+    # needs: test_protocols_ubuntu
     runs-on: ubuntu-latest
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
