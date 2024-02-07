@@ -8,11 +8,13 @@ from qadence import (
     AbstractBlock,
     QuantumCircuit,
     QuantumModel,
+    add,
     hamiltonian_factory,
+    kron,
 )
 from qadence.divergences import js_divergence
 from qadence.noise.protocols import Noise
-from qadence.operations import CNOT, RX, RZ, HamEvo, X, Y, Z, add, kron
+from qadence.operations import CNOT, RX, RZ, HamEvo, X, Y, Z
 from qadence.types import BackendName, ReadOutOptimization
 
 from qadence_protocols.mitigations.protocols import Mitigations
