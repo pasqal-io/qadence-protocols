@@ -5,12 +5,12 @@ from collections import Counter
 import pytest
 from metrics import MIDDLE_ACCEPTANCE
 from qadence import (
-    add,
-    kron,
     AbstractBlock,
     QuantumCircuit,
     QuantumModel,
+    add,
     hamiltonian_factory,
+    kron,
 )
 from qadence.divergences import js_divergence
 from qadence.noise.protocols import Noise
