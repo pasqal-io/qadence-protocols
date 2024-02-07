@@ -5,6 +5,8 @@ from collections import Counter
 import pytest
 from metrics import MIDDLE_ACCEPTANCE
 from qadence import (
+    add,
+    kron,
     AbstractBlock,
     QuantumCircuit,
     QuantumModel,
@@ -12,7 +14,7 @@ from qadence import (
 )
 from qadence.divergences import js_divergence
 from qadence.noise.protocols import Noise
-from qadence.operations import CNOT, RX, RZ, HamEvo, X, Y, Z, add, kron
+from qadence.operations import CNOT, RX, RZ, HamEvo, X, Y, Z
 from qadence.types import BackendName, ReadOutOptimization
 
 from qadence_protocols.mitigations.protocols import Mitigations
