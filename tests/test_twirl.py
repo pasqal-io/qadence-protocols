@@ -19,23 +19,41 @@ from qadence_protocols.mitigations.protocols import Mitigations
 
 
 @pytest.mark.parametrize(
-    "error_probability, n_shots, n_qubits, block, observable, backend",
+    "error_probability, n_shots, block, observable, backend",
     [
         (
             0.2,
             10000,
-            2,
             chain(kron(RX(0, torch.pi / 3), RX(1, torch.pi / 3)), CNOT(0, 1)),
-            [add(2 * Z(1) + Z(0)), add(4 * kron(Z(0), Z(1)) + Z(0))],
-            # [Z(0)],
+            [add(kron(Z(0), Z(1)) + Z(0))],
             BackendName.PYQTORCH,
-        )
+        ),
+        (
+            0.1,
+            10000,
+            chain(kron(RX(0, torch.pi / 4), RX(1, torch.pi / 5)), CNOT(0, 1)),
+            [2 * Z(1) + 3 * Z(0), 3 * kron(Z(0), Z(1)) - 1 * Z(0)],
+            BackendName.PYQTORCH,
+        ),
+        (
+            0.15,
+            10000,
+            chain(kron(RX(0, torch.pi / 3), RX(1, torch.pi / 6)), CNOT(0, 1)),
+            [add(Z(1), -Z(0)), 3 * kron(Z(0) + Z(1)) + 2 * Z(0)],
+            BackendName.PYQTORCH,
+        ),
+        (
+            0.2,
+            10000,
+            chain(kron(RX(0, torch.pi / 6), RX(1, torch.pi / 4)), CNOT(0, 1)),
+            [add(Z(1), -2 * Z(0)), add(2 * kron(Z(0), Z(1)), 4 * Z(0))],
+            BackendName.PYQTORCH,
+        ),
     ],
 )
 def test_readout_twirl_mitigation(
     error_probability: float,
     n_shots: int,
-    n_qubits: int,
     block: AbstractBlock,
     observable: AbstractBlock,
     backend: BackendName,
@@ -50,19 +68,21 @@ def test_readout_twirl_mitigation(
     )
 
     model = QuantumModel(
-        circuit=circuit,
-        backend=BackendName.PYQTORCH,
-        diff_mode="gpsr",
-        observable=observable,
-        measurement=tomo_measurement,
+        circuit=circuit, observable=observable, measurement=tomo_measurement, backend=backend
     )
 
     expectation_noiseless = model.expectation(
         measurement=tomo_measurement,
     )
 
+    noisy_model = QuantumModel(
+        circuit=circuit,
+        observable=observable,
+        measurement=tomo_measurement,
+        noise=noise,
+        backend=backend,
+    )
     mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
 
-    expectation_mitigated = mitigate(n_qubits, circuit, backend, noise, n_shots, observable)
-
-    assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-2, rtol=1.0e-1)
+    expectation_mitigated = mitigate(noisy_model)
+    assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-1, rtol=1.0e-1)

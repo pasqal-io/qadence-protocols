@@ -68,7 +68,4 @@ def iterate_pauli_decomposition(
         # TODO: support for parametric observables to be tested
         estimated_values.append(estim_values * evaluate(pauli_term[1]))
     res = torch.sum(torch.stack(estimated_values), axis=0)
-    # Allow for automatic differentiation.
-    # breakpoint()
-    res.requires_grad = True
     return res
