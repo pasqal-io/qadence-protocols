@@ -11,7 +11,7 @@ from qadence.blocks.utils import unroll_block_with_scaling
 from qadence.operations import RX, RY, X, kron
 from torch import tensor
 
-from qadence_protocols.measurements import Measurements
+from qadence.measurements import Measurements
 
 
 def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
