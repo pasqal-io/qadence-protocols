@@ -39,7 +39,7 @@ from qadence_protocols.mitigations.protocols import Mitigations
             0.15,
             10000,
             chain(kron(RX(0, torch.pi / 3), RX(1, torch.pi / 6)), CNOT(0, 1)),
-            [add(Z(1), -Z(0)), 3 * kron(Z(0) + Z(1)) + 2 * Z(0)],
+            [add(Z(1), -Z(0)), 3 * kron(Z(0), Z(1)) + 2 * Z(0)],
             BackendName.PYQTORCH,
         ),
         (
@@ -59,8 +59,6 @@ def test_readout_twirl_mitigation(
     backend: BackendName,
 ) -> None:
     circuit = QuantumCircuit(block.n_qubits, block)
-    # Z_obs = sum([kron(*[Z(i) for i in a]) for a in observable])
-
     noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
     tomo_measurement = Measurements(
         protocol=Measurements.TOMOGRAPHY,
@@ -85,4 +83,4 @@ def test_readout_twirl_mitigation(
     mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
 
     expectation_mitigated = mitigate(noisy_model)
-    assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-1, rtol=1.0e-1)
+    assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-1, rtol=5.0e-2)

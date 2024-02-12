@@ -6,9 +6,9 @@ from collections import Counter
 import torch
 
 # import pytest
-from qadence import RX, RY, QuantumCircuit, QuantumModel, X, chain, kron
+from qadence import QuantumCircuit, QuantumModel, X, chain, kron
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence.measurements import Measurements
+from qadence.measurements.samples import compute_expectation
 from torch import tensor
 
 
@@ -43,6 +43,7 @@ def mitigate(
         Mitigated output is returned
     """
     block = model._circuit.original.block
+    n_shots = model._measurement.options["n_shots"]
 
     # Generates a list of all possible X gate string combinations
     # Applied at the end of circuit before measurements are made
@@ -50,11 +51,10 @@ def mitigate(
         itertools.chain.from_iterable(
             [
                 list(itertools.combinations(range(block.n_qubits), k))
-                for k in range(1, block.n_qubits)
+                for k in range(1, block.n_qubits + 1)
             ]
         )
     )
-
     # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
     samples_twirl_den_list = []
@@ -64,49 +64,30 @@ def mitigate(
         # Twirl outputs for given circuit (Numerator)
         circ_twirl_num = QuantumCircuit(block_twirl.n_qubits, block_twirl)
         model_twirl_num = QuantumModel(circuit=circ_twirl_num, backend=model._backend_name)
-        samples_twirl_num = model_twirl_num.sample(noise=model._noise)[0]
+        samples_twirl_num = model_twirl_num.sample(noise=model._noise, n_shots=n_shots)[0]
         samples_twirl_num_list.append(twirl_swap(block_twirl.n_qubits, twirl, samples_twirl_num))
 
         # Twirl outputs on input state (Denominator)
         circ_twirl_den = QuantumCircuit(block_twirl.n_qubits, kron(X(i) for i in twirl))
         model_twirl_den = QuantumModel(circuit=circ_twirl_den, backend=model._backend_name)
-        samples_twirl_den = model_twirl_den.sample(noise=model._noise)[0]
+        samples_twirl_den = model_twirl_den.sample(noise=model._noise, n_shots=n_shots)[0]
         samples_twirl_den_list.append(twirl_swap(block_twirl.n_qubits, twirl, samples_twirl_den))
 
-    # I am creating a dummy circuit that has nothing to do with the protocol
-    # This needs to be changed
-    dummy = QuantumCircuit(
-        2,
-        chain(
-            kron(RX(0, 0), RY(1, 0)),
-            kron(RX(0, 0), RY(1, 0)),
-        ),
-    )
-
     output_exp = []
+
     for observable in model._observable:
         expectation: float = 0
 
-        for pauli in unroll_block_with_scaling(observable.original):
-            sample_measurement_num = Measurements(
-                protocol=Measurements.SAMPLES, options={"samples": samples_twirl_num_list}
-            )
-            expectation_num = torch.sum(
-                QuantumModel(circuit=dummy, observable=pauli[0]).expectation(
-                    measurement=sample_measurement_num
-                )
-            )
+        coeffs = torch.tensor(
+            [pauli[1] for pauli in unroll_block_with_scaling(observable.original)], dtype=float
+        )
+        obs_list = [pauli[0] for pauli in unroll_block_with_scaling(observable.original)]
 
-            sample_measurement_den = Measurements(
-                protocol=Measurements.SAMPLES, options={"samples": samples_twirl_den_list}
-            )
-            expectation_den = torch.sum(
-                QuantumModel(circuit=dummy, observable=pauli[0]).expectation(
-                    measurement=sample_measurement_den
-                )
-            )
-            expectation += expectation_num / expectation_den * torch.tensor(pauli[1], dtype=float)
+        expectation_num = torch.stack(compute_expectation(obs_list, samples_twirl_num_list))
+        expectation_den = torch.stack(compute_expectation(obs_list, samples_twirl_den_list))
 
-        output_exp.append(expectation)
+        expectation = torch.sum(expectation_num, dim=1) / torch.sum(expectation_den, dim=1)
 
-    return torch.tensor(output_exp)
+        output_exp.append(torch.sum(torch.dot(coeffs, expectation)))
+
+    return tensor(output_exp)
