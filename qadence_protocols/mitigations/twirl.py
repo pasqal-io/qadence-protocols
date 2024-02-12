@@ -8,7 +8,7 @@ import torch
 # import pytest
 from qadence import QuantumCircuit, QuantumModel, chain
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence.operations import RX, RY, X, kron
+from qadence import RX, RY, X, kron
 from torch import tensor
 
 from qadence.measurements import Measurements
@@ -44,8 +44,11 @@ def mitigate(
     Returns:
         Mitigated output is returned
     """
-    block = model._circuit.abstract.block
+    block = model._circuit.original.block
 
+
+    # Generates a list of all possible X gate string combinations
+    # Applied at the end of circuit before measurements are made
     twirls = list(
         itertools.chain.from_iterable(
             [
@@ -59,18 +62,18 @@ def mitigate(
     samples_twirl_num_list = []
     samples_twirl_den_list = []
     for twirl in twirls:
-        layer = [X(i) for i in twirl]
-        block_twirl = chain(block, kron(*layer))
+        block_twirl = chain(block, kron(X(i) for i in twirl))
 
+        # Twirl outputs for given circuit (Numerator)
         circ_twirl_num = QuantumCircuit(block_twirl.n_qubits, block_twirl)
-        model_twirl_num = QuantumModel(circuit=circ_twirl_num, backend=model.backend.backend.name)
+        model_twirl_num = QuantumModel(circuit=circ_twirl_num, backend=model._backend_name)
         samples_twirl_num = model_twirl_num.sample(noise=model._noise)[0]
         samples_twirl_num_list.append(twirl_swap(block_twirl.n_qubits, twirl, samples_twirl_num))
 
-        circ_twirl_den = QuantumCircuit(block_twirl.n_qubits, kron(*layer))
-        model_twirl_den = QuantumModel(circuit=circ_twirl_den, backend=model.backend.backend.name)
+        # Twirl outputs on input state (Denominator)
+        circ_twirl_den = QuantumCircuit(block_twirl.n_qubits, kron(X(i) for i in twirl))
+        model_twirl_den = QuantumModel(circuit=circ_twirl_den, backend=model._backend_name)
         samples_twirl_den = model_twirl_den.sample(noise=model._noise)[0]
-
         samples_twirl_den_list.append(twirl_swap(block_twirl.n_qubits, twirl, samples_twirl_den))
 
     # I am creating a dummy circuit that has nothing to do with the protocol
