@@ -6,12 +6,10 @@ from collections import Counter
 import torch
 
 # import pytest
-from qadence import QuantumCircuit, QuantumModel, chain
+from qadence import RX, RY, QuantumCircuit, QuantumModel, X, chain, kron
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence import RX, RY, X, kron
-from torch import tensor
-
 from qadence.measurements import Measurements
+from torch import tensor
 
 
 def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
@@ -45,7 +43,6 @@ def mitigate(
         Mitigated output is returned
     """
     block = model._circuit.original.block
-
 
     # Generates a list of all possible X gate string combinations
     # Applied at the end of circuit before measurements are made
