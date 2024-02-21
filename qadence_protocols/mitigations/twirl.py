@@ -4,8 +4,6 @@ import itertools
 from collections import Counter
 
 import torch
-
-# import pytest
 from qadence import QuantumCircuit, QuantumModel, X, chain, kron
 from qadence.blocks.utils import unroll_block_with_scaling
 from qadence.measurements.samples import compute_expectation

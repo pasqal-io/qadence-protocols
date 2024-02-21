@@ -18,13 +18,13 @@ concurrency:
 jobs:
 
   test_protocols_ubuntu:
-    name: Qadence-protocols (ubuntu)
+    name: Qadence Protocols (ubuntu)
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
     steps:
-    - name: Checkout Qadence-protocols
+    - name: Checkout Qadence Protocols
       uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -48,8 +48,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: test_protocols_ubuntu
     runs-on: ubuntu-latest
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
     steps:
-      - name: Check out Qadence-protocols
+      - name: Check out Qadence Protocols
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -61,10 +64,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install hatch
-      - name: Build and publish package
+      - name: Build package
         run: |
           hatch build
-          hatch publish -u ${{ secrets.HATCH_PYPI_USER }} -a ${{ secrets.HATCH_PYPI_AUTH }}
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
       - name: Confirm deployment
         timeout-minutes: 5
         run: |
@@ -76,12 +80,12 @@ jobs:
           done
 
   deploy_docs:
-    name: Deploy Qadence-protocols docs (ubuntu)
+    name: Deploy Qadence Protocols docs (ubuntu)
     if: startsWith(github.ref, 'refs/tags/v')
     needs: test_protocols_ubuntu
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Qadence-protocols
+    - name: Checkout Qadence Protocols
       uses: actions/checkout@v4
     - name: Install JetBrains Mono font
       run: |
