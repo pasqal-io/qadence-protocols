@@ -10,9 +10,9 @@ from qadence.measurements.samples import compute_expectation
 from torch import tensor
 
 
-def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: dict) -> dict:
+def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: Counter[str]) -> dict:
     """
-    Applies the corresponding twirl operations (bit flip).
+    Applies the corresponding twirl operations (multi-qubit bit flip).
 
     Achieved by remapping the measurements appropriately
     """
@@ -34,8 +34,8 @@ def mitigate(
     See Page(2) in https://arxiv.org/pdf/2012.09738.pdf for implementation
 
     Args:
-        noise: Specifies confusion matrix and default error probability
-        observable: a list of pauli Z strings specified by index locations
+        model: model with a specified readout error whose samples need to be mitogated
+        options: specify any additional parameters that the protcol might require
 
     Returns:
         Mitigated output is returned
