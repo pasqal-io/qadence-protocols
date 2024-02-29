@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from collections import Counter
-from functools import reduce
 
 import numpy as np
 import numpy.typing as npt
-import torch
 from numpy.linalg import inv, matrix_rank, pinv
 from qadence import QuantumModel
 from qadence.noise.protocols import Noise
@@ -14,8 +12,32 @@ from scipy.linalg import norm
 from scipy.optimize import LinearConstraint, minimize
 
 
-def corrected_probas(p_corr: npt.NDArray, T: npt.NDArray, p_raw: npt.NDArray) -> np.double:
-    return norm(T @ p_corr.T - p_raw.T, ord=2) ** 2
+def tensor_rank_mult(qubit_ops: npt.NDArray, prob_vect: npt.NDArray) -> npt.NDArray:
+    N = int(np.log2(len(prob_vect)))
+    """
+    Fast multiplication of single qubit operators on a probability vector.
+
+    Similar to how gate operations are implemented on PyqTorch
+    Needs to be replaced.
+    """
+
+    # Reshape probability vector into a rank N tensor
+    prob_vect_t = prob_vect.reshape(N * [2]).transpose()
+
+    # Contract each tensor index (qubit) with the inverse of the single-qubit
+    for i in range(N):
+        prob_vect_t = np.tensordot(qubit_ops[i], prob_vect_t, axes=(1, i))
+
+    # Obtain corrected measurements by shaping back into a vector
+    return prob_vect_t.reshape(2**N)
+
+
+def corrected_probas(
+    p_corr: npt.NDArray, noise_matrices: npt.NDArray, p_raw: npt.NDArray
+) -> np.double:
+    ## Computing rectified probabilites without computing the full T matrix
+    p_estim = tensor_rank_mult(noise_matrices, p_corr.T)
+    return norm(p_estim - p_raw.T, ord=2) ** 2
 
 
 def mle_solve(p_raw: npt.NDArray) -> npt.NDArray:
@@ -87,20 +109,11 @@ def mitigation_minimization(
     Returns:
         Mitigated counts computed by the algorithm
     """
-    noise_matrices = noise.options.get("noise_matrix", noise.options["confusion_matrices"])
+    noise_matrices = noise.options.get("noise_matrix", noise.options["confusion_matrices"]).numpy()
     optimization_type = options.get("optimization_type", ReadOutOptimization.MLE)
     n_qubits = len(list(samples[0].keys())[0])
     n_shots = sum(samples[0].values())
     corrected_counters: list[Counter] = []
-
-    if optimization_type == ReadOutOptimization.CONSTRAINED:
-        # Build the whole T matrix.
-        T_matrix = reduce(torch.kron, noise_matrices).detach().numpy()
-
-    if optimization_type == ReadOutOptimization.MLE:
-        # Check if matrix is singular and use appropriate inverse.
-        noise_matrices_inv = list(map(matrix_inv, noise_matrices.numpy()))
-        T_inv = reduce(np.kron, noise_matrices_inv)
 
     for sample in samples:
         bitstring_length = 2**n_qubits
@@ -122,13 +135,14 @@ def mitigation_minimization(
             constraints = [normality_constraint, positivity_constraint]
             # Minimize the corrected probabilities.
             res = minimize(
-                corrected_probas, p_corr0, args=(T_matrix, p_raw), constraints=constraints
+                corrected_probas, p_corr0, args=(noise_matrices, p_raw), constraints=constraints
             )
             p_corr = res.x
 
         elif optimization_type == ReadOutOptimization.MLE:
+            noise_matrices_inv = list(map(matrix_inv, noise_matrices))
             # Compute corrected inverse using matrix inversion and run MLE.
-            p_corr = mle_solve(T_inv @ p_raw)
+            p_corr = mle_solve(tensor_rank_mult(noise_matrices_inv, p_raw))
         else:
             raise NotImplementedError(
                 f"Requested method {optimization_type} does not match supported protocols."

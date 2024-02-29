@@ -166,7 +166,7 @@ def test_readout_mitigation_quantum_model(
 
     # Noisy simulations through the QM.
     noisy_model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode, noise=noise)
-    noisy_samples = model.sample(noise=noise, n_shots=n_shots)
+    noisy_samples = noisy_model.sample(noise=noise, n_shots=n_shots)
     mitigate = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
