@@ -30,4 +30,4 @@ qadence_available_protocols = Protocols.list()
 class ReadOutOptimization(StrEnum):
     MLE = "mle"
     CONSTRAINED = "constrained"
-    MTHREE = "mthree" ## matrix free measurement mitigation
+    MTHREE = "mthree"  ## matrix free measurement mitigation
