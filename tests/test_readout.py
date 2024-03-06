@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 
 import pytest
-from metrics import MIDDLE_ACCEPTANCE
+from metrics import MIDDLE_ACCEPTANCE,LOW_ACCEPTANCE
 from qadence import (
     AbstractBlock,
     QuantumCircuit,
@@ -16,8 +16,16 @@ from qadence.divergences import js_divergence
 from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, RZ, HamEvo, X, Y, Z
 from qadence.types import BackendName, ReadOutOptimization
-
+from qadence_protocols.mitigations.readout import tensor_rank_mult
+import numpy as np
+from functools import reduce
 from qadence_protocols.mitigations.protocols import Mitigations
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import gmres
+from qadence_protocols.mitigations.readout import constrained_inversion,subspace_kron,mle_solve,matrix_inv
+from scipy.special import rel_entr
+from scipy.stats import wasserstein_distance
+
 
 
 @pytest.mark.flaky(max_runs=5)
@@ -147,7 +155,7 @@ def test_readout_mitigation_quantum_model(
 ) -> None:
     diff_mode = "ad" if backend == BackendName.PYQTORCH else "gpsr"
     circuit = QuantumCircuit(block.n_qubits, block)
-    noise = Noise(protocol=Noise.READOUT)
+    noise = Noise(protocol=Noise.READOUT,options = {"error_probability": error_probability})
     model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
 
     noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
@@ -207,7 +215,7 @@ def test_compare_readout_methods(
     circuit = QuantumCircuit(block.n_qubits, block)
     model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
 
-    noise = Noise(protocol=Noise.READOUT)
+    noise = Noise(protocol=Noise.READOUT,options = {"error_probability": error_probability})
 
     noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
 
@@ -230,3 +238,60 @@ def test_compare_readout_methods(
         mitigated_samples_constrained_opt[0], noiseless_samples[0]
     )
     assert abs(js_mitigated_constrained_opt - js_mitigated_mle) <= MIDDLE_ACCEPTANCE
+
+
+
+@pytest.mark.parametrize(
+    "qubit_ops,input_vec",
+    [
+        ([np.random.rand(2,2) for i in range(4)],np.random.rand(2**4)),
+        ([np.random.rand(2,2) for i in range(4)],np.random.rand(2**4)),
+        ([np.random.rand(2,2) for i in range(4)],np.random.rand(2**4)),
+        ([np.random.rand(2,2) for i in range(4)],np.random.rand(2**4)),
+    ]
+)
+def test_tensor_rank_mult(
+    qubit_ops,
+    input_vec
+)->None:
+    
+    full_tensor = reduce(np.kron, qubit_ops)
+    
+    assert np.linalg.norm(tensor_rank_mult(qubit_ops,input_vec)-full_tensor@input_vec)<LOW_ACCEPTANCE
+
+
+
+def test_readout_mthree():
+
+    n_qubits = 10
+    exact_prob = np.random.rand(2**(n_qubits-5))
+    exact_prob = exact_prob/sum(exact_prob)
+    exact_prob = np.concatenate([exact_prob,np.zeros(2**n_qubits-len(exact_prob))], axis = 0)
+    exact_prob = 0.90*exact_prob + 0.1*np.ones(2**n_qubits)/2**n_qubits
+    np.random.shuffle(exact_prob)
+
+    observed_prob = np.array(exact_prob,copy=True)
+    observed_prob[exact_prob<1/2**(n_qubits)] = 0
+
+
+    noise_matrices = []
+    for t in range(n_qubits):
+        t_a,t_b = np.random.rand(2)/8
+        K = np.array([[1-t_a,t_a],[t_b,1-t_b]]).transpose()   # column sum be 1
+        noise_matrices.append(K)
+
+    Confusion_matrix_subspace = subspace_kron(noise_matrices,observed_prob.nonzero()[0])
+
+    input_csr = csr_matrix(observed_prob,shape=(1,2**n_qubits)).T
+    ## check convergence
+    p_corr_mthree_gmres = gmres(Confusion_matrix_subspace,input_csr.toarray())[0]
+    p_corr_mthree_gmres_mle = mle_solve(p_corr_mthree_gmres)
+
+    noise_matrices_inv = list(map(matrix_inv, noise_matrices))
+    p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, exact_prob))
+
+    assert wasserstein_distance(p_corr_mthree_gmres_mle,p_corr_inv_mle)< LOW_ACCEPTANCE
+
+
+
+
