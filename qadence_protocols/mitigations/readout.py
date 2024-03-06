@@ -15,6 +15,7 @@ from scipy.sparse.linalg import gmres
 from qadence_protocols.types import ReadOutOptimization
 
 
+
 def subspace_kron(
     noise_matrices: npt.NDArrary, subspace: npt.NDArray, normalize: bool = True
 ) -> npt.NDArray:
@@ -37,6 +38,7 @@ def subspace_kron(
     return conf_matrix
 
 
+
 def tensor_rank_mult(qubit_ops: npt.NDArray, prob_vect: npt.NDArray) -> npt.NDArray:
     N = int(np.log2(len(prob_vect)))
     """
@@ -52,6 +54,7 @@ def tensor_rank_mult(qubit_ops: npt.NDArray, prob_vect: npt.NDArray) -> npt.NDAr
     # Contract each tensor index (qubit) with the inverse of the single-qubit
     for i in range(N):
         prob_vect_t = np.tensordot(qubit_ops[N - 1 - i], prob_vect_t, axes=(1, i))
+
 
     # Obtain corrected measurements by shaping back into a vector
     return prob_vect_t.reshape(2**N)
@@ -158,10 +161,7 @@ def mitigation_minimization(
     Returns:
         Mitigated counts computed by the algorithm
     """
-
-    ## M@p -> project -> normalize, we are interested in doing it the other way around
-    ## project M then do M@p
-
+    
     noise_matrices = noise.options.get("noise_matrix", noise.options["confusion_matrices"]).numpy()
     optimization_type = options.get("optimization_type", ReadOutOptimization.MLE)
     n_qubits = len(list(samples[0].keys())[0])
@@ -176,6 +176,7 @@ def mitigation_minimization(
         if optimization_type == ReadOutOptimization.CONSTRAINED:
             p_corr = constrained_inversion(noise_matrices, p_raw)
 
+
         elif optimization_type == ReadOutOptimization.MLE:
             noise_matrices_inv = list(map(matrix_inv, noise_matrices))
             # Compute corrected inverse using matrix inversion and run MLE.
@@ -187,6 +188,7 @@ def mitigation_minimization(
             p_corr = gmres(Confusion_matrix_subspace, p_raw)[0]
             # To ensure that we are not working with negative probabilities
             p_corr = mle_solve(p_corr)
+
 
         else:
             raise NotImplementedError(
