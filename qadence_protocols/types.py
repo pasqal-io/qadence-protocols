@@ -28,6 +28,14 @@ qadence_available_protocols = Protocols.list()
 
 
 class ReadOutOptimization(StrEnum):
+    # basic inversion and maximum likelihood estimate
     MLE = "mle"
+
+    # constrained inverse optimization
     CONSTRAINED = "constrained"
-    MTHREE = "mthree"  ## matrix free measurement mitigation
+
+    # matrix free measurement mitigation
+    MTHREE = "mthree"
+
+    # majority voting
+    MV = "majority_vote"

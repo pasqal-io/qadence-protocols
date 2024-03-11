@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from numpy.linalg import inv, matrix_rank, pinv
 from qadence import QuantumModel
+from qadence.logger import get_logger
 from qadence.noise.protocols import Noise
 from scipy.linalg import norm
 from scipy.optimize import LinearConstraint, minimize
@@ -14,10 +15,10 @@ from scipy.sparse.linalg import gmres
 
 from qadence_protocols.types import ReadOutOptimization
 
+logger = get_logger(__name__)
 
-def subspace_kron(
-    noise_matrices: npt.NDArrary, subspace: npt.NDArray, normalize: bool = True
-) -> npt.NDArray:
+
+def normalized_subspace_kron(noise_matrices: npt.NDArrary, subspace: npt.NDArray) -> npt.NDArray:
     n_qubits = len(noise_matrices)
     conf_matrix = csr_matrix((2**n_qubits, 2**n_qubits))
 
@@ -26,13 +27,12 @@ def subspace_kron(
             bin_i = bin(i)[2:].zfill(n_qubits)
             bin_j = bin(j)[2:].zfill(n_qubits)
 
-            ## manually computing the entries of tensor product for only the subspace
+            # Manually computing the entries of tensor product for only the subspace
             conf_matrix[i, j] = np.prod(
                 [noise_matrices[k][int(bin_i[k])][int(bin_j[k])] for k in range(n_qubits)]
             )
 
-        if normalize:
-            conf_matrix[:, j] /= np.sum(conf_matrix[:, j])
+        conf_matrix[:, j] /= np.sum(conf_matrix[:, j])
 
     return conf_matrix
 
@@ -135,6 +135,30 @@ def constrained_inversion(noise_matrices: npt.NDArray, p_raw: npt.NDArray) -> np
     return res.x
 
 
+def majority_vote(noise_matrices: npt.NDArray, p_raw: npt.NDArray) -> npt.NDArray:
+    n_qubits = len(noise_matrices)
+    output = 0
+
+    for i in range(n_qubits):
+        temp = p_raw.reshape([2] * n_qubits)
+        transpose_axes = [i] + list(range(0, i)) + list(range(i + 1, n_qubits))
+        temp = np.transpose(temp, axes=transpose_axes).reshape(2, 2**n_qubits // 2)
+        probs = np.sum(temp, axis=1)
+
+        # given the output to be 0, the probability of observed outcomes
+        prob_zero = noise_matrices[i][1][0] ** probs[1] * noise_matrices[i][0][0] ** probs[0]
+        # given the output to be 0, the probability of observed outcomes
+        prob_one = noise_matrices[i][1][1] ** probs[1] * noise_matrices[i][0][1] ** probs[0]
+
+        if prob_one > prob_zero:
+            output += 2 ** (n_qubits - 1 - i)
+
+    p_corr = np.zeros(2**n_qubits)
+    p_corr[output] = 1
+
+    return p_corr
+
+
 def mitigation_minimization(
     noise: Noise,
     options: dict,
@@ -146,13 +170,16 @@ def mitigation_minimization(
     See Page(3) in https://arxiv.org/pdf/1106.5458.pdf for MLE implementation
     See Equation (5) in https://arxiv.org/pdf/2108.12518.pdf for MTHREE implementation
     (matrix free measurement mitigation)
-    This method is supposed to be be reserved for large implementations of 20 plus qubits
+    This method is reserved for implementations of over 20 qubits
+    See Equation (6) and Page 4 in https://arxiv.org/pdf/2402.11830.pdf for MV implementation
+    This method is reserved for algorithms with a single bit string output
+    See page (5) for extension to more than one solution (inefficient)
 
     Args:
         noise: Specifies confusion matrix and default error probability
         mitigation: Selects additional mitigation options based on noise choice.
         For readout we have the following mitigation options for optimization
-        1. constrained 2. mle. Default : mle
+        1. constrained 2. mle (Default) mle 3. mthree 4. majority vote (mv)
         samples: List of samples to be mitigated
 
     Returns:
@@ -178,11 +205,19 @@ def mitigation_minimization(
             p_corr = mle_solve(tensor_rank_mult(noise_matrices_inv, p_raw))
 
         elif optimization_type == ReadOutOptimization.MTHREE:
-            Confusion_matrix_subspace = subspace_kron(noise_matrices, p_raw.nonzero())
-            # GMRES is best suited for higher dimensional problems
-            p_corr = gmres(Confusion_matrix_subspace, p_raw)[0]
+            confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, p_raw.nonzero()[0])
+            # GMRES (Generalized minimal residual) for linear equations in higher dimension
+            p_corr, exit_code = gmres(confusion_matrix_subspace, p_raw)
+
+            if exit_code != 0:
+                logger.warning(f"gmres did not converge, exited with code {exit_code}")
+
             # To ensure that we are not working with negative probabilities
             p_corr = mle_solve(p_corr)
+
+        elif optimization_type == ReadOutOptimization.MV:
+            # Majority vote : lets return just that one bit string with all the counts for now
+            p_corr = majority_vote(noise_matrices, p_raw)
 
         else:
             raise NotImplementedError(
