@@ -6,7 +6,7 @@ from functools import reduce
 import numpy as np
 import numpy.typing as npt
 import pytest
-from metrics import LOW_ACCEPTANCE, MIDDLE_ACCEPTANCE
+from metrics import LOW_ACCEPTANCE
 from qadence import (
     AbstractBlock,
     QuantumCircuit,
@@ -206,10 +206,10 @@ def test_readout_mitigation_quantum_model(
 @pytest.mark.parametrize(
     "error_probability, n_shots, block, backend",
     [
-        (0.1, 100, kron(X(0), X(1)), BackendName.BRAKET),
-        (0.1, 1000, kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)), BackendName.BRAKET),
-        (0.1, 500, add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)), BackendName.BRAKET),
-        (0.1, 2000, add(kron(Z(0), Z(1)), kron(X(2), X(3))), BackendName.BRAKET),
+        (0.1, 5000, kron(X(0), X(1)), BackendName.BRAKET),
+        (0.1, 5000, kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)), BackendName.BRAKET),
+        (0.1, 5000, add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)), BackendName.BRAKET),
+        (0.1, 5000, add(kron(Z(0), Z(1)), kron(X(2), X(3))), BackendName.BRAKET),
     ],
 )
 def test_compare_readout_methods(
@@ -244,7 +244,7 @@ def test_compare_readout_methods(
     js_mitigated_constrained_opt = js_divergence(
         mitigated_samples_constrained_opt[0], noiseless_samples[0]
     )
-    assert abs(js_mitigated_constrained_opt - js_mitigated_mle) <= MIDDLE_ACCEPTANCE
+    assert js_mitigated_mle <= js_mitigated_constrained_opt + LOW_ACCEPTANCE
 
 
 @pytest.mark.parametrize(

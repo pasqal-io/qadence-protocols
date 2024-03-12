@@ -19,6 +19,14 @@ logger = get_logger(__name__)
 
 
 def normalized_subspace_kron(noise_matrices: npt.NDArrary, subspace: npt.NDArray) -> npt.NDArray:
+    """
+    Computes kron within a specified subspace of index locations.
+
+    Args:
+        noise: Specifies an array of noise_matrices acting indpedent qubits
+        subspace: List of index locations that defines the subspace for computation
+    """
+
     n_qubits = len(noise_matrices)
     conf_matrix = csr_matrix((2**n_qubits, 2**n_qubits))
 
@@ -38,13 +46,14 @@ def normalized_subspace_kron(noise_matrices: npt.NDArrary, subspace: npt.NDArray
 
 
 def tensor_rank_mult(qubit_ops: npt.NDArray, prob_vect: npt.NDArray) -> npt.NDArray:
-    N = int(np.log2(len(prob_vect)))
     """
     Fast multiplication of single qubit operators on a probability vector.
 
     Similar to how gate operations are implemented on PyqTorch
     Needs to be replaced.
     """
+
+    N = int(np.log2(len(prob_vect)))
 
     # Reshape probability vector into a rank N tensor
     prob_vect_t = prob_vect.reshape(N * [2]).transpose()
@@ -78,15 +87,15 @@ def mle_solve(p_raw: npt.NDArray) -> npt.NDArray:
     breakpoint = len(p_sort) - 1
 
     for i in range(len(p_sort)):
-        ## if neg_sum cannot be distributed among other probabilities, continue to accumulate
+        # If neg_sum cannot be distributed among other probabilities, continue to accumulate
         if p_sort[i] + neg_sum / (len(p_sort) - i) < 0:
             neg_sum += p_sort[i]
             p_sort[i] = 0
-        # set breakpoint to current index
+        # Set breakpoint to current index
         else:
             breakpoint = i
             break
-    ## number of entries to which i can distribute(includes breakpoint)
+    # Number of entries to which i can distribute(includes breakpoint)
     size = len(p_sort) - breakpoint
     p_sort[breakpoint:] += neg_sum / size
 
@@ -140,14 +149,16 @@ def majority_vote(noise_matrices: npt.NDArray, p_raw: npt.NDArray) -> npt.NDArra
     output = 0
 
     for i in range(n_qubits):
-        temp = p_raw.reshape([2] * n_qubits)
-        transpose_axes = [i] + list(range(0, i)) + list(range(i + 1, n_qubits))
-        temp = np.transpose(temp, axes=transpose_axes).reshape(2, 2**n_qubits // 2)
-        probs = np.sum(temp, axis=1)
+        p_raw_resize = p_raw.reshape([2] * n_qubits)
+        transposed_axes = [i] + list(range(0, i)) + list(range(i + 1, n_qubits))
+        p_raw_resize = np.transpose(p_raw_resize, axes=transposed_axes).reshape(
+            2, 2**n_qubits // 2
+        )
+        probs = np.sum(p_raw_resize, axis=1)
 
-        # given the output to be 0, the probability of observed outcomes
+        # Given the output to be 0, the probability of observed outcomes
         prob_zero = noise_matrices[i][1][0] ** probs[1] * noise_matrices[i][0][0] ** probs[0]
-        # given the output to be 0, the probability of observed outcomes
+        # Given the output to be 0, the probability of observed outcomes
         prob_one = noise_matrices[i][1][1] ** probs[1] * noise_matrices[i][0][1] ** probs[0]
 
         if prob_one > prob_zero:
@@ -210,12 +221,12 @@ def mitigation_minimization(
             p_corr, exit_code = gmres(confusion_matrix_subspace, p_raw)
 
             if exit_code != 0:
-                logger.warning(f"gmres did not converge, exited with code {exit_code}")
+                logger.warning(f"GMRES did not converge, exited with code {exit_code}")
 
             # To ensure that we are not working with negative probabilities
             p_corr = mle_solve(p_corr)
 
-        elif optimization_type == ReadOutOptimization.MV:
+        elif optimization_type == ReadOutOptimization.MAJ_VOTE:
             # Majority vote : lets return just that one bit string with all the counts for now
             p_corr = majority_vote(noise_matrices, p_raw)
 
