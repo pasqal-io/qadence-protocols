@@ -20,11 +20,14 @@ logger = get_logger(__name__)
 
 def normalized_subspace_kron(noise_matrices: npt.NDArrary, subspace: npt.NDArray) -> npt.NDArray:
     """
-    Computes kron within a specified subspace of index locations.
+    Compute a specified tensor producted subspace of index locations.
 
     Args:
         noise: Specifies an array of noise_matrices acting indpedent qubits
         subspace: List of index locations that defines the subspace for computation
+
+    Returns:
+        A sparse matrix construced from the tensorproduct of noise matrices in the subspace
     """
 
     n_qubits = len(noise_matrices)
@@ -53,17 +56,17 @@ def tensor_rank_mult(qubit_ops: npt.NDArray, prob_vect: npt.NDArray) -> npt.NDAr
     Needs to be replaced.
     """
 
-    N = int(np.log2(len(prob_vect)))
+    n_qubits = int(np.log2(len(prob_vect)))
 
     # Reshape probability vector into a rank N tensor
-    prob_vect_t = prob_vect.reshape(N * [2]).transpose()
+    prob_vect_t = prob_vect.reshape(n_qubits * [2]).transpose()
 
     # Contract each tensor index (qubit) with the inverse of the single-qubit
-    for i in range(N):
-        prob_vect_t = np.tensordot(qubit_ops[N - 1 - i], prob_vect_t, axes=(1, i))
+    for i in range(n_qubits):
+        prob_vect_t = np.tensordot(qubit_ops[n_qubits - 1 - i], prob_vect_t, axes=(1, i))
 
     # Obtain corrected measurements by shaping back into a vector
-    return prob_vect_t.reshape(2**N)
+    return prob_vect_t.reshape(2**n_qubits)
 
 
 def corrected_probas(
