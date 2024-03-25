@@ -14,7 +14,7 @@
 	    "groupName": "Qadence",
 	    "groupSlug": "qadence",
 	    "dependencyDashboardApproval": false,
-	    "automerge": true
+	    "automerge": true,
 	    "labels": ["qadence"]
 	},
     ]
