@@ -29,7 +29,6 @@ classifiers=[
 ]
 dependencies = [
     "torch",
-    "qutip==4.7.2",
     "qadence[braket, pulser, horqrux]==1.4.1",
 ]
 
