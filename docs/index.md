@@ -1,8 +1,12 @@
-# Template Python project
+# Qadence Protocols
 
-This is a template Python project which can be used to bootstrap a new library in the Pasqal quantum software codebase.
+Qadence Protocols is a collection of features to enhance Qadence inputs and outputs for error mitigation and measurements.
 
-## Development tools
+## Feature highlights
+
+* A collection of readout error mitigation protocols.
+
+## Pre-requisites
 
 The library uses the following tools:
 
@@ -14,6 +18,7 @@ The library uses the following tools:
 
 We recommend to use [`pyenv`](https://github.com/pyenv/pyenv) for managing
 python versions for managing python versions both globally and locally:
+
 ```bash
 # System-wide install of a python version.
 pyenv install 3.10
@@ -25,19 +30,13 @@ pyenv global 3.10
 pyenv local 3.10
 ```
 
+## Install from PyPi
 
-## Install from registry
-
-Before you can install the library from the private Pasqal PyPi, make sure to ask for `PYPI_USERNAME` and `PYPI_PASSWORD` on the relevant Slack channel.
-You can then set the credentials as environment variables via:
+`qadence-protocols` is available on PyPi through `pip`.
 
 ```bash
-export PYPI_USERNAME=MYUSERNAME
-export PYPI_PASSWORD=THEPASSWORD
+pip install qadence-protocols
 ```
-
-You are then able to install the latest version of `template-python-project` from the Pasqal private PyPi.
-
 
 ## Install from source
 
