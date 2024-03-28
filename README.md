@@ -11,10 +11,10 @@
 
 ## Installation guide
 
-[PyPI](https://pypi.org/project/qadence-protocols/) and can be installed using `pip` as follows:
+[qadence-protocols](https://pypi.org/project/qadence-protocols/) and can be installed using `pip` as follows:
 
 ```bash
-pip install qadence_protocols
+pip install qadence-protocols
 ```
 
 ## Contributing
