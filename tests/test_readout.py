@@ -173,7 +173,7 @@ def test_readout_mitigation_quantum_model(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
     ).mitigation()
-    mitigated_samples = mitigate(model=model)
+    mitigated_samples = mitigate(model=model, noise=noise)
 
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
