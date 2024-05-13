@@ -186,13 +186,11 @@ def test_readout_mitigation_quantum_model(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
     ).mitigation()
-    mitigated_samples = mitigate(model=model)
+    mitigated_samples = mitigate(model=noisy_model)
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
     assert js_mitigated < js_noisy
-
     # Noisy simulations through the protocol.
-    model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
     mitigate = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "n_shots": n_shots},
