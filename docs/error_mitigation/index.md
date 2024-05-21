@@ -10,7 +10,7 @@ Errors may show up in various forms when trying to extract information from a qu
 
 ### Digital errors
 
-Errors here are modelled to be executed at the end of each gate execution. The errors might be local or global. Global errors cannot be factorized as tensor products of independent channels. Implementation of digital errors is now supported on PyQ
+Errors here are modelled to be executed at the end of each gate execution. The errors might be local or global. Global errors cannot be factorized as tensor products of independent channels. Implementation of digital errors is now supported on [PyQ](https://github.com/pasqal-io/qadence)
 
 ### Analog errors
 Errors are incorporated as a part of the open system dynamics coupled with the effects of environment showing up as Krauss operators. The Dynamics of an open quantum system happens through the Linbladian equation defined for markovian systems (memoryless systems). Its given by
