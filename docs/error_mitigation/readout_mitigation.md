@@ -1,6 +1,6 @@
 ## Readout error mitigation
 
-Readout errors are introduced during measurements in the computation basis via probabilistic bitflips operators characterized by the Readout matrix defined over the system of qubits of dimension $2^n\times2^n$. The complete implementation of the mitigation technique involves using the characterized readout matrix for the system of qubits $(T)$ and classically applying an inversion  $(T^{−1})$ to the measured probability distributions. However there are several limitations of this approach:
+Readout errors are introduced during measurements in the computation basis via probabilistic bitflips operators characterized by the readout matrix (also known as confusion matrix) defined over the system of qubits of dimension $2^n\times2^n$. The complete implementation of the mitigation technique involves using the characterized readout matrix for the system of qubits $(T)$ and classically applying an inversion  $(T^{−1})$ to the measured probability distributions. However there are several limitations of this approach:
 
 - The complete implementation requires $2^n$ characterization experiments (probability measurements), which is not scalable.
 - Classical overhead from full matrix inversion for large system of qubits is expensive
@@ -44,7 +44,7 @@ print(f"noiseless samples: {noiseless_samples}") # markdown-exec: hide
 print(f"noisy samples: {noisy_samples}") # markdown-exec: hide
 ```
 
-Note that the noisy states have samples with the seconf qubit flipped. In the below protocols we describe ways to reconstruct the noiseless distribution (untarrgeted mitigation). Besides this one might just be interrested in mitigating the expectation value (targeted mitigation).
+Note that the noisy states have samples with the second qubit flipped. In the below protocols, we describe ways to reconstruct the noiseless distribution (untargeted mitigation). Besides this one might just be interrested in mitigating the expectation value (targeted mitigation). 
 
 ### Constrained optimization
 
@@ -55,8 +55,6 @@ $$
 $$
 
 subjected to physicality constraints $0 \leq p_{corr}(x) \leq 1$ and $\lVert p_{corr} \rVert = 1$. At this point, two methods are implemented to solve this problem. The method involves solving a constrained optimization problem and can be computationally expensive.
-<!-- The first one relies on solving using standard optimization tools, the second on Maximum-Likelihood Estimation.  -->
-
 
 ```python exec="on" source="material-block" session="mitigation" result="json"
 
@@ -77,7 +75,7 @@ print(f"Optimization based mitigation: {mitigated_samples_opt}") # markdown-exec
 
 
 ### Maximum Likelihood estimation (MLE)
-This method replaces the costraints with additional post processing over the corrected probability distribution with negative entries. The runtime of the method is linear in the size of the distribution and thus is very efficient. The optimality of the solution is not always gauranteed. The method redistributes any negative probabilities on using the inverse operation equally and can be shown to maximize the likelihood with minimal effort[^2].
+This method replaces the constraints with additional post processing for correcting probability distributions with negative entries. The runtime of the method is linear in the size of the distribution and thus is very efficient. The optimality of the solution is however not always guaranteed. The method redistributes any negative probabilities on using the inverse operation equally and can be shown to maximize the likelihood with minimal effort[^2].
 
 
 ```python exec="on" source="material-block" session="mitigation" result="json"
