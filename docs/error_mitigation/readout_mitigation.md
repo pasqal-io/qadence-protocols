@@ -2,7 +2,7 @@
 
 Readout errors are introduced during measurements in the computation basis via probabilistic bitflips operators characterized by the Readout matrix defined over the system of qubits of dimension $2^n\times2^n$. The complete implementation of the mitigation technique involves using the characterized readout matrix for the system of qubits $(T)$ and classically applying an inversion  $(T^{−1})$ to the measured probability distributions. However there are several limitations of this approach:
 
-- The complete implementation requires $2^n$ characterization experiments (probability measurements), which is not scalable. 
+- The complete implementation requires $2^n$ characterization experiments (probability measurements), which is not scalable.
 - Classical overhead from full matrix inversion for large system of qubits is expensive
 - The matrix $T$ may become singular for large $n$, preventing direct inversion.
 - The inverse $T^{−1}$ might not be a stochastic matrix, meaning that it can produce negative corrected probabilities.
@@ -40,11 +40,11 @@ noise = Noise(protocol=Noise.READOUT,options={"error_probability": error_probabi
 noiseless_samples = model.sample(n_shots=n_shots)
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)
 
-print(f"noiseless samples: {noiseless_samples}")
-print(f"noisy samples: {noisy_samples}")
+print(f"noiseless samples: {noiseless_samples}") # markdown-exec: hide
+print(f"noisy samples: {noisy_samples}") # markdown-exec: hide
 ```
 
-Note that the noisy states have samples with the seconf qubit flipped. In the below protocols we describe ways to reconstruct the noiseless distribution (untarrgeted mitigation). Besides this one might just be interrested in mitigating the expectation value (targeted mitigation). 
+Note that the noisy states have samples with the seconf qubit flipped. In the below protocols we describe ways to reconstruct the noiseless distribution (untarrgeted mitigation). Besides this one might just be interrested in mitigating the expectation value (targeted mitigation).
 
 ### Constrained optimization
 
@@ -65,13 +65,13 @@ from qadence_protocols.types import ReadOutOptimization
 
 
 # Define the mitigation method solving the minimization problem:
-options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots} 
+options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots}
 mitigation = Mitigations(protocol=Mitigations.READOUT, options=options).mitigation()
 
 # Run noiseless, noisy and mitigated simulations.
 mitigated_samples_opt = mitigation(model=model, noise=noise)
 
-print(f"Optimization based mitigation: {mitigated_samples_opt}")
+print(f"Optimization based mitigation: {mitigated_samples_opt}") # markdown-exec: hide
 ```
 
 
@@ -83,16 +83,15 @@ This method replaces the costraints with additional post processing over the cor
 ```python exec="on" source="material-block" session="mitigation" result="json"
 
 # Define the mitigation method solving the minimization problem:
-options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots} 
+options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots}
 mitigation = Mitigations(protocol=Mitigations.READOUT, options=options).mitigation()
 mitigated_samples_mle = mitigation(model=model, noise=noise)
-print(f"MLE based mitigation {mitigated_samples_mle}")
+print(f"MLE based mitigation {mitigated_samples_mle}") # markdown-exec: hide
 ```
 
 ### Matrix free measurement mitigation (MTHREE)
 
-This method relies on inverting the probability distribution within an identified subspace [^3] (restricting to the space of measured bitstrings). The method is reserved for computations that exceed 20 qubits where trying to recreate the corrected probability distribution would be creating a state in a unreasonably high dimensional hilbert space. Thus the idea here is to stick to the basis states that show up in the measurement alone. Additionally one might want to include states that are k hamming distance away from it.
-
+This method relies on inverting the probability distribution within a restricted subspace of measured bitstrings[^3]. The method is better suited for computations that exceed 20 qubits where the corrected probability distribution would require a state in a unreasonably high dimensional Hilbert space. Thus, the idea here is to stick to the basis states that show up in the measurement alone. Additionally, one might want to include states that are $k$ hamming distance away from it.
 
 ```python exec="on" source="material-block" session="m3" result="json"
 
@@ -114,11 +113,11 @@ observed_prob[exact_prob < 1 / 2 ** (n_qubits)] = 0
 observed_prob = observed_prob / sum(observed_prob)
 
 input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
-print({bin(x)[2:].zfill(n_qubits):np.round(input_csr[x,0],3) for x in input_csr.nonzero()[0]})
-print(f"Filling percentage {len(input_csr.nonzero()[0])/2**n_qubits} %")
+print({bin(x)[2:].zfill(n_qubits):np.round(input_csr[x,0],3) for x in input_csr.nonzero()[0]}) # markdown-exec: hide
+print(f"Filling percentage {len(input_csr.nonzero()[0])/2**n_qubits} %") # markdown-exec: hide
 ```
 
-We have generated a probability distribution within a small subspace of bitstrings being filled. We use $csr\_matrix$ for efficient representation and computation. Now we use MTHREE to do mitigation on the probability distribution
+We have generated a probability distribution within a small subspace of bitstrings being filled. We use `csr_matrix` for efficient representation and computation. Now we use MTHREE to do mitigation on the probability distribution
 
 
 ```python exec="on" source="material-block" session="m3" result="json"
@@ -126,7 +125,7 @@ from scipy.stats import wasserstein_distance
 from qadence_protocols.mitigations.readout import (
     normalized_subspace_kron,
     mle_solve,
-    matrix_inv, 
+    matrix_inv,
     tensor_rank_mult
     )
 
@@ -144,15 +143,17 @@ p_corr_mthree_gmres_mle = mle_solve(p_corr_mthree_gmres)
 noise_matrices_inv = list(map(matrix_inv, noise_matrices))
 p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
 
-print(wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle))
+distance = wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle)
+print("Wassertein distance between the 2 distributions",distance)  # markdown-exec: hide
+
 
 ```
 
-We have used wassestein_distance instead of kl_divergence as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bistrings, MTHREE will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
+We have used `wassestein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
 
 ### Majority Voting
 
-Mitigiation protocol to be used only when the circuit output has a single expected bitstring as the solution [^4]. The method votes on the likeliness of each qubit to be a 0 or 1 assuming a tensor product structure for the output. The method is valid only when the readout errors are not correlated
+Mitigation protocol to be used only when the circuit output has a single expected bitstring as the solution [^4]. The method votes on the likeliness of each qubit to be a 0 or 1 assuming a tensor product structure for the output. The method is valid only when the readout errors are not correlated.
 
 ```python exec="on" source="material-block" session="mv" result="json"
 from qadence import QuantumModel, QuantumCircuit,kron, H, Z, I
@@ -182,8 +183,8 @@ ordered_bitstrings = [bin(k)[2:].zfill(n_qubits) for k in range(2**n_qubits)]
 observed_prob = np.array([noisy_samples[bs] for bs in ordered_bitstrings]) / n_shots
 
 
-print(f"noisy samples: {noisy_samples}")
-print(f"observed probability: {np.around(observed_prob,3)}")
+print(f"noisy samples: {noisy_samples}") # markdown-exec: hide
+print(f"observed probability: {np.around(observed_prob,3)}") # markdown-exec: hide
 
 ```
 
@@ -192,11 +193,13 @@ We have removed the actual solution from the observed distribution and will use 
 ```python exec="on" source="material-block" session="mv" result="json"
 
 noise_matrices = [np.array([[1 - error_p, error_p], [error_p, 1 - error_p]])]*n_qubits
-print("mitigated solution index:", majority_vote(noise_matrices, observed_prob).argmax())
+result_index = majority_vote(noise_matrices, observed_prob).argmax()
+print("mitigated solution index:", result_index ) # markdown-exec: hide
 ```
 
 ### Model free mitigation
-This protocol makes use of all possible twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced thru random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
+
+This protocol makes use of all possible twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
 from qadence.measurements import Measurements
@@ -234,13 +237,13 @@ noisy_model = QuantumModel(
     measurement=tomo_measurement,
     noise=noise,
 )
-print("noiseless expectation value ", model.expectation(measurement=tomo_measurement,))
-print("noisy expectation value ", noisy_model.expectation(measurement=tomo_measurement,))
+print("noiseless expectation value ", model.expectation(measurement=tomo_measurement,)) # markdown-exec: hide
+print("noisy expectation value ", noisy_model.expectation(measurement=tomo_measurement,)) # markdown-exec: hide
 
 mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
 expectation_mitigated = mitigate(noisy_model)
 
-print("expected mitigation value",expectation_mitigated)
+print("expected mitigation value",expectation_mitigated) # markdown-exec: hide
 
 ```
 
