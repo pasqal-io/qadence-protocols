@@ -21,18 +21,11 @@ supported_noise_models = [Noise.DEPOLARIZING, Noise.DEPHASING]
 def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
     poly_fits = []
     for dataset in zne_datasets:  # Looping over batched observables.
-        batched_observable: list = []
-        n_params = len(dataset[0])
-        for p in range(n_params):  # Looping over the batched parameters.
-            rearranged_dataset = [s[p] for s in dataset]
-            # Polynomial fit function.
-            poly_fit = np.poly1d(
-                np.polyfit(noise_levels, rearranged_dataset, len(noise_levels) - 1)
-            )
-            # Return the zero-noise extrapolated value.
-            batched_observable.append(poly_fit(0.0))
-        poly_fits.append(batched_observable)
-
+        poly_fit = np.poly1d(
+            np.polyfit(noise_levels, dataset, len(noise_levels) - 1)
+        )
+        # Return the zero-noise extrapolated value.
+        poly_fits.append(poly_fit(0.0))
     return torch.tensor(poly_fits)
 
 
