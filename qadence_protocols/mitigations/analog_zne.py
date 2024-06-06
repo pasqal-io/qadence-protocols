@@ -55,7 +55,7 @@ def pulse_experiment(
             )
         return block
 
-    zne_datasets = []
+    converted_observables = [backend.observable(obs) for obs in observable]
     noisy_density_matrices: list = []
     for stretch in stretches:
         # FIXME: Iterating through the circuit for every stretch
@@ -66,34 +66,33 @@ def pulse_experiment(
         block = apply_fn_to_blocks(circuit.block, mutate_params, stre)
         stretched_register = circuit.register.rescale_coords(stre)
         stretched_circuit = QuantumCircuit(stretched_register, block)
-        conv_circuit = backend.circuit(stretched_circuit)
+        converted_circuit = backend.circuit(stretched_circuit)
         noisy_density_matrices.append(
             # Contain a single experiment result for the stretch.
             backend.run_dm(
-                conv_circuit,
+                converted_circuit,
                 param_values=param_values,
                 state=state,
                 noise=noise,
                 endianness=endianness,
             )[0]
         )
-    # Convert observable to Numpy types compatible with QuTip simulations.
-    # Matrices are flipped to match QuTip conventions.
-    converted_observable = [np.flip(block_to_tensor(obs).numpy()) for obs in observable]
-    # Create ZNE datasets by looping over batches.
-    for observable in converted_observable:
-        # Get expectation values at the end of the time serie [0,t]
-        # at intervals of the sampling rate.
-        zne_datasets.append(
-            [
-                [dm.expect(observable)[0][-1] for dm in density_matrices]
-                for density_matrices in noisy_density_matrices
-            ]
-        )
+    support = sorted(list(circuit.register.support))
+    # It is not possible to use the expectation method as the pulse stretching concerns the circuit.
+    res_list = [
+        [
+            obs.native(dm, param_values, qubit_support=support, noise=noise)
+            for dm in noisy_density_matrices
+        ]
+        for obs in converted_observables
+    ]
+    res = torch.stack([torch.transpose(torch.stack(res), 0, -1) for res in res_list])
+    res = res if len(res.shape) > 0 else res.reshape(1)
+
     # Zero-noise extrapolate.
     extrapolated_exp_values = zne(
         noise_levels=stretches,
-        zne_datasets=zne_datasets,
+        zne_datasets=res.real,
     )
     return extrapolated_exp_values
 
