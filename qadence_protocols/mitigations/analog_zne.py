@@ -107,28 +107,17 @@ def noise_level_experiment(
     state: Tensor | None = None,
 ) -> Tensor:
     noise_probs = noise.options.get("noise_probs")
-    zne_datasets: list = []
-    # Get noisy density matrices.
-    conv_circuit = backend.circuit(circuit)
-    noisy_density_matrices = backend.run_dm(
-        conv_circuit, param_values=param_values, state=state, noise=noise, endianness=endianness
+    converted_circuit = backend.circuit(circuit)
+    converted_observables = [backend.observable(obs) for obs in observable]
+    zne_datasets = backend.expectation(
+        converted_circuit,
+        converted_observables,
+        param_values=param_values,
+        state=state,
+        noise=noise,
+        endianness=endianness,
     )
-    # Convert observable to Numpy types compatible with QuTip simulations.
-    # Matrices are flipped to match QuTip conventions.
-    converted_observable = [np.flip(block_to_tensor(obs).numpy()) for obs in observable]
-    # Create ZNE datasets by looping over batches.
-    for observable in converted_observable:
-        # Get expectation values at the end of the time serie [0,t]
-        # at intervals of the sampling rate.
-        zne_datasets.append(
-            [
-                [dm.expect(observable)[0][-1] for dm in density_matrices]
-                for density_matrices in noisy_density_matrices
-            ]
-        )
-    # Zero-noise extrapolate.
-    extrapolated_exp_values = zne(noise_levels=noise_probs, zne_datasets=zne_datasets)
-    return extrapolated_exp_values
+    return zne(noise_levels=noise_probs, zne_datasets=zne_datasets)
 
 
 def analog_zne(
