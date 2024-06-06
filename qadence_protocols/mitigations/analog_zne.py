@@ -5,7 +5,6 @@ import torch
 from qadence import BackendName, QuantumModel
 from qadence.backends.api import backend_factory
 from qadence.backends.pulser.backend import Backend
-from qadence.blocks import block_to_tensor
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.analog import ConstantAnalogRotation, InteractionBlock
 from qadence.circuit import QuantumCircuit
