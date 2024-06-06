@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 import torch
 from qadence import (
@@ -25,7 +26,7 @@ from qadence_protocols.mitigations.protocols import Mitigations
         (
             chain(AnalogRX(PI / 2.0), AnalogRZ(PI)),
             [Z(0) + Z(1)],
-            torch.linspace(0.1, 0.5, 8),
+            np.linspace(0.1, 0.5, 8),
             Noise.DEPOLARIZING,
         ),
         (
@@ -35,7 +36,7 @@ from qadence_protocols.mitigations.protocols import Mitigations
                 RY(0, 3.0 * PI / 2.0),
             ),
             [hamiltonian_factory(2, detuning=Z)],
-            torch.linspace(0.1, 0.5, 8),
+            np.linspace(0.1, 0.5, 8),
             Noise.DEPHASING,
         ),
     ],
@@ -52,6 +53,7 @@ def test_analog_zne_with_noise_levels(
     mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE).mitigation()
     exact_expectation = model.expectation()
     mitigated_expectation = mitigate(model=model, noise=noise)
+    # breakpoint()
     assert torch.allclose(mitigated_expectation, exact_expectation, atol=1.0e-2)
 
 
@@ -62,7 +64,7 @@ def test_analog_zne_with_noise_levels(
         (
             chain(AnalogRX(PI / 2.0), AnalogRZ(PI)),
             [Z(0) + Z(1)],
-            torch.tensor([0.1]),
+            [0.1],
             Noise.DEPOLARIZING,
             {},
         ),
