@@ -53,7 +53,6 @@ def test_analog_zne_with_noise_levels(
     mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE).mitigation()
     exact_expectation = model.expectation()
     mitigated_expectation = mitigate(model=model, noise=noise)
-    # breakpoint()
     assert torch.allclose(mitigated_expectation, exact_expectation, atol=1.0e-2)
 
 
