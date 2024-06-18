@@ -23,11 +23,12 @@ from qadence.noise import Noise
 from qadence_protocols.mitigations.protocols import Mitigations
 import torch
 
-noise_type = "depolarizing"
-options = {"noise_probs": torch.linspace(0.2, 0.5, 5)}
+noise_type = Noise.DEPOLARIZING
+
+options = {"noise_probs": [0.1], "stretches" : torch.tensor([1.0, 1.5, 2.0, 2.5, 3.0])}
 noise = Noise(protocol=noise_type, options=options)
 
-model_noisy = QuantumModel(
+model_noisy= QuantumModel(
     circuit=circuit, observable=observable, backend=BackendName.PULSER, diff_mode=DiffMode.GPSR, noise=noise
 )
 mitigation = Mitigations(protocol=Mitigations.ANALOG_ZNE).mitigation()

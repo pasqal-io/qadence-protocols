@@ -44,7 +44,7 @@ print(f"noiseless samples: {noiseless_samples}") # markdown-exec: hide
 print(f"noisy samples: {noisy_samples}") # markdown-exec: hide
 ```
 
-Note that the noisy states have samples with the second qubit flipped. In the below protocols, we describe ways to reconstruct the noiseless distribution (untargeted mitigation). Besides this one might just be interrested in mitigating the expectation value (targeted mitigation). 
+Note that the noisy states have samples with the second qubit flipped. In the below protocols, we describe ways to reconstruct the noiseless distribution (untargeted mitigation). Besides this one might just be interrested in mitigating the expectation value (targeted mitigation).
 
 ### Constrained optimization
 
