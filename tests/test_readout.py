@@ -163,9 +163,9 @@ def test_readout_mitigation_quantum_model(
     diff_mode = "ad" if backend == BackendName.PYQTORCH else "gpsr"
     circuit = QuantumCircuit(block.n_qubits, block)
     noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+
     model_noiseless = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
     model_noisy = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode, noise=noise)
-
     # Noisy simulations through the QM.
     noiseless_samples: list[Counter] = model_noiseless.sample(n_shots=n_shots)
     noisy_samples: list[Counter] = model_noisy.sample(n_shots=n_shots)
@@ -174,7 +174,6 @@ def test_readout_mitigation_quantum_model(
         options={"optimization_type": optimization_type, "samples": noisy_samples},
     ).mitigation()
     mitigated_samples = mitigate(model=model_noisy)
-
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
     assert js_mitigated < js_noisy
