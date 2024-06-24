@@ -3,7 +3,7 @@
 Zero-noise extrapolation (ZNE) is an error mitigation technique in which the expectation value computed at different noise levels is extrapolated to the zero noise limit (ideal expectation) using a class of functions. In digital computing, this is typically implemented by "folding" the circuit at a local (involves inverting gates locally) or global level (involves inverting blocks of gates). This allows to artificially increase the noise levels by integer folds[^1]. In the analog ZNE variation, analog blocks are time stretched to again artificially increase in noise[^1]. Using ZNE on neutral atoms would require stretching the register to scale the interaction hamiltonian appropriately.
 
 ```python exec="on" source="material-block" session="zne" result="json"
-from qadence import QuantumModel, QuantumCircuit,kron, chain, AnalogRX, AnalogRZ, PI, BackendName, DiffMode,Z
+from qadence import QuantumModel, QuantumCircuit, kron, chain, AnalogRX, AnalogRZ, PI, BackendName, DiffMode, Z
 import numpy as np
 
 
@@ -14,7 +14,7 @@ model_noiseless = QuantumModel(
     circuit=circuit, observable=observable, backend=BackendName.PULSER, diff_mode=DiffMode.GPSR
 )
 
-print("noiseless_expectation", model_noiseless.expectation()) # markdown-exec: hide
+print(f"noiseless_expectation = {model_noiseless.expectation()}") # markdown-exec: hide
 
 ```
 

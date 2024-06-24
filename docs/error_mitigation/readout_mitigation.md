@@ -1,6 +1,6 @@
 ## Readout error mitigation
 
-Readout errors are introduced during measurements in the computation basis via probabilistic bitflips operators characterized by the readout matrix (also known as confusion matrix) defined over the system of qubits of dimension $2^n\times2^n$. The complete implementation of the mitigation technique involves using the characterized readout matrix for the system of qubits $(T)$ and classically applying an inversion  $(T^{−1})$ to the measured probability distributions. However there are several limitations of this approach:
+Readout errors are introduced during measurements in the computation basis via probabilistic bitflip operators characterized by the readout matrix (also known as confusion matrix) defined over the system of qubits of dimension $2^n\times2^n$. The complete implementation of the mitigation technique involves using the characterized readout matrix for the system of qubits $(T)$ and classically applying an inversion  $(T^{−1})$ to the measured probability distributions. However there are several limitations of this approach:
 
 - The complete implementation requires $2^n$ characterization experiments (probability measurements), which is not scalable.
 - Classical overhead from full matrix inversion for large system of qubits is expensive
@@ -23,7 +23,7 @@ $$
 
 
 ```python exec="on" source="material-block" session="mitigation" result="json"
-from qadence import QuantumModel, QuantumCircuit,hamiltonian_factory,kron, H, Z, I
+from qadence import QuantumModel, QuantumCircuit, hamiltonian_factory, kron, H, Z, I
 from qadence.noise import Noise
 
 
@@ -142,12 +142,12 @@ noise_matrices_inv = list(map(matrix_inv, noise_matrices))
 p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
 
 distance = wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle)
-print("Wassertein distance between the 2 distributions",distance)  # markdown-exec: hide
+print(f"Wasserstein distance between the 2 distributions: {distance}")  # markdown-exec: hide
 
 
 ```
 
-We have used `wassestein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
+We have used `wasserstein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
 
 ### Majority Voting
 
@@ -192,12 +192,12 @@ We have removed the actual solution from the observed distribution and will use 
 
 noise_matrices = [np.array([[1 - error_p, error_p], [error_p, 1 - error_p]])]*n_qubits
 result_index = majority_vote(noise_matrices, observed_prob).argmax()
-print("mitigated solution index:", result_index ) # markdown-exec: hide
+print(f"mitigated solution index: {result_index}" ) # markdown-exec: hide
 ```
 
 ### Model free mitigation
 
-This protocol makes use of all possible twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
+This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
 from qadence.measurements import Measurements
@@ -235,13 +235,13 @@ noisy_model = QuantumModel(
     measurement=tomo_measurement,
     noise=noise,
 )
-print("noiseless expectation value ", model.expectation(measurement=tomo_measurement,)) # markdown-exec: hide
-print("noisy expectation value ", noisy_model.expectation(measurement=tomo_measurement,)) # markdown-exec: hide
+print(f"noiseless expectation value {model.expectation(measurement=tomo_measurement,)}") # markdown-exec: hide
+print(f"noisy expectation value {noisy_model.expectation(measurement=tomo_measurement,)}") # markdown-exec: hide
 
 mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
 expectation_mitigated = mitigate(noisy_model)
 
-print("expected mitigation value",expectation_mitigated) # markdown-exec: hide
+print(f"expected mitigation value {expectation_mitigated}") # markdown-exec: hide
 
 ```
 
