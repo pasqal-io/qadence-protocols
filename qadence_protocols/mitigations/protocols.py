@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib
+from collections import Counter
 from dataclasses import dataclass
-from functools import partial
-from typing import Callable
+
+from qadence import Noise, QuantumModel
+from torch import Tensor
 
 PROTOCOL_TO_MODULE = {
     "twirl": "qadence_protocols.mitigations.twirl",
@@ -22,13 +24,21 @@ class Mitigations:
         self.protocol: str = protocol
         self.options: dict = options
 
-    def mitigation(self) -> Callable:
+    def __call__(
+        self,
+        model: QuantumModel,
+        noise: Noise | None = None,
+        param_values: dict[str, Tensor] = dict(),
+    ) -> list[Counter]:
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
             ImportError(f"The module for the protocol {self.protocol} is not implemented.")
-        # Partially pass the options.
-        return partial(getattr(module, "mitigate"), options=self.options)
+        migitation_fn = getattr(module, "mitigate")
+        mitigated_counters: list[Counter] = migitation_fn(
+            model=model, options=self.options, noise=noise, param_values=param_values
+        )
+        return mitigated_counters
 
     def _to_dict(self) -> dict:
         return {"protocol": self.protocol, "options": self.options}
