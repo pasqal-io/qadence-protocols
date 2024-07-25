@@ -19,9 +19,8 @@ class Protocols(StrEnum):
 
     MITIGATIONS = "mitigations"
     """The Mitigations protocol."""
-    # TODO: Placeholder for the measurements protocol.
-    # MEASUREMENTS = "measurements"
-    # """The Measurements protocol."""
+    MEASUREMENTS = "measurements"
+    """The Measurements protocol."""
 
 
 qadence_available_protocols = Protocols.list()
