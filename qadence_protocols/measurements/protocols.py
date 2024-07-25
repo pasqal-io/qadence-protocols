@@ -18,13 +18,13 @@ class Measurements:
         self.protocol: str = protocol
         self.options: dict = options
 
-    def measurement_function(self) -> Callable:
+    def compute_expectation(self) -> Callable:
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
             ImportError(f"The module for the protocol {self.protocol} is not implemented.")
         # Partially pass the options.
-        return partial(getattr(module, "measurement_function"), options=self.options)
+        return partial(getattr(module, "compute_expectation"), options=self.options)
 
     def _to_dict(self) -> dict:
         return {"protocol": self.protocol, "options": self.options}
