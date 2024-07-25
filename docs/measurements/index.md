@@ -25,26 +25,13 @@ In Qadence, running a tomographical experiment is made simple by defining a `Mea
 ```python exec="on" source="material-block" session="measurements" result="json"
 from torch import tensor
 from qadence import hamiltonian_factory, BackendName, DiffMode
-from qadence import Parameter, chain, kron, RX, RY, Z, QuantumCircuit, QuantumModel
-from qadence.measurements import Measurements
-
-# Define parameters for a circuit.
-theta1 = Parameter("theta1", trainable=False)
-theta2 = Parameter("theta2", trainable=False)
-theta3 = Parameter("theta3", trainable=False)
-theta4 = Parameter("theta4", trainable=False)
+from qadence import chain, kron, X, Z, QuantumCircuit, QuantumModel
+from qadence_protocols.measurements.protocols import Measurements
 
 blocks = chain(
-    kron(RX(0, theta1), RY(1, theta2)),
-    kron(RX(0, theta3), RY(1, theta4)),
+    kron(X(0), X(1)),
+    kron(Z(0), Z(1)),
 )
-
-values = {
-    "theta1": tensor([0.5]),
-    "theta2": tensor([1.5]),
-    "theta3": tensor([2.0]),
-    "theta4": tensor([2.5]),
-}
 
 # Create a circuit and an observable.
 circuit = QuantumCircuit(2, blocks)
