@@ -3,7 +3,9 @@ from __future__ import annotations
 import importlib
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable
+
+from qadence import QuantumModel
+from torch import Tensor
 
 PROTOCOL_TO_MODULE = {
     "tomography": "qadence_protocols.measurements.tomography",
@@ -18,13 +20,27 @@ class Measurements:
         self.protocol: str = protocol
         self.options: dict = options
 
-    def get_measurement_fn(self) -> Callable:
+    def __call__(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+    ) -> Tensor:
+        """Compute expectation values via measurements.
+
+        Args:
+            model (QuantumModel): Model to evaluate.
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+
+        Returns:
+            Tensor: Expectation values.
+        """
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
             ImportError(f"The module for the protocol {self.protocol} is not implemented.")
         # Partially pass the options.
-        return partial(getattr(module, "compute_expectation"), options=self.options)
+        compute_expectation = partial(getattr(module, "compute_expectation"), options=self.options)
+        return compute_expectation(model, param_values=param_values)
 
     def _to_dict(self) -> dict:
         return {"protocol": self.protocol, "options": self.options}
