@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import torch
 from qadence import QuantumModel
-from qadence.backends.api import backend_factory
 from qadence.blocks.utils import unroll_block_with_scaling
 from torch import Tensor
 
@@ -41,19 +40,18 @@ def compute_expectation(
     if n_shots is None:
         raise KeyError("Tomography protocol requires a 'n_shots' kwarg of type 'int').")
 
-    backend = backend_factory(backend=model._backend_name, diff_mode=None)
     circuit = model._circuit.original
 
     estimated_values = []
     for observable in observables:
-        pauli_decomposition = unroll_block_with_scaling(observable)
+        pauli_decomposition = unroll_block_with_scaling(observable.abstract)
         estimated_values.append(
             iterate_pauli_decomposition(
                 circuit=circuit,
                 param_values=param_values,
                 pauli_decomposition=pauli_decomposition,
                 n_shots=n_shots,
-                backend=backend,
+                backend=model.backend,
                 noise=model._noise,
             )
         )
