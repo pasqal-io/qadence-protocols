@@ -13,6 +13,9 @@ nav:
     - error_mitigation/readout_mitigation.md
     - error_mitigation/incoherent_error_mitigation.md
 
+  - Measurements Protocols:
+    - measurements/index.md
+
 theme:
   name: material
   features:
