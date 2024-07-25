@@ -11,6 +11,7 @@ authors = [
     { name = "Roland Guichard", email = "roland.guichard@pasqal.com" },
     { name = "Raja Selvarajan", email = "raja.selvarajan@pasqal.com" },
     { name = "Gergana Velikova", email = "gergana.velikova@pasqal.com" },
+    { name = "Charles Moussa", email = "charles.moussa@pasqal.com" },
 
 ]
 requires-python = ">=3.9,<3.12"
