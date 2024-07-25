@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from qadence import QuantumModel
 from qadence.backends.api import backend_factory
-from qadence.block.utils import unroll_block_with_scaling
+from qadence.blocks.utils import unroll_block_with_scaling
 from torch import Tensor
 
 from qadence_protocols.measurements.utils import iterate_pauli_decomposition

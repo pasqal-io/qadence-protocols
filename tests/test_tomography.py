@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import pytest
+from collections import Counter
 from typing import List
-from torch import allclose, autograd, flatten, manual_seed, ones_like, rand, tensor
 
+import pytest
 from qadence import (
     AbstractBlock,
     QuantumCircuit,
@@ -12,15 +12,16 @@ from qadence import (
     chain,
     kron,
 )
-from qadence.operations import RX, RY, H, SDagger, X, Y, Z
 from qadence.blocks.utils import unroll_block_with_scaling
+from qadence.operations import H, SDagger, X, Y, Z
+from qadence.types import BackendName
+from torch import allclose, tensor
 
 from qadence_protocols.measurements.protocols import Measurements
 from qadence_protocols.measurements.utils import (
     empirical_average,
     get_counts,
     get_qubit_indices_for_op,
-    iterate_pauli_decomposition,
     rotate,
 )
 
@@ -64,6 +65,7 @@ def test_get_qubit_indices_for_op(
         indices_Y.append(indices_y)
     assert indices_X == exp_indices_X
     assert indices_Y == exp_indices_Y
+
 
 @pytest.mark.parametrize(
     "circuit, observable, expected_circuit",
@@ -123,3 +125,100 @@ def test_rotate(
     for index, pauli_term in enumerate(pauli_decomposition):
         rotated_circuit = rotate(circuit, pauli_term)
         assert rotated_circuit == expected_circuit[index]
+
+
+def test_get_counts() -> None:
+    samples = [Counter({"00": 10, "01": 50, "10": 20, "11": 20})]
+    support = [0]
+    counts = get_counts(samples, support)
+    assert counts == [Counter({"0": 60, "1": 40})]
+    support = [1]
+    counts = get_counts(samples, support)
+    assert counts == [Counter({"0": 30, "1": 70})]
+    support = [0, 1]
+    counts = get_counts(samples, support)
+    assert counts == samples
+
+    samples = [
+        Counter(
+            {
+                "1111": 1653,
+                "0000": 1586,
+                "0001": 1463,
+                "0110": 1286,
+                "1110": 998,
+                "0101": 668,
+                "0111": 385,
+                "1000": 327,
+                "0011": 322,
+                "1100": 281,
+                "1001": 218,
+                "1010": 213,
+                "0100": 187,
+                "1101": 172,
+                "1011": 154,
+                "0010": 87,
+            }
+        )
+    ]
+    support = [0, 1, 2, 3]
+    counts = get_counts(samples, support)
+    assert counts == samples
+
+
+def test_empirical_average() -> None:
+    samples = [Counter({"00": 10, "01": 50, "10": 20, "11": 20})]
+    support = [0]
+    assert allclose(empirical_average(samples, support), tensor([0.2]))
+    support = [1]
+    assert allclose(empirical_average(samples, support), tensor([-0.4]))
+    support = [0, 1]
+    assert allclose(empirical_average(samples, support), tensor([-0.4]))
+    samples = [
+        Counter(
+            {
+                "1111": 1653,
+                "0000": 1586,
+                "0001": 1463,
+                "0110": 1286,
+                "1110": 998,
+                "0101": 668,
+                "0111": 385,
+                "1000": 327,
+                "0011": 322,
+                "1100": 281,
+                "1001": 218,
+                "1010": 213,
+                "0100": 187,
+                "1101": 172,
+                "1011": 154,
+                "0010": 87,
+            }
+        )
+    ]
+    support = [0, 1, 2, 3]
+    assert allclose(empirical_average(samples, support), tensor([0.2454]))
+
+
+@pytest.mark.parametrize(
+    "circuit",
+    [
+        QuantumCircuit(2, kron(X(0), X(1))),
+        QuantumCircuit(4, kron(X(0), X(1), X(2), X(3))),
+    ],
+)
+def test_tomography(circuit: QuantumCircuit) -> None:
+    observable = add(Z(0), Z(1))
+    backend = BackendName.PYQTORCH
+
+    tomo_measurement = Measurements(
+        protocol=Measurements.TOMOGRAPHY,
+        options={"n_shots": 10000},
+    )
+
+    notomo_model = QuantumModel(circuit=circuit, observable=observable, backend=backend)
+    expectation_analytical = notomo_model.expectation()
+
+    expectation_sampled = tomo_measurement.get_measurement_fn()(notomo_model)
+
+    assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-02)

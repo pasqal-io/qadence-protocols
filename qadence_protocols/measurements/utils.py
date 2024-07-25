@@ -6,9 +6,6 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
-from sympy import Basic
-from torch import Tensor
-
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.blocks import AbstractBlock, PrimitiveBlock, chain
@@ -18,6 +15,8 @@ from qadence.noise import Noise
 from qadence.operations import H, SDagger, X, Y, Z
 from qadence.parameters import evaluate
 from qadence.utils import Endianness
+from sympy import Basic
+from torch import Tensor
 
 
 def get_qubit_indices_for_op(

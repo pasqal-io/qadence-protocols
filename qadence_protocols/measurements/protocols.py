@@ -18,7 +18,7 @@ class Measurements:
         self.protocol: str = protocol
         self.options: dict = options
 
-    def compute_expectation(self) -> Callable:
+    def get_measurement_fn(self) -> Callable:
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
