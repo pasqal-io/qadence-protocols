@@ -13,9 +13,9 @@ from qadence import (
     kron,
 )
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence.operations import H, SDagger, X, Y, Z
+from qadence.operations import CNOT, RX, H, SDagger, X, Y, Z
 from qadence.types import BackendName
-from torch import allclose, tensor
+from torch import allclose, pi, tensor
 
 from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils import (
@@ -205,6 +205,10 @@ def test_empirical_average() -> None:
     [
         QuantumCircuit(2, kron(X(0), X(1))),
         QuantumCircuit(4, kron(X(0), X(1), X(2), X(3))),
+        QuantumCircuit(
+            2,
+            chain(kron(RX(0, pi / 3), RX(1, pi / 3)), CNOT(0, 1)),
+        ),
     ],
 )
 def test_tomography(circuit: QuantumCircuit) -> None:
