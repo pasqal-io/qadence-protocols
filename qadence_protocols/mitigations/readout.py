@@ -149,6 +149,11 @@ def constrained_inversion(noise_matrices: npt.NDArray, p_raw: npt.NDArray) -> np
 
 
 def majority_vote(noise_matrices: npt.NDArray, p_raw: npt.NDArray) -> npt.NDArray:
+    """
+    Compute the bitstring with the highest probability of occurrrence via voting.
+
+    For implementation, see Equation (6) and Page 4 in https://arxiv.org/pdf/2402.11830.pdf
+    """
     n_qubits = len(noise_matrices)
     output = 0
 

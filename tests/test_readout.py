@@ -179,8 +179,8 @@ def test_readout_mitigation_quantum_model(
     assert js_mitigated < js_noisy
 
     # Noisy simulations through the QM.
-    noisy_model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode, noise=noise)
-    noisy_samples = noisy_model.sample(noise=noise, n_shots=n_shots)
+    noiseless_samples: list[Counter] = model_noiseless.sample(n_shots=n_shots)
+    noisy_samples: list[Counter] = model_noisy.sample(n_shots=n_shots)
     mitigate = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
@@ -326,10 +326,10 @@ def test_readout_mthree_mitigation(
 
 def test_readout_mthree_sparse() -> None:
     n_qubits = 10
-    exact_prob = np.random.rand(2 ** (n_qubits - 5))
-    exact_prob = exact_prob / sum(exact_prob)
-    exact_prob = np.concatenate([exact_prob, np.zeros(2**n_qubits - len(exact_prob))], axis=0)
+    exact_prob = np.random.rand(2 ** (n_qubits))
+    exact_prob[2 ** (n_qubits // 2) :] = 0
     exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2**n_qubits) / 2**n_qubits
+    exact_prob = exact_prob / sum(exact_prob)
     np.random.shuffle(exact_prob)
 
     observed_prob = np.array(exact_prob, copy=True)
@@ -349,7 +349,7 @@ def test_readout_mthree_sparse() -> None:
     p_corr_mthree_gmres_mle = mle_solve(p_corr_mthree_gmres)
 
     noise_matrices_inv = list(map(matrix_inv, noise_matrices))
-    p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, exact_prob))
+    p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
 
     assert wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle) < LOW_ACCEPTANCE
 

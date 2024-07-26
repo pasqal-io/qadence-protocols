@@ -6,8 +6,12 @@ nav:
 
   - Qadence Protocols: index.md
 
+  - Contents: contents/index.md
+
   - Error Mitigation:
     - error_mitigation/index.md
+    - error_mitigation/readout_mitigation.md
+    - error_mitigation/incoherent_error_mitigation.md
 
 theme:
   name: material
