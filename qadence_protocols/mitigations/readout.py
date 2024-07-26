@@ -12,6 +12,7 @@ from scipy.linalg import norm
 from scipy.optimize import LinearConstraint, minimize
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import gmres
+from torch import Tensor
 
 from qadence_protocols.types import ReadOutOptimization
 
@@ -258,7 +259,12 @@ def mitigation_minimization(
     return corrected_counters
 
 
-def mitigate(model: QuantumModel, options: dict, noise: Noise | None = None) -> list[Counter]:
+def mitigate(
+    model: QuantumModel,
+    options: dict,
+    noise: Noise | None = None,
+    param_values: dict[str, Tensor] = dict(),
+) -> list[Counter]:
     if noise is None or noise.protocol != Noise.READOUT:
         if model._noise is None or model._noise.protocol != Noise.READOUT:
             raise ValueError(

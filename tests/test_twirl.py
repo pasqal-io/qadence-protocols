@@ -4,6 +4,7 @@ import pytest
 import torch
 from qadence import (
     AbstractBlock,
+    Noise,
     QuantumCircuit,
     QuantumModel,
     add,
@@ -11,11 +12,10 @@ from qadence import (
     kron,
 )
 from qadence.measurements import Measurements
-from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, Z
 from qadence.types import BackendName
 
-from qadence_protocols.mitigations.protocols import Mitigations
+from qadence_protocols import Mitigations
 
 
 @pytest.mark.parametrize(
@@ -80,7 +80,6 @@ def test_readout_twirl_mitigation(
         noise=noise,
         backend=backend,
     )
-    mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
-
+    mitigate = Mitigations(protocol=Mitigations.TWIRL)
     expectation_mitigated = mitigate(noisy_model)
     assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-1, rtol=5.0e-2)

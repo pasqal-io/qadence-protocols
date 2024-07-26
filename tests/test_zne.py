@@ -50,7 +50,7 @@ def test_analog_zne_with_noise_levels(
     )
     options = {"noise_probs": noise_probs}
     noise = Noise(protocol=noise_type, options=options)
-    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE).mitigation()
+    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE)
     exact_expectation = model.expectation()
     mitigated_expectation = mitigate(model=model, noise=noise)
     assert torch.allclose(mitigated_expectation, exact_expectation, atol=1.0e-2)
@@ -94,7 +94,7 @@ def test_analog_zne_with_pulse_stretching(
     options = {"noise_probs": noise_probs}
     noise = Noise(protocol=noise_type, options=options)
     options = {"stretches": torch.tensor([1.0, 1.5, 2.0, 2.5, 3.0])}
-    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options).mitigation()
+    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options)
     mitigated_expectation = mitigate(model=model, noise=noise, param_values=param_values)
     exact_expectation = model.expectation(values=param_values)
     assert torch.allclose(mitigated_expectation, exact_expectation, atol=2.0e-1)

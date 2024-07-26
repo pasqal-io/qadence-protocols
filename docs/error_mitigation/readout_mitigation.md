@@ -64,7 +64,7 @@ from qadence_protocols.types import ReadOutOptimization
 
 # Define the mitigation method solving the minimization problem:
 options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots}
-mitigation = Mitigations(protocol=Mitigations.READOUT, options=options).mitigation()
+mitigation = Mitigations(protocol=Mitigations.READOUT, options=options)
 
 # Run noiseless, noisy and mitigated simulations.
 mitigated_samples_opt = mitigation(model=model, noise=noise)
@@ -82,7 +82,7 @@ This method replaces the constraints with additional post processing for correct
 
 # Define the mitigation method solving the minimization problem:
 options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots}
-mitigation = Mitigations(protocol=Mitigations.READOUT, options=options).mitigation()
+mitigation = Mitigations(protocol=Mitigations.READOUT, options=options)
 mitigated_samples_mle = mitigation(model=model, noise=noise)
 print(f"MLE based mitigation {mitigated_samples_mle}") # markdown-exec: hide
 ```
@@ -238,7 +238,7 @@ noisy_model = QuantumModel(
 print(f"noiseless expectation value {model.expectation(measurement=tomo_measurement,)}") # markdown-exec: hide
 print(f"noisy expectation value {noisy_model.expectation(measurement=tomo_measurement,)}") # markdown-exec: hide
 
-mitigate = Mitigations(protocol=Mitigations.TWIRL).mitigation()
+mitigate = Mitigations(protocol=Mitigations.TWIRL)
 expectation_mitigated = mitigate(noisy_model)
 
 print(f"expected mitigation value {expectation_mitigated}") # markdown-exec: hide
