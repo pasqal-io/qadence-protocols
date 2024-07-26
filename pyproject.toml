@@ -51,7 +51,6 @@ dependencies = [
   "isort",
   "ruff",
   "pydocstringformatter",
-  "mlflow",
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -88,7 +87,6 @@ dependencies = [
   "markdown-exec",
   "mkdocs-jupyter",
   "mike",
-  "mlflow",
 ]
 
 [tool.hatch.envs.docs.scripts]
