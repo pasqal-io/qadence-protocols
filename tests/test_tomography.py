@@ -17,7 +17,7 @@ from qadence.operations import H, SDagger, X, Y, Z
 from qadence.types import BackendName
 from torch import allclose, tensor
 
-from qadence_protocols.measurements.protocols import Measurements
+from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils import (
     empirical_average,
     get_counts,
