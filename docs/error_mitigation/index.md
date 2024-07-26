@@ -33,7 +33,7 @@ subjected to physicality constraints $0 \leq p_{corr}(x) \leq 1$ and $\lVert p_{
 from qadence import QuantumModel, QuantumCircuit, kron, H, Z
 from qadence import hamiltonian_factory
 from qadence.noise import Noise
-from qadence.mitigations import Mitigations
+from qadence_protocols.mitigations.protocols import Mitigations
 from qadence.types import ReadOutOptimization
 
 # Simple circuit and observable construction.
@@ -47,15 +47,15 @@ model = QuantumModel(circuit=circuit, observable=observable)
 # Define a noise model to use:
 noise = Noise(protocol=Noise.READOUT)
 # Define the mitigation method solving the minimization problem:
-options={"optimization_type": ReadOutOptimization.CONSTRAINED}  # ReadOutOptimization.MLE for the alternative method.
+n_shots = 100
+options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots}  # ReadOutOptimization.MLE for the alternative method.
 mitigation = Mitigations(protocol=Mitigations.READOUT, options=options)
 
 # Run noiseless, noisy and mitigated simulations.
-n_shots = 100
 noiseless_samples = model.sample(n_shots=n_shots)
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)
-mitigated_samples = model.sample(
-    noise=noise, mitigation=mitigation, n_shots=n_shots
+mitigated_samples = mitigation(
+    model=model, noise=noise
 )
 
 print(f"noiseless {noiseless_samples}")
