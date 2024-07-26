@@ -7,18 +7,19 @@ from functools import partial
 from qadence import QuantumModel
 from torch import Tensor
 
+from qadence_protocols.protocols import Protocol
+
 PROTOCOL_TO_MODULE = {
     "tomography": "qadence_protocols.measurements.tomography",
 }
 
 
 @dataclass
-class Measurements:
+class Measurements(Protocol):
     TOMOGRAPHY = "tomography"
 
     def __init__(self, protocol: str, options: dict = dict()) -> None:
-        self.protocol: str = protocol
-        self.options: dict = options
+        super().__init__(protocol, options)
 
     def __call__(
         self,
@@ -41,16 +42,3 @@ class Measurements:
         # Partially pass the options.
         compute_expectation = partial(getattr(module, "compute_expectation"), options=self.options)
         return compute_expectation(model, param_values=param_values)
-
-    def _to_dict(self) -> dict:
-        return {"protocol": self.protocol, "options": self.options}
-
-    @classmethod
-    def _from_dict(cls, d: dict) -> Measurements | None:
-        if d:
-            return cls(d["protocol"], **d["options"])
-        return None
-
-    @classmethod
-    def list(cls) -> list:
-        return list(filter(lambda el: not el.startswith("__"), dir(cls)))
