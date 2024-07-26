@@ -31,7 +31,7 @@ model = QuantumModel(
 
 for data_points in [2,5]:
     options = {"stretches": torch.linspace(1, 3, data_points)}
-    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options).mitigation()
+    mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options)
 
     mitigated_expectation = mitigate(model=model, noise=noise)
 

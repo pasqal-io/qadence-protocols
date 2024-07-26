@@ -179,8 +179,8 @@ def test_readout_mitigation_quantum_model(
     assert js_mitigated < js_noisy
 
     # Noisy simulations through the QM.
-    noiseless_samples: list[Counter] = model_noiseless.sample(n_shots=n_shots)
-    noisy_samples: list[Counter] = model_noisy.sample(n_shots=n_shots)
+    noisy_model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode, noise=noise)
+    noisy_samples = noisy_model.sample(noise=noise, n_shots=n_shots)
     mitigate = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
