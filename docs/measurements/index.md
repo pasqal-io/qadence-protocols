@@ -26,7 +26,7 @@ In Qadence, running a tomographical experiment is made simple by defining a `Mea
 from torch import tensor
 from qadence import hamiltonian_factory, BackendName, DiffMode
 from qadence import chain, kron, X, Z, QuantumCircuit, QuantumModel
-from qadence_protocols.measurements.protocols import Measurements
+from qadence_protocols import Measurements
 
 blocks = chain(
     kron(X(0), X(1)),
@@ -50,15 +50,10 @@ tomo_options = {"n_shots": 100000}
 tomo_measurement = Measurements(protocol=Measurements.TOMOGRAPHY, options=tomo_options)
 
 # Get the exact expectation value.
-exact_values = model.expectation(
-	values=values,
-)
+exact_values = model.expectation()
 
 # Run the tomography experiment.
-estimated_values_tomo = tomo_measurement(
-    model,
-    param_values=values,
-)
+estimated_values_tomo = tomo_measurement(model)
 
 print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
