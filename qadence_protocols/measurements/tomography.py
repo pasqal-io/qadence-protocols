@@ -48,7 +48,7 @@ def compute_expectation(
         estimated_values.append(
             iterate_pauli_decomposition(
                 circuit=circuit,
-                param_values=param_values,
+                param_values=model.embedding_fn(model._params, param_values),
                 pauli_decomposition=pauli_decomposition,
                 n_shots=n_shots,
                 backend=model.backend,

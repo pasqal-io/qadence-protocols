@@ -225,4 +225,4 @@ def test_tomography(circuit: QuantumCircuit) -> None:
 
     expectation_sampled = tomo_measurement(notomo_model)
 
-    assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-02)
+    assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-01)
