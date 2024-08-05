@@ -56,7 +56,7 @@ def get_counts(samples: List, support: List[int]) -> List[Counter]:
     ]
 
 
-def empirical_average(samples: List, support: List[int]) -> Tensor:
+def empirical_average(samples: list, support: list[int]) -> Tensor:
     """Compute the empirical average.
 
     Args:
