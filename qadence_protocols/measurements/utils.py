@@ -31,9 +31,7 @@ def get_qubit_indices_for_op(
     Returns: A list of integers representing qubit indices.
     """
     blocks = getattr(pauli_term[0], "blocks", None) or [pauli_term[0]]
-    indices = [
-        block.qubit_support[0] for block in blocks if (op is None) or (isinstance(block, type(op)))
-    ]
+    indices = [block.qubit_support[0] for block in blocks if (op is None) or (type(block) is op)]
     return indices
 
 
@@ -111,7 +109,7 @@ def rotate(circuit: QuantumCircuit, pauli_term: Tuple[AbstractBlock, Basic]) -> 
 
     rotations = []
 
-    for op, gate in [(X(0), Z), (Y(0), SDagger)]:
+    for op, gate in [(X, Z), (Y, SDagger)]:
         qubit_indices = get_qubit_indices_for_op(pauli_term, op=op)
         for index in qubit_indices:
             rotations.append(gate(index) * H(index))
