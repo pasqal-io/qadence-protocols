@@ -58,3 +58,13 @@ estimated_values_tomo = tomo_measurement(model)
 print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
 ```
+
+## Classical shadows
+
+Coming soon!
+
+## References
+
+[^1]: [Hsin-Yuan Huang, Richard Kueng and John Preskill, Predicting Many Properties of a Quantum System from Very Few Measurements (2020)](https://arxiv.org/abs/2002.08953)
+
+[^2]: S. Aaronson. Shadow tomography of quantum states. In _Proceedings of the 50th Annual A ACM SIGACT Symposium on Theory of Computing_, STOC 2018, pages 325–338, New York, NY, USA, 2018. ACM
