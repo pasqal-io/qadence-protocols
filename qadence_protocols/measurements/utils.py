@@ -37,7 +37,7 @@ def get_qubit_indices_for_op(
     return indices
 
 
-def get_counts(samples: List, support: List[int]) -> List[Counter]:
+def get_counts(samples: list, support: list[int]) -> list[Counter]:
     """Marginalise the probability mass function to the support.
 
     Args:
