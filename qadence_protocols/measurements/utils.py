@@ -20,7 +20,7 @@ from torch import Tensor
 
 
 def get_qubit_indices_for_op(
-    pauli_term: Tuple[AbstractBlock, Basic], op: PrimitiveBlock | None = None
+    pauli_term: tuple[AbstractBlock, Basic], op: PrimitiveBlock | None = None
 ) -> List[int]:
     """Get qubit indices for the given op in the Pauli term if any.
 
