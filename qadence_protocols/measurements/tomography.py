@@ -31,7 +31,7 @@ def compute_expectation(
     observables = model._observable
     if not isinstance(observables, list):
         raise TypeError(
-            "Observables must be of type <class 'List[AbstractBlock]'>. Got {}.".format(
+            "Observables must be of type <class 'list[AbstractBlock]'>. Got {}.".format(
                 type(observables)
             )
         )

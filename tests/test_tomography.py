@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import List
 
 import pytest
 from qadence import (
@@ -78,48 +77,48 @@ def test_get_qubit_indices_for_op(
                 QuantumCircuit(2, chain(kron(X(0), X(1)), SDagger(1) * H(1))),
             ],
         ),
-        # (
-        #     QuantumCircuit(4, kron(X(0), X(1), X(2), X(3))),
-        #     add(
-        #         0.5 * kron(X(0), Y(1), X(2), Y(3)),
-        #         1.5 * kron(Y(0), Z(1), Y(2), Z(3)),
-        #         2.0 * kron(Z(0), X(1), Z(2), X(3)),
-        #     ),
-        #     [
-        #         QuantumCircuit(
-        #             4,
-        #             chain(
-        #                 kron(X(0), X(1), X(2), X(3)),
-        #                 Z(0) * H(0),
-        #                 Z(2) * H(2),
-        #                 SDagger(1) * H(1),
-        #                 SDagger(3) * H(3),
-        #             ),
-        #         ),
-        #         QuantumCircuit(
-        #             4,
-        #             chain(
-        #                 kron(X(0), X(1), X(2), X(3)),
-        #                 SDagger(0) * H(0),
-        #                 SDagger(2) * H(2),
-        #             ),
-        #         ),
-        #         QuantumCircuit(
-        #             4,
-        #             chain(
-        #                 kron(X(0), X(1), X(2), X(3)),
-        #                 Z(1) * H(1),
-        #                 Z(3) * H(3),
-        #             ),
-        #         ),
-        #     ],
-        # ),
+        (
+            QuantumCircuit(4, kron(X(0), X(1), X(2), X(3))),
+            add(
+                0.5 * kron(X(0), Y(1), X(2), Y(3)),
+                1.5 * kron(Y(0), Z(1), Y(2), Z(3)),
+                2.0 * kron(Z(0), X(1), Z(2), X(3)),
+            ),
+            [
+                QuantumCircuit(
+                    4,
+                    chain(
+                        kron(X(0), X(1), X(2), X(3)),
+                        Z(0) * H(0),
+                        Z(2) * H(2),
+                        SDagger(1) * H(1),
+                        SDagger(3) * H(3),
+                    ),
+                ),
+                QuantumCircuit(
+                    4,
+                    chain(
+                        kron(X(0), X(1), X(2), X(3)),
+                        SDagger(0) * H(0),
+                        SDagger(2) * H(2),
+                    ),
+                ),
+                QuantumCircuit(
+                    4,
+                    chain(
+                        kron(X(0), X(1), X(2), X(3)),
+                        Z(1) * H(1),
+                        Z(3) * H(3),
+                    ),
+                ),
+            ],
+        ),
     ],
 )
 def test_rotate(
     circuit: QuantumCircuit,
     observable: AbstractBlock,
-    expected_circuit: List[QuantumCircuit],
+    expected_circuit: list[QuantumCircuit],
 ) -> None:
     pauli_decomposition = unroll_block_with_scaling(observable)
     for index, pauli_term in enumerate(pauli_decomposition):

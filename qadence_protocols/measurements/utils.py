@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import Counter
 from functools import reduce
-from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -21,7 +20,7 @@ from torch import Tensor
 
 def get_qubit_indices_for_op(
     pauli_term: tuple[AbstractBlock, Basic], op: PrimitiveBlock | None = None
-) -> List[int]:
+) -> list[int]:
     """Get qubit indices for the given op in the Pauli term if any.
 
     Args:
@@ -39,10 +38,10 @@ def get_counts(samples: list, support: list[int]) -> list[Counter]:
     """Marginalise the probability mass function to the support.
 
     Args:
-        samples: List of samples against which expectation value is to be computed.
+        samples: list of samples against which expectation value is to be computed.
         support: A list of integers representing qubit indices.
 
-    Returns: A List[Counter] of bit strings.
+    Returns: A list[Counter] of bit strings.
     """
     return [
         reduce(
@@ -57,7 +56,7 @@ def empirical_average(samples: list, support: list[int]) -> Tensor:
     """Compute the empirical average.
 
     Args:
-        samples: List of samples against which expectation value is to be computed.
+        samples: list of samples against which expectation value is to be computed.
         support: A list of integers representing qubit indices.
 
     Returns: A torch.Tensor of the empirical average.
@@ -75,8 +74,8 @@ def empirical_average(samples: list, support: list[int]) -> Tensor:
 
 
 def pauli_z_expectation(
-    pauli_decomposition: List[Tuple[AbstractBlock, Basic]],
-    samples: List[Counter],
+    pauli_decomposition: list[tuple[AbstractBlock, Basic]],
+    samples: list[Counter],
 ) -> Tensor:
     """Estimate total expectation value from samples by averaging all Pauli terms.
 
@@ -97,7 +96,7 @@ def pauli_z_expectation(
     return res
 
 
-def rotate(circuit: QuantumCircuit, pauli_term: Tuple[AbstractBlock, Basic]) -> QuantumCircuit:
+def rotate(circuit: QuantumCircuit, pauli_term: tuple[AbstractBlock, Basic]) -> QuantumCircuit:
     """Rotate circuit to measurement basis and return the qubit support.
 
     Args:
@@ -119,8 +118,8 @@ def rotate(circuit: QuantumCircuit, pauli_term: Tuple[AbstractBlock, Basic]) -> 
 
 def iterate_pauli_decomposition(
     circuit: QuantumCircuit,
-    param_values: Dict[str, Tensor],
-    pauli_decomposition: List[Tuple[AbstractBlock, Basic]],
+    param_values: dict[str, Tensor],
+    pauli_decomposition: list[tuple[AbstractBlock, Basic]],
     n_shots: int,
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
