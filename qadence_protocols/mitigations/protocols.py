@@ -35,6 +35,8 @@ class Mitigations(Protocol):
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
             ImportError(f"The module for the protocol {self.protocol} is not implemented.")
+        except (ModuleNotFoundError, ImportError) as e:
+            raise type(e)(f"Failed to import Mitigations due to {e}.") from e
         migitation_fn = getattr(module, "mitigate")
         mitigated_counters: list[Counter] = migitation_fn(
             model=model, options=self.options, noise=noise, param_values=param_values

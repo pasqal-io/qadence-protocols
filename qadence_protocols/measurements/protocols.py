@@ -39,6 +39,8 @@ class Measurements(Protocol):
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except KeyError:
             ImportError(f"The module for the protocol {self.protocol} is not implemented.")
+        except (ModuleNotFoundError, ImportError) as e:
+            raise type(e)(f"Failed to import Measurements due to {e}.") from e
         # Partially pass the options.
         expectation = partial(getattr(module, "compute_expectation"), options=self.options)
         return expectation(model, param_values=param_values)
