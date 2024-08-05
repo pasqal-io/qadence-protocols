@@ -30,8 +30,7 @@ def get_qubit_indices_for_op(
 
     Returns: A list of integers representing qubit indices.
     """
-    blocks = getattr(pauli_term[0], "blocks", None)
-    blocks = blocks if blocks is not None else [pauli_term[0]]
+    blocks = getattr(pauli_term[0], "blocks", None) or [pauli_term[0]]
     indices = [
         block.qubit_support[0] for block in blocks if (op is None) or (isinstance(block, type(op)))
     ]
