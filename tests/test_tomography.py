@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from typing import Callable
 
 import pytest
 from qadence import (
@@ -210,9 +211,12 @@ def test_empirical_average() -> None:
         ),
     ],
 )
-@pytest.mark.parametrize("obs_op", [X, Z])
-def test_tomography(circuit: QuantumCircuit, obs_op: AbstractBlock) -> None:
-    observable = add(obs_op(0), obs_op(1))
+@pytest.mark.parametrize("obs_base_op", [X, Z])
+@pytest.mark.parametrize("obs_composition", [add, kron])
+def test_tomography(
+    circuit: QuantumCircuit, obs_base_op: AbstractBlock, obs_composition: Callable
+) -> None:
+    observable = obs_composition(obs_base_op(0), obs_base_op(1))
     backend = BackendName.PYQTORCH
 
     tomo_measurement = Measurements(
