@@ -30,7 +30,7 @@ class Protocol:
         return {"protocol": self.protocol, "options": self.options}
 
     @classmethod
-    def _from_dict(cls, d: dict) -> Any | None:
+    def _from_dict(cls, d: dict) -> Protocol:
         if d:
             return cls(d["protocol"], **d["options"])
         return None
