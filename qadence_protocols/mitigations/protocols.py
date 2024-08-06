@@ -33,25 +33,10 @@ class Mitigations(Protocol):
     ) -> list[Counter]:
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
-        except KeyError:
-            ImportError(f"The module for the protocol {self.protocol} is not implemented.")
-        except (ModuleNotFoundError, ImportError) as e:
-            raise type(e)(f"Failed to import Mitigations due to {e}.") from e
+        except (KeyError, ModuleNotFoundError, ImportError) as e:
+            raise type(e)(f"Failed to import Mitigations due to {e}.")
         migitation_fn = getattr(module, "mitigate")
         mitigated_counters: list[Counter] = migitation_fn(
             model=model, options=self.options, noise=noise, param_values=param_values
         )
         return mitigated_counters
-
-    def _to_dict(self) -> dict:
-        return {"protocol": self.protocol, "options": self.options}
-
-    @classmethod
-    def _from_dict(cls, d: dict) -> Mitigations | None:
-        if d:
-            return cls(d["protocol"], **d["options"])
-        return None
-
-    @classmethod
-    def list(cls) -> list:
-        return list(filter(lambda el: not el.startswith("__"), dir(cls)))

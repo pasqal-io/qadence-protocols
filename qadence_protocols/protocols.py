@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any
 
 from qadence_protocols.types import qadence_available_protocols
 
@@ -30,7 +29,7 @@ class Protocol:
         return {"protocol": self.protocol, "options": self.options}
 
     @classmethod
-    def _from_dict(cls, d: dict) -> Protocol:
+    def _from_dict(cls, d: dict) -> Protocol | None:
         if d:
             return cls(d["protocol"], **d["options"])
         return None
