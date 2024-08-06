@@ -5,6 +5,7 @@ Qadence Protocols is a collection of features to enhance Qadence inputs and outp
 ## Feature highlights
 
 * A collection of readout error mitigation protocols.
+* A collection of measurement handling protocols when computing expectation values.
 
 ## Pre-requisites
 

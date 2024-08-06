@@ -203,7 +203,7 @@ This protocol makes use of all possible so-called twirl operations to average ou
 from qadence.measurements import Measurements
 from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, Z
-from qadence_protocols.mitigations.protocols import Mitigations
+from qadence_protocols import Mitigations
 
 import torch
 from qadence import (

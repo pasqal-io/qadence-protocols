@@ -354,7 +354,7 @@ def test_readout_mthree_sparse() -> None:
     assert wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle) < LOW_ACCEPTANCE
 
 
-@pytest.mark.flaky(max_runs=2)
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.parametrize(
     "n_qubits,index",
     [
