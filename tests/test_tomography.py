@@ -210,8 +210,9 @@ def test_empirical_average() -> None:
         ),
     ],
 )
-def test_tomography(circuit: QuantumCircuit) -> None:
-    observable = add(Z(0), Z(1))
+@pytest.mark.parametrize("obs_op", [X, Z])
+def test_tomography(circuit: QuantumCircuit, obs_op: AbstractBlock) -> None:
+    observable = add(obs_op(0), obs_op(1))
     backend = BackendName.PYQTORCH
 
     tomo_measurement = Measurements(
@@ -224,4 +225,37 @@ def test_tomography(circuit: QuantumCircuit) -> None:
 
     expectation_sampled = tomo_measurement(notomo_model)
 
+    tomo_measurement_more_shots = Measurements(
+        protocol=Measurements.TOMOGRAPHY,
+        options={"n_shots": 100000},
+    )
+    expectation_sampled_more_shots = tomo_measurement_more_shots(notomo_model)
+
     assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-01)
+    assert allclose(expectation_sampled_more_shots, expectation_analytical, atol=1.0e-02)
+
+
+def test_tomography_raise_errors() -> None:
+    backend = BackendName.PYQTORCH
+    observable = None
+    notomo_model = QuantumModel(
+        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=observable, backend=backend
+    )
+    tomo_measurement = Measurements(
+        protocol=Measurements.TOMOGRAPHY,
+        options={"n_shots": 10000},
+    )
+
+    with pytest.raises(TypeError):
+        expectation_sampled = tomo_measurement(notomo_model)
+
+    notomo_model._observable = Z(0)
+    with pytest.raises(TypeError):
+        expectation_sampled = tomo_measurement(notomo_model)
+
+    tomo_measurement = Measurements(
+        protocol=Measurements.TOMOGRAPHY,
+    )
+    notomo_model._observable = [Z(0)]
+    with pytest.raises(KeyError):
+        expectation_sampled = tomo_measurement(notomo_model)
