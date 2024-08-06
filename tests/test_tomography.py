@@ -231,7 +231,7 @@ def test_tomography(
 
     tomo_measurement_more_shots = Measurements(
         protocol=Measurements.TOMOGRAPHY,
-        options={"n_shots": 100000},
+        options={"n_shots": 1000000},
     )
     expectation_sampled_more_shots = tomo_measurement_more_shots(notomo_model)
 
