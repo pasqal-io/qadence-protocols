@@ -1,36 +1,31 @@
 from __future__ import annotations
 
-import json
-import os
 from collections import Counter
 
 import pytest
 import torch
-from torch import Tensor
-
 from qadence.backends.api import backend_factory
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.block_to_tensor import IMAT
 from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
-from qadence.execution import expectation
+from qadence.model import QuantumModel
+from qadence.operations import RX, RY, H, I, X, Y, Z
+from qadence.parameters import Parameter
+from qadence.types import BackendName, DiffMode
+from qadence.utils import P0_MATRIX, P1_MATRIX
+from torch import Tensor
+
 from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils_shadow import (
     UNITARY_TENSOR,
     _max_observable_weight,
     classical_shadow,
-    estimations,
     estimators,
     local_shadow,
     number_of_samples,
 )
-from qadence.model import QuantumModel
-from qadence.operations import RX, RY, H, I, X, Y, Z
-from qadence.parameters import Parameter
-from qadence.serialization import deserialize
-from qadence.types import BackendName, DiffMode
-from qadence.utils import P0_MATRIX, P1_MATRIX
 
 
 @pytest.mark.parametrize(
@@ -232,7 +227,7 @@ def test_estimations_comparison_tomo_forward_pass(
     new_options = {"accuracy": 0.1, "confidence": 0.1}
     shadow_measurements = Measurements(protocol=Measurements.SHADOW, options=new_options)
     # N = 54400.
-    estimated_exp_shadow = shadow_measurements(model, param_values=values)  
+    estimated_exp_shadow = shadow_measurements(model, param_values=values)
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)

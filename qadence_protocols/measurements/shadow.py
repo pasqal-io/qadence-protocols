@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from torch import Tensor
-
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
-from qadence.backend import ConvertedObservable
+from torch import Tensor
+
 from qadence_protocols.measurements.utils_shadow import estimations
+
 
 def compute_expectation(
     model: QuantumModel,
@@ -44,7 +44,6 @@ def compute_expectation(
     if confidence is None:
         KeyError("Shadow protocol requires a 'confidence' kwarg of type 'float'.")
 
-    
     return estimations(
         circuit=circuit,
         observables=observables,

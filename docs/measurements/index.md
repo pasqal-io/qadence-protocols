@@ -84,9 +84,6 @@ Along the same lines as the example before, estimating the expectation value usi
 shadow_options = {"accuracy": 0.1, "confidence": 0.1}  # Shadow size N=54400.
 shadow_measurement = Measurements(protocol=Measurements.SHADOW, options=shadow_options)
 
-# Get the exact expectation value.
-exact_values = model.expectation()
-
 # Run the shadow experiment.
 estimated_values_shadow = shadow_measurement(model)
 

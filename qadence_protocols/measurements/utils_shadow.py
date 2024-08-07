@@ -5,8 +5,6 @@ from functools import reduce
 
 import numpy as np
 import torch
-from torch import Tensor
-
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.blocks import AbstractBlock, chain, kron
@@ -20,6 +18,7 @@ from qadence.noise import Noise
 from qadence.operations import X, Y, Z
 from qadence.types import Endianness
 from qadence.utils import P0_MATRIX, P1_MATRIX
+from torch import Tensor
 
 pauli_gates = [X, Y, Z]
 
