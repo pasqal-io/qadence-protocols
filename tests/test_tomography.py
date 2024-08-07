@@ -18,7 +18,7 @@ from qadence.types import BackendName
 from torch import allclose, pi, tensor
 
 from qadence_protocols import Measurements
-from qadence_protocols.measurements.utils import (
+from qadence_protocols.measurements.utils_tomography import (
     empirical_average,
     get_counts,
     get_qubit_indices_for_op,
@@ -261,5 +261,5 @@ def test_tomography_raise_errors() -> None:
         protocol=Measurements.TOMOGRAPHY,
     )
     notomo_model._observable = [Z(0)]
-    with pytest.raises(KeyError):
+    with pytest.raises(TypeError):
         expectation_sampled = tomo_measurement(notomo_model)
