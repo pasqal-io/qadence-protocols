@@ -33,7 +33,6 @@ class Measurements(Protocol):
         Args:
             model (QuantumModel): Model to evaluate.
             param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
-            observables (list[AbstractBlock], optional): Observables used for expectation.
 
         Returns:
             Tensor: Expectation values.
