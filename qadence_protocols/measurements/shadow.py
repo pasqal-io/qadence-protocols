@@ -42,7 +42,7 @@ def compute_expectation(
         )
     confidence = options.get("confidence", None)
     if confidence is None:
-        KeyError("Shadow protocol requires a 'confidence' kwarg of type 'float'.")
+        KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
 
     return estimations(
         circuit=circuit,
