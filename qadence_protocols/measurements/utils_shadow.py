@@ -205,7 +205,7 @@ def estimators(
     """
     Return estimators (traces of observable times mean density matrix).
 
-    for K equally-sized shadow partitions.
+    Estimators are computed for K equally-sized shadow partitions.
 
     See https://arxiv.org/pdf/2002.08953.pdf
     Algorithm 1.
