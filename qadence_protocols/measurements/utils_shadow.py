@@ -75,7 +75,7 @@ def number_of_samples(
     """
     Estimate an optimal shot budget and a shadow partition size.
 
-    to guarantee given accuracy on all observables expectation values
+    This is to guarantee given accuracy on all observables expectation values
     within 1 - confidence range.
 
     See https://arxiv.org/pdf/2002.08953.pdf
