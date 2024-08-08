@@ -46,9 +46,7 @@ class Measurements(Protocol):
         conv_observables = model._observable
         if not isinstance(conv_observables, list):
             raise TypeError(
-                "Observables must be of type <class 'list[ConvertedObservable]'>. Got {}.".format(
-                    type(conv_observables)
-                )
+                f"Observables must be of type <class 'list[ConvertedObservable]'>. Got { type(conv_observables)}."
             )
 
         try:
