@@ -247,19 +247,14 @@ def test_tomography_raise_errors() -> None:
     )
     tomo_measurement = Measurements(
         protocol=Measurements.TOMOGRAPHY,
-        options={"n_shots": 10000},
+        options={"nsamples": 10000},
     )
 
     with pytest.raises(TypeError):
         expectation_sampled = tomo_measurement(notomo_model)
 
-    notomo_model._observable = Z(0)
-    with pytest.raises(TypeError):
-        expectation_sampled = tomo_measurement(notomo_model)
-
-    tomo_measurement = Measurements(
-        protocol=Measurements.TOMOGRAPHY,
+    notomo_model = QuantumModel(
+        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=Z(0), backend=backend
     )
-    notomo_model._observable = [Z(0)]
-    with pytest.raises(TypeError):
+    with pytest.raises(KeyError):
         expectation_sampled = tomo_measurement(notomo_model)

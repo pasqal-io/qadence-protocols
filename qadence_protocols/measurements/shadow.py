@@ -36,13 +36,13 @@ def compute_expectation(
     shadow_size = options.get("shadow_size", None)
     accuracy = options.get("accuracy", None)
     if shadow_size is None and accuracy is None:
-        KeyError(
+        raise KeyError(
             "Shadow protocol requires either an option"
             "'shadow_size' of type 'int' or 'accuracy' of type 'float'."
         )
     confidence = options.get("confidence", None)
     if confidence is None:
-        KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
+        raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
 
     return estimations(
         circuit=circuit,

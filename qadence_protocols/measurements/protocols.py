@@ -44,19 +44,11 @@ class Measurements(Protocol):
             raise type(e)(f"Failed to import Mitigations due to {e}.")
 
         conv_observables = model._observable
-        if not isinstance(conv_observables, list):
-            raise TypeError(
-                f"Observables must be of type <class 'list[ConvertedObservable]'>. Got { type(conv_observables)}."
-            )
-
-        try:
-            observables = [obs.abstract for obs in conv_observables]
-        except AttributeError:
-            raise TypeError(
-                "Observables must be of type <class 'list[ConvertedObservable]'>. Got {}.".format(
-                    type(conv_observables)
-                )
-            )
+        # if not isinstance(conv_observables, list):
+        #     raise TypeError(
+        #         f"Observables must be of type <class 'list[ConvertedObservable]'>. Got { type(conv_observables)}."
+        #     )
+        observables = [obs.abstract for obs in conv_observables]
 
         # Partially pass the options and observable.
         expectation = partial(

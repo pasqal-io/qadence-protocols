@@ -10,6 +10,7 @@ from qadence.blocks.block_to_tensor import IMAT
 from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
+from qadence.execution import expectation
 from qadence.model import QuantumModel
 from qadence.operations import RX, RY, H, I, X, Y, Z
 from qadence.parameters import Parameter
@@ -22,6 +23,7 @@ from qadence_protocols.measurements.utils_shadow import (
     UNITARY_TENSOR,
     _max_observable_weight,
     classical_shadow,
+    estimations,
     estimators,
     local_shadow,
     number_of_samples,
@@ -136,38 +138,38 @@ def test_estimators(
     assert torch.allclose(estimated_traces, exp_traces)
 
 
-# @pytest.mark.flaky(max_runs=5)
-# @pytest.mark.parametrize(
-#     "circuit, observable, values",
-#     [
-#         (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ X(1), {}),
-#         (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ Y(1), {}),
-#         (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ X(1), {}),
-#         (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ Y(1), {}),
-#         (QuantumCircuit(2, kron(Z(0), H(1))), X(0) @ Z(1), {}),
-#         (
-#             QuantumCircuit(2, kron(RX(0, theta), X(1))),
-#             kron(Z(0), Z(1)),
-#             {"theta": torch.tensor([0.5, 1.0])},
-#         ),
-#         (QuantumCircuit(2, kron(X(0), Z(1))), ising_hamiltonian(2), {}),
-#     ],
-# )
-# def test_estimations_comparison_exact(
-#     circuit: QuantumCircuit, observable: AbstractBlock, values: dict
-# ) -> None:
-#     backend = backend_factory(backend=BackendName.PYQTORCH, diff_mode=DiffMode.GPSR)
-#     (conv_circ, _, embed, params) = backend.convert(circuit=circuit, observable=observable)
-#     param_values = embed(params, values)
+@pytest.mark.flaky(max_runs=5)
+@pytest.mark.parametrize(
+    "circuit, observable, values",
+    [
+        (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ X(1), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ Y(1), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ X(1), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ Y(1), {}),
+        (QuantumCircuit(2, kron(Z(0), H(1))), X(0) @ Z(1), {}),
+        (
+            QuantumCircuit(2, kron(RX(0, theta), X(1))),
+            kron(Z(0), Z(1)),
+            {"theta": torch.tensor([0.5, 1.0])},
+        ),
+        (QuantumCircuit(2, kron(X(0), Z(1))), ising_hamiltonian(2), {}),
+    ],
+)
+def test_estimations_comparison_exact(
+    circuit: QuantumCircuit, observable: AbstractBlock, values: dict
+) -> None:
+    backend = backend_factory(backend=BackendName.PYQTORCH, diff_mode=DiffMode.GPSR)
+    (conv_circ, _, embed, params) = backend.convert(circuit=circuit, observable=observable)
+    param_values = embed(params, values)
 
-#     estimated_exp = estimations(
-#         circuit=conv_circ.abstract,
-#         observables=[observable],
-#         param_values=param_values,
-#         shadow_size=5000,
-#     )
-#     exact_exp = expectation(circuit, observable, values=values)
-#     assert torch.allclose(estimated_exp, exact_exp, atol=0.2)
+    estimated_exp = estimations(
+        circuit=conv_circ.abstract,
+        observables=[observable],
+        param_values=param_values,
+        shadow_size=5000,
+    )
+    exact_exp = expectation(circuit, observable, values=values)
+    assert torch.allclose(estimated_exp, exact_exp, atol=0.2)
 
 
 theta1 = Parameter("theta1", trainable=False)
@@ -231,3 +233,33 @@ def test_estimations_comparison_tomo_forward_pass(
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
+
+
+def test_shadow_raise_errors() -> None:
+    backend = BackendName.PYQTORCH
+    model = QuantumModel(
+        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=None, backend=backend
+    )
+    options = {"accuracy": 0.1, "conf": 0.1}
+    tomo_measurement = Measurements(
+        protocol=Measurements.SHADOW,
+        options=options,
+    )
+
+    with pytest.raises(TypeError):
+        expectation_sampled = tomo_measurement(model)
+
+    model = QuantumModel(
+        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=Z(0), backend=backend
+    )
+    with pytest.raises(KeyError):
+        expectation_sampled = tomo_measurement(model)
+
+    options = {"accuracies": 0.1, "confidence": 0.1}
+    tomo_measurement = Measurements(
+        protocol=Measurements.SHADOW,
+        options=options,
+    )
+
+    with pytest.raises(KeyError):
+        expectation_sampled = tomo_measurement(model)
