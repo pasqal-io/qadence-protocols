@@ -116,7 +116,6 @@ def classical_shadow(
     param_values: dict,
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
-    # FIXME: Changed below from Little to Big, double-check when Roland is back
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
 ) -> list:
@@ -176,8 +175,6 @@ def compute_traces(
         # Reshape the observable matrix to fit the density matrix dimensions
         # by filling indentites.
         # Please note the endianness is also flipped to get results in LE.
-        # FIXME: Changed below from Little to Big, double-check when Roland is back
-        # FIXME: Correct these comments.
         trace = (
             (
                 block_to_tensor(
