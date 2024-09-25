@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 import torch
@@ -141,8 +141,13 @@ def classical_shadow(
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
+    robust_shadow: bool = False,
+    robust_correlations: list | None = None,
 ) -> list:
     shadow: list = []
+    shadow_caller = local_shadow
+    if robust_shadow:
+        shadow_caller = partial(robust_local_shadow, correlations=robust_correlations)
     # TODO: Parallelize embarrassingly parallel loop.
     for _ in range(shadow_size):
         unitary_ids = np.random.randint(0, 3, size=(1, circuit.n_qubits))[0]
@@ -169,7 +174,7 @@ def classical_shadow(
         )
         batched_shadow = []
         for batch in samples:
-            batched_shadow.append(local_shadow(sample=batch, unitary_ids=unitary_ids))
+            batched_shadow.append(shadow_caller(sample=batch, unitary_ids=unitary_ids))
         shadow.append(batched_shadow)
 
     # Reshape the shadow by batches of samples instead of samples of batches.
@@ -271,6 +276,8 @@ def estimations(
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
     return_shadows: bool = False,
+    robust_shadow: bool = False,
+    robust_correlations: list | None = None,
 ) -> Tensor:
     """Compute expectation values for all local observables using median of means."""
     # N is the estimated shot budget for the classical shadow to
@@ -287,6 +294,8 @@ def estimations(
         backend=backend,
         noise=noise,
         endianness=endianness,
+        robust_shadow=robust_shadow,
+        robust_correlations=robust_correlations,
     )
     if return_shadows:
         return shadow

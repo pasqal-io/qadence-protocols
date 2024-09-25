@@ -21,7 +21,10 @@ def process_shadow_options(options: dict) -> tuple:
     if confidence is None:
         raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
 
-    return shadow_size, accuracy, confidence
+    robust_shadow = options.get("robust", False)
+    robust_shadow_correlations = options.get("robust_correlations", None)
+
+    return shadow_size, accuracy, confidence, robust_shadow, robust_shadow_correlations
 
 
 def compute_measurements(
@@ -49,7 +52,13 @@ def compute_measurements(
     """
 
     circuit = model._circuit.original
-    shadow_size, accuracy, confidence = process_shadow_options(options=options)
+    (
+        shadow_size,
+        accuracy,
+        confidence,
+        robust_shadow,
+        robust_shadow_correlations,
+    ) = process_shadow_options(options=options)
 
     return estimations(
         circuit=circuit,
@@ -62,6 +71,8 @@ def compute_measurements(
         backend=model.backend,
         noise=model._noise,
         return_shadows=True,
+        robust_shadow=robust_shadow,
+        robust_correlations=robust_shadow_correlations,
     )
 
 
@@ -90,7 +101,13 @@ def compute_expectation(
     """
 
     circuit = model._circuit.original
-    shadow_size, accuracy, confidence = process_shadow_options(options=options)
+    (
+        shadow_size,
+        accuracy,
+        confidence,
+        robust_shadow,
+        robust_shadow_correlations,
+    ) = process_shadow_options(options=options)
 
     return estimations(
         circuit=circuit,
@@ -102,4 +119,7 @@ def compute_expectation(
         state=state,
         backend=model.backend,
         noise=model._noise,
+        return_shadows=False,
+        robust_shadow=robust_shadow,
+        robust_correlations=robust_shadow_correlations,
     )
