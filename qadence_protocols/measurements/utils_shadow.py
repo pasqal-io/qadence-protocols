@@ -110,6 +110,7 @@ def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
     else:
         return reduce(torch.kron, local_density_matrices)
 
+
 def robust_local_shadow(
     sample: Counter, unitary_ids: list, correlations: list | None = None
 ) -> Tensor:

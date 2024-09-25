@@ -27,6 +27,7 @@ class Measurements(Protocol):
         self,
         model: QuantumModel,
         param_values: dict[str, Tensor] = dict(),
+        return_expectations: bool = True,
     ) -> Tensor:
         """Compute expectation values via measurements.
 
@@ -46,8 +47,9 @@ class Measurements(Protocol):
         observables = [obs.abstract for obs in conv_observables]
 
         # Partially pass the options and observable.
+        fct_to_import = "compute_expectation" if return_expectations else "compute_measurements"
         expectation = partial(
-            getattr(module, "compute_expectation"), observables=observables, options=self.options
+            getattr(module, fct_to_import), observables=observables, options=self.options
         )
 
         return expectation(model, param_values=param_values)
