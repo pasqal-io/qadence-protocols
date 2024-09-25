@@ -270,6 +270,7 @@ def estimations(
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
+    return_shadows: bool = False,
 ) -> Tensor:
     """Compute expectation values for all local observables using median of means."""
     # N is the estimated shot budget for the classical shadow to
@@ -287,6 +288,9 @@ def estimations(
         noise=noise,
         endianness=endianness,
     )
+    if return_shadows:
+        return shadow
+
     estimations = []
     for observable in observables:
         pauli_decomposition = unroll_block_with_scaling(observable)

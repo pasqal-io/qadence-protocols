@@ -19,7 +19,7 @@ def compute_measurements(
     param_values: dict[str, Tensor] = dict(),
     state: Tensor | None = None,
 ) -> list:
-    """Compute expectation values from the model by sampling via rotated circuits in Z-basis.
+    """Obtain measurements by sampling via rotated circuits in Z-basis.
 
     Args:
         model (QuantumModel): Model to evaluate.
@@ -35,7 +35,7 @@ def compute_measurements(
         KeyError: If a 'n_shots' kwarg of type 'int' is missing in options.
 
     Returns:
-        Tensor: Expectation values
+        list: List of samples per observable.
     """
 
     n_shots = options.get("n_shots")
