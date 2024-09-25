@@ -73,29 +73,6 @@ def empirical_average(samples: list, support: list[int]) -> Tensor:
     return torch.tensor(expectations)
 
 
-def pauli_z_expectation(
-    pauli_decomposition: list[tuple[AbstractBlock, Basic]],
-    samples: list[Counter],
-) -> Tensor:
-    """Estimate total expectation value from samples by averaging all Pauli terms.
-
-    Args:
-        pauli_decomposition: A list of Pauli decomposed terms.
-        samples: Samples of bit string as Counters.
-
-    Returns: A torch.Tensor of the total expectation.
-    """
-
-    estimated_values = []
-    for pauli_term in pauli_decomposition:
-        support = get_qubit_indices_for_op(pauli_term)
-        estim_values = empirical_average(samples=samples, support=support)
-        # TODO: support for parametric observables to be tested
-        estimated_values.append(estim_values * evaluate(pauli_term[1]))
-    res = torch.sum(torch.stack(estimated_values), axis=0)
-    return res
-
-
 def rotate(circuit: QuantumCircuit, pauli_term: tuple[AbstractBlock, Basic]) -> QuantumCircuit:
     """Rotate circuit to measurement basis and return the qubit support.
 

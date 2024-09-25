@@ -98,11 +98,33 @@ def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
     """
     bitstring = list(sample.keys())[0]
     local_density_matrices = []
+    idmat = identity(1)
     for bit, unitary_id in zip(bitstring, unitary_ids):
         proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
         unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
         local_density_matrices.append(
-            3 * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor) - identity(1)
+            3 * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor) - idmat
+        )
+    if len(local_density_matrices) == 1:
+        return local_density_matrices[0]
+    else:
+        return reduce(torch.kron, local_density_matrices)
+
+def robust_local_shadow(
+    sample: Counter, unitary_ids: list, correlations: list | None = None
+) -> Tensor:
+    """Compute robust shadow by inverting the quantum channel for each projector state."""
+    bitstring = list(sample.keys())[0]
+    if correlations is None:
+        correlations = [1.0 / 3.0] * len(bitstring)
+    local_density_matrices = []
+    idmat = identity(1)
+    for bit, unitary_id, corr_coeff in zip(bitstring, unitary_ids, correlations):
+        proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
+        unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
+        local_density_matrices.append(
+            (1.0 / corr_coeff) * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor)
+            - 0.5 * (1.0 / corr_coeff - 1.0) * idmat
         )
     if len(local_density_matrices) == 1:
         return local_density_matrices[0]
