@@ -59,8 +59,6 @@ print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
 ```
 
-
-
 ## Classical shadows
 
 A much less resource demanding protocol based on _classical shadows_ has been proposed[^1]. It combines ideas from shadow tomography[^2] and randomized measurement protocols [^3] capable of learning a classical shadow of an unknown quantum state $\rho$. It relies on deliberately discarding the full classical characterization of the quantum state, and instead focuses on accurately predicting a restricted set of properties that provide efficient resources for the study of the system.
@@ -91,9 +89,6 @@ estimated_values_shadow = shadow_measurement(model)
 
 print(f"Estimated expectation value tomo = {estimated_values_shadow}") # markdown-exec: hide
 ```
-
-### Computing other
-
 
 ## Robust shadows
 
