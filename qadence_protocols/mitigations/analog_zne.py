@@ -69,7 +69,7 @@ def pulse_experiment(
         converted_circuit = backend.circuit(stretched_circuit)
         noisy_density_matrices.append(
             # Contain a single experiment result for the stretch.
-            backend.run_dm(
+            backend.run(
                 converted_circuit,
                 param_values=param_values,
                 state=state,
