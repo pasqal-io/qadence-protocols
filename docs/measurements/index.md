@@ -59,6 +59,8 @@ print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
 ```
 
+
+
 ## Classical shadows
 
 A much less resource demanding protocol based on _classical shadows_ has been proposed[^1]. It combines ideas from shadow tomography[^2] and randomized measurement protocols [^3] capable of learning a classical shadow of an unknown quantum state $\rho$. It relies on deliberately discarding the full classical characterization of the quantum state, and instead focuses on accurately predicting a restricted set of properties that provide efficient resources for the study of the system.
@@ -90,6 +92,9 @@ estimated_values_shadow = shadow_measurement(model)
 print(f"Estimated expectation value tomo = {estimated_values_shadow}") # markdown-exec: hide
 ```
 
+### Computing other
+
+
 ## Robust shadows
 
 Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting `robust_correlations` to $\frac{1}{3}$ for each qubit as follows:
@@ -103,6 +108,17 @@ print(f"Estimated expectation value = {estimated_values_shadow}") # markdown-exe
 ```
 
  `robust_correlations` are generally learned using a calibration scheme described in [^4,^5] that will come soon.
+
+### Getting measurements/shadows
+
+If we are interested in accessing the measurements or shadows for computing different quantities of interest other than the expectation values, we can simply pass `return_expectations=False` as follows:
+
+```python exec="on" source="material-block" session="measurements" result="json"
+
+measurements_tomo = tomo_measurement(model, return_expectations=False)
+
+print(measurements_tomo)
+```
 
 ## References
 
