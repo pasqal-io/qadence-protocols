@@ -246,7 +246,7 @@ def test_tomography_raise_errors() -> None:
         circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=observable, backend=backend
     )
 
-    with pytest.raises(TypeError):
+    with pytest.raises(KeyError):
         tomo_measurement = Measurements(
             protocol=Measurements.TOMOGRAPHY,
             options={"nsamples": 10000},
