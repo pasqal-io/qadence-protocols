@@ -15,7 +15,7 @@ def process_shadow_options(options: dict) -> tuple:
     if shadow_size is None and accuracy is None:
         raise KeyError(
             "Shadow protocol requires either an option"
-            "'shadow_size' of type 'int' or 'accuracy' of type 'float'."
+            " 'shadow_size' of type 'int' or 'accuracy' of type 'float'."
         )
     confidence = options.get("confidence", None)
     if confidence is None:
