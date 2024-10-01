@@ -12,7 +12,7 @@ def process_shadow_options(options: dict) -> tuple:
 
     shadow_size = options.get("shadow_size", None)
     if shadow_size is None:
-        raise KeyError("Shadow protocol requires either an option" "'shadow_size' of type 'int'.")
+        raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
     shadow_groups = options.get("shadow_groups", None)
     if shadow_groups is None:
         raise KeyError("Shadow protocol requires either an option" "'shadow_groups' of type 'int'.")
