@@ -247,25 +247,27 @@ def test_shadow_raise_errors() -> None:
         circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=None, backend=backend
     )
     options = {"accuracy": 0.1, "conf": 0.1}
-    tomo_measurement = Measurements(
-        protocol=Measurements.SHADOW,
-        options=options,
-    )
-
-    with pytest.raises(TypeError):
-        expectation_sampled = tomo_measurement(model)
+    with pytest.raises(KeyError):
+        shadow_measurement = Measurements(
+            protocol=Measurements.SHADOW,
+            options=options,
+        )
+        expectation_sampled = shadow_measurement(model)
 
     model = QuantumModel(
         circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=Z(0), backend=backend
     )
     with pytest.raises(KeyError):
-        expectation_sampled = tomo_measurement(model)
+        shadow_measurement = Measurements(
+            protocol=Measurements.SHADOW,
+            options=options,
+        )
+        expectation_sampled = shadow_measurement(model)
 
     options = {"accuracies": 0.1, "confidence": 0.1}
-    tomo_measurement = Measurements(
-        protocol=Measurements.SHADOW,
-        options=options,
-    )
-
     with pytest.raises(KeyError):
-        expectation_sampled = tomo_measurement(model)
+        shadow_measurement = Measurements(
+            protocol=Measurements.SHADOW,
+            options=options,
+        )
+        expectation_sampled = shadow_measurement(model)

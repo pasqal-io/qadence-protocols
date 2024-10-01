@@ -38,10 +38,7 @@ def compute_measurements(
         list: List of samples per observable.
     """
 
-    n_shots = options.get("n_shots")
-    if n_shots is None:
-        raise KeyError("Tomography protocol requires a 'n_shots' kwarg of type 'int').")
-
+    n_shots = options["n_shots"]
     circuit = model._circuit.original
 
     samples = []

@@ -7,21 +7,6 @@ from torch import Tensor
 from qadence_protocols.measurements.utils_shadow import estimations
 
 
-def process_shadow_options(options: dict) -> tuple:
-    """Extract shadow_size, accuracy and confidence from options."""
-
-    shadow_size = options.get("shadow_size", None)
-    if shadow_size is None:
-        raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
-    shadow_groups = options.get("shadow_groups", None)
-    if shadow_groups is None:
-        raise KeyError("Shadow protocol requires an option 'shadow_groups' of type 'int'.")
-
-    robust_shadow_correlations = options.get("robust_correlations", None)
-
-    return shadow_size, shadow_groups, robust_shadow_correlations
-
-
 def compute_measurements(
     model: QuantumModel,
     observables: list[AbstractBlock],
@@ -47,11 +32,9 @@ def compute_measurements(
     """
 
     circuit = model._circuit.original
-    (
-        shadow_size,
-        shadow_groups,
-        robust_shadow_correlations,
-    ) = process_shadow_options(options=options)
+    shadow_size = options["shadow_size"]
+    shadow_groups = options["shadow_groups"]
+    robust_shadow_correlations = options["robust_shadow_correlations"]
 
     return estimations(
         circuit=circuit,
@@ -94,11 +77,9 @@ def compute_expectation(
     """
 
     circuit = model._circuit.original
-    (
-        shadow_size,
-        shadow_groups,
-        robust_shadow_correlations,
-    ) = process_shadow_options(options=options)
+    shadow_size = options["shadow_size"]
+    shadow_groups = options["shadow_groups"]
+    robust_shadow_correlations = options["robust_shadow_correlations"]
 
     return estimations(
         circuit=circuit,

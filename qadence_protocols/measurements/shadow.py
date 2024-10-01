@@ -7,23 +7,6 @@ from torch import Tensor
 from qadence_protocols.measurements.utils_shadow import estimations
 
 
-def process_shadow_options(options: dict) -> tuple:
-    """Extract shadow_size, accuracy and confidence from options."""
-
-    shadow_size = options.get("shadow_size", None)
-    accuracy = options.get("accuracy", None)
-    if shadow_size is None and accuracy is None:
-        raise KeyError(
-            "Shadow protocol requires either an option"
-            " 'shadow_size' of type 'int' or 'accuracy' of type 'float'."
-        )
-    confidence = options.get("confidence", None)
-    if confidence is None:
-        raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
-
-    return shadow_size, accuracy, confidence
-
-
 def compute_measurements(
     model: QuantumModel,
     observables: list[AbstractBlock],
@@ -49,11 +32,9 @@ def compute_measurements(
     """
 
     circuit = model._circuit.original
-    (
-        shadow_size,
-        accuracy,
-        confidence,
-    ) = process_shadow_options(options=options)
+    shadow_size = options["shadow_size"]
+    accuracy = options["accuracy"]
+    confidence = options["confidence"]
 
     return estimations(
         circuit=circuit,
@@ -94,11 +75,9 @@ def compute_expectation(
     """
 
     circuit = model._circuit.original
-    (
-        shadow_size,
-        accuracy,
-        confidence,
-    ) = process_shadow_options(options=options)
+    shadow_size = options["shadow_size"]
+    accuracy = options["accuracy"]
+    confidence = options["confidence"]
 
     return estimations(
         circuit=circuit,

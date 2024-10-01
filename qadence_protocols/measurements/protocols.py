@@ -17,13 +17,71 @@ PROTOCOL_TO_MODULE = {
 
 
 @dataclass
+class MeasurementOptions:
+    def __init__(self, protocol: str, options: dict = dict()) -> None:
+        self.protocol = protocol
+        self.options = options
+
+        self.OPTIONS_TO_VERIFY = {
+            "shadow": self.verify_classical_shadow,
+            "robust_shadow": self.verify_robust_shadow,
+            "tomography": self.verify_tomography,
+        }
+
+    def verify_options(self) -> dict:
+        return self.OPTIONS_TO_VERIFY[self.protocol]()
+
+    def verify_classical_shadow(self) -> dict:
+        """Extract shadow_size, accuracy and confidence from options."""
+
+        shadow_size = self.options.get("shadow_size", None)
+        accuracy = self.options.get("accuracy", None)
+        if shadow_size is None and accuracy is None:
+            raise KeyError(
+                "Shadow protocol requires either an option"
+                " 'shadow_size' of type 'int' or 'accuracy' of type 'float'."
+            )
+        confidence = self.options.get("confidence", None)
+        if confidence is None:
+            raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
+
+        return {"shadow_size": shadow_size, "accuracy": accuracy, "confidence": confidence}
+
+    def verify_tomography(self) -> dict:
+        n_shots = self.options.get("n_shots")
+        if n_shots is None:
+            raise KeyError("Tomography protocol requires a 'n_shots' kwarg of type 'int').")
+
+        return {"n_shots": n_shots}
+
+    def verify_robust_shadow(self) -> dict:
+        """Extract shadow_size, accuracy and confidence from options."""
+
+        shadow_size = self.options.get("shadow_size", None)
+        if shadow_size is None:
+            raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
+        shadow_groups = self.options.get("shadow_groups", None)
+        if shadow_groups is None:
+            raise KeyError("Shadow protocol requires an option 'shadow_groups' of type 'int'.")
+
+        robust_shadow_correlations = self.options.get("robust_correlations", None)
+
+        return {
+            "shadow_size": shadow_size,
+            "shadow_groups": shadow_groups,
+            "robust_shadow_correlations": robust_shadow_correlations,
+        }
+
+
+@dataclass
 class Measurements(Protocol):
     TOMOGRAPHY = "tomography"
     SHADOW = "shadow"
     ROBUST_SHADOW = "robust_shadow"
 
     def __init__(self, protocol: str, options: dict = dict()) -> None:
-        super().__init__(protocol, options)
+        options_verifier = MeasurementOptions(protocol, options)
+        super().__init__(protocol, options_verifier.verify_options())
 
     def __call__(
         self,
@@ -50,8 +108,8 @@ class Measurements(Protocol):
 
         # Partially pass the options and observable.
         compute_fn = "compute_expectation" if return_expectations else "compute_measurements"
-        expectation = partial(
+        output_fn = partial(
             getattr(module, compute_fn), observables=observables, options=self.options
         )
 
-        return expectation(model, param_values=param_values)
+        return output_fn(model, param_values=param_values)
