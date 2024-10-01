@@ -246,23 +246,14 @@ def test_shadow_raise_errors() -> None:
     model = QuantumModel(
         circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=None, backend=backend
     )
+
+    # Bad input keys
     options = {"accuracy": 0.1, "conf": 0.1}
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
             protocol=Measurements.SHADOW,
             options=options,
         )
-        expectation_sampled = shadow_measurement(model)
-
-    model = QuantumModel(
-        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=Z(0), backend=backend
-    )
-    with pytest.raises(KeyError):
-        shadow_measurement = Measurements(
-            protocol=Measurements.SHADOW,
-            options=options,
-        )
-        expectation_sampled = shadow_measurement(model)
 
     options = {"accuracies": 0.1, "confidence": 0.1}
     with pytest.raises(KeyError):
@@ -270,4 +261,3 @@ def test_shadow_raise_errors() -> None:
             protocol=Measurements.SHADOW,
             options=options,
         )
-        expectation_sampled = shadow_measurement(model)
