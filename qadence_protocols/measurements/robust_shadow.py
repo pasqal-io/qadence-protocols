@@ -11,17 +11,21 @@ def process_shadow_options(options: dict) -> tuple:
     """Extract shadow_size, accuracy and confidence from options."""
 
     shadow_size = options.get("shadow_size", None)
-    accuracy = options.get("accuracy", None)
-    if shadow_size is None and accuracy is None:
+    if shadow_size is None:
         raise KeyError(
             "Shadow protocol requires either an option"
-            "'shadow_size' of type 'int' or 'accuracy' of type 'float'."
+            "'shadow_size' of type 'int'."
         )
-    confidence = options.get("confidence", None)
-    if confidence is None:
-        raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
+    shadow_groups = options.get("shadow_groups", None)
+    if shadow_groups is None:
+        raise KeyError(
+            "Shadow protocol requires either an option"
+            "'shadow_groups' of type 'int'."
+        )
 
-    return shadow_size, accuracy, confidence
+    robust_shadow_correlations = options.get("robust_correlations", None)
+
+    return shadow_size, shadow_groups, robust_shadow_correlations
 
 
 def compute_measurements(
@@ -51,8 +55,8 @@ def compute_measurements(
     circuit = model._circuit.original
     (
         shadow_size,
-        accuracy,
-        confidence,
+        shadow_groups,
+        robust_shadow_correlations,
     ) = process_shadow_options(options=options)
 
     return estimations(
@@ -60,12 +64,14 @@ def compute_measurements(
         observables=observables,
         param_values=model.embedding_fn(model._params, param_values),
         shadow_size=shadow_size,
-        accuracy=accuracy,
-        confidence_or_groups=confidence,
+        accuracy=None,
+        confidence_or_groups=shadow_groups,
         state=state,
         backend=model.backend,
         noise=model._noise,
         return_shadows=True,
+        robust_shadow=True,
+        robust_correlations=robust_shadow_correlations,
     )
 
 
@@ -96,8 +102,8 @@ def compute_expectation(
     circuit = model._circuit.original
     (
         shadow_size,
-        accuracy,
-        confidence,
+        shadow_groups,
+        robust_shadow_correlations,
     ) = process_shadow_options(options=options)
 
     return estimations(
@@ -105,10 +111,12 @@ def compute_expectation(
         observables=observables,
         param_values=model.embedding_fn(model._params, param_values),
         shadow_size=shadow_size,
-        accuracy=accuracy,
-        confidence_or_groups=confidence,
+        accuracy=None,
+        confidence_or_groups=shadow_groups,
         state=state,
         backend=model.backend,
         noise=model._noise,
         return_shadows=False,
+        robust_shadow=True,
+        robust_correlations=robust_shadow_correlations,
     )

@@ -270,7 +270,7 @@ def estimations(
     param_values: dict,
     shadow_size: int | None = None,
     accuracy: float = 0.1,
-    confidence: float = 0.1,
+    confidence_or_groups: float | int = 0.1,
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: Noise | None = None,
@@ -283,9 +283,15 @@ def estimations(
     # N is the estimated shot budget for the classical shadow to
     # achieve desired accuracy for all L = len(observables) within 1 - confidence probablity.
     # K is the size of the shadow partition.
-    N, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
+    if robust_shadow:
+        K = int(confidence_or_groups)
+    else:
+        N, K = number_of_samples(
+            observables=observables, accuracy=accuracy, confidence=confidence_or_groups
+        )
     if shadow_size is not None:
         N = shadow_size
+
     shadow = classical_shadow(
         shadow_size=N,
         circuit=circuit,

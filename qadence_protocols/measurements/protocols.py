@@ -12,6 +12,7 @@ from qadence_protocols.protocols import Protocol
 PROTOCOL_TO_MODULE = {
     "tomography": "qadence_protocols.measurements.tomography",
     "shadow": "qadence_protocols.measurements.shadow",
+    "robust_shadow": "qadence_protocols.measurements.robust_shadow",
 }
 
 
@@ -19,6 +20,7 @@ PROTOCOL_TO_MODULE = {
 class Measurements(Protocol):
     TOMOGRAPHY = "tomography"
     SHADOW = "shadow"
+    ROBUST_SHADOW = "robust_shadow"
 
     def __init__(self, protocol: str, options: dict = dict()) -> None:
         super().__init__(protocol, options)
@@ -47,9 +49,9 @@ class Measurements(Protocol):
         observables = [obs.abstract for obs in conv_observables]
 
         # Partially pass the options and observable.
-        fct_to_import = "compute_expectation" if return_expectations else "compute_measurements"
+        compute_fn = "compute_expectation" if return_expectations else "compute_measurements"
         expectation = partial(
-            getattr(module, fct_to_import), observables=observables, options=self.options
+            getattr(module, compute_fn), observables=observables, options=self.options
         )
 
         return expectation(model, param_values=param_values)

@@ -87,7 +87,7 @@ shadow_measurement = Measurements(protocol=Measurements.SHADOW, options=shadow_o
 # Run the shadow experiment.
 estimated_values_shadow = shadow_measurement(model)
 
-print(f"Estimated expectation value tomo = {estimated_values_shadow}") # markdown-exec: hide
+print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markdown-exec: hide
 ```
 
 ## Robust shadows
@@ -95,11 +95,11 @@ print(f"Estimated expectation value tomo = {estimated_values_shadow}") # markdow
 Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting `robust_correlations` to $\frac{1}{3}$ for each qubit as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
-shadow_options = {"accuracy": 0.1, "confidence": 0.1, "robust": True, "robust_correlations": [1.0 / 3.0] * 2}
-shadow_measurement = Measurements(protocol=Measurements.SHADOW, options=shadow_options)
-estimated_values_shadow = shadow_measurement(model)
+shadow_options = {"shadow_size": 54400, "shadow_groups": 6, "robust_correlations": [1.0 / 3.0] * 2}
+robust_shadow_measurement = Measurements(protocol=Measurements.ROBUST_SHADOW, options=shadow_options)
+estimated_values_robust_shadow = robust_shadow_measurement(model)
 
-print(f"Estimated expectation value = {estimated_values_shadow}") # markdown-exec: hide
+print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide
 ```
 
  `robust_correlations` are generally learned using a calibration scheme described in [^4,^5] that will come soon.
