@@ -12,16 +12,10 @@ def process_shadow_options(options: dict) -> tuple:
 
     shadow_size = options.get("shadow_size", None)
     if shadow_size is None:
-        raise KeyError(
-            "Shadow protocol requires either an option"
-            "'shadow_size' of type 'int'."
-        )
+        raise KeyError("Shadow protocol requires either an option" "'shadow_size' of type 'int'.")
     shadow_groups = options.get("shadow_groups", None)
     if shadow_groups is None:
-        raise KeyError(
-            "Shadow protocol requires either an option"
-            "'shadow_groups' of type 'int'."
-        )
+        raise KeyError("Shadow protocol requires either an option" "'shadow_groups' of type 'int'.")
 
     robust_shadow_correlations = options.get("robust_correlations", None)
 
@@ -64,7 +58,7 @@ def compute_measurements(
         observables=observables,
         param_values=model.embedding_fn(model._params, param_values),
         shadow_size=shadow_size,
-        accuracy=None,
+        accuracy=0.0,
         confidence_or_groups=shadow_groups,
         state=state,
         backend=model.backend,
@@ -111,7 +105,7 @@ def compute_expectation(
         observables=observables,
         param_values=model.embedding_fn(model._params, param_values),
         shadow_size=shadow_size,
-        accuracy=None,
+        accuracy=0.0,
         confidence_or_groups=shadow_groups,
         state=state,
         backend=model.backend,
