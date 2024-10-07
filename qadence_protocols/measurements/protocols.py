@@ -80,8 +80,8 @@ class Measurements(Protocol):
     ROBUST_SHADOW = "robust_shadow"
 
     def __init__(self, protocol: str, options: dict = dict()) -> None:
-        options_verifier = MeasurementOptions(protocol, options)
-        super().__init__(protocol, options_verifier.verify_options())
+        verified_options = MeasurementOptions(protocol, options).verify_options()
+        super().__init__(protocol, verified_options)
 
     def __call__(
         self,
