@@ -33,20 +33,22 @@ def compute_measurements(
 
     circuit = model._circuit.original
     shadow_size = options["shadow_size"]
-    accuracy = options["accuracy"]
-    confidence = options["confidence"]
+    shadow_groups = options["shadow_groups"]
+    robust_shadow_correlations = options["robust_shadow_correlations"]
 
     return estimations(
         circuit=circuit,
         observables=observables,
         param_values=model.embedding_fn(model._params, param_values),
         shadow_size=shadow_size,
-        accuracy=accuracy,
-        confidence_or_groups=confidence,
+        accuracy=0.0,
+        confidence_or_groups=shadow_groups,
         state=state,
         backend=model.backend,
         noise=model._noise,
         return_shadows=True,
+        robust_shadow=True,
+        robust_correlations=robust_shadow_correlations,
     )
 
 
@@ -76,18 +78,20 @@ def compute_expectation(
 
     circuit = model._circuit.original
     shadow_size = options["shadow_size"]
-    accuracy = options["accuracy"]
-    confidence = options["confidence"]
+    shadow_groups = options["shadow_groups"]
+    robust_shadow_correlations = options["robust_shadow_correlations"]
 
     return estimations(
         circuit=circuit,
         observables=observables,
         param_values=model.embedding_fn(model._params, param_values),
         shadow_size=shadow_size,
-        accuracy=accuracy,
-        confidence_or_groups=confidence,
+        accuracy=0.0,
+        confidence_or_groups=shadow_groups,
         state=state,
         backend=model.backend,
         noise=model._noise,
         return_shadows=False,
+        robust_shadow=True,
+        robust_correlations=robust_shadow_correlations,
     )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 import torch
@@ -98,11 +98,34 @@ def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
     """
     bitstring = list(sample.keys())[0]
     local_density_matrices = []
+    idmat = identity(1)
     for bit, unitary_id in zip(bitstring, unitary_ids):
         proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
         unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
         local_density_matrices.append(
-            3 * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor) - identity(1)
+            3 * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor) - idmat
+        )
+    if len(local_density_matrices) == 1:
+        return local_density_matrices[0]
+    else:
+        return reduce(torch.kron, local_density_matrices)
+
+
+def robust_local_shadow(
+    sample: Counter, unitary_ids: list, correlations: list | None = None
+) -> Tensor:
+    """Compute robust shadow by inverting the quantum channel for each projector state."""
+    bitstring = list(sample.keys())[0]
+    if correlations is None:
+        correlations = [1.0 / 3.0] * len(bitstring)
+    local_density_matrices = []
+    idmat = identity(1)
+    for bit, unitary_id, corr_coeff in zip(bitstring, unitary_ids, correlations):
+        proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
+        unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
+        local_density_matrices.append(
+            (1.0 / corr_coeff) * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor)
+            - 0.5 * (1.0 / corr_coeff - 1.0) * idmat
         )
     if len(local_density_matrices) == 1:
         return local_density_matrices[0]
@@ -118,8 +141,13 @@ def classical_shadow(
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
+    robust_shadow: bool = False,
+    robust_correlations: list | None = None,
 ) -> list:
     shadow: list = []
+    shadow_caller = local_shadow
+    if robust_shadow:
+        shadow_caller = partial(robust_local_shadow, correlations=robust_correlations)
     # TODO: Parallelize embarrassingly parallel loop.
     for _ in range(shadow_size):
         unitary_ids = np.random.randint(0, 3, size=(1, circuit.n_qubits))[0]
@@ -146,7 +174,7 @@ def classical_shadow(
         )
         batched_shadow = []
         for batch in samples:
-            batched_shadow.append(local_shadow(sample=batch, unitary_ids=unitary_ids))
+            batched_shadow.append(shadow_caller(sample=batch, unitary_ids=unitary_ids))
         shadow.append(batched_shadow)
 
     # Reshape the shadow by batches of samples instead of samples of batches.
@@ -242,19 +270,28 @@ def estimations(
     param_values: dict,
     shadow_size: int | None = None,
     accuracy: float = 0.1,
-    confidence: float = 0.1,
+    confidence_or_groups: float | int = 0.1,
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
+    return_shadows: bool = False,
+    robust_shadow: bool = False,
+    robust_correlations: list | None = None,
 ) -> Tensor:
     """Compute expectation values for all local observables using median of means."""
     # N is the estimated shot budget for the classical shadow to
     # achieve desired accuracy for all L = len(observables) within 1 - confidence probablity.
     # K is the size of the shadow partition.
-    N, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
+    if robust_shadow:
+        K = int(confidence_or_groups)
+    else:
+        N, K = number_of_samples(
+            observables=observables, accuracy=accuracy, confidence=confidence_or_groups
+        )
     if shadow_size is not None:
         N = shadow_size
+
     shadow = classical_shadow(
         shadow_size=N,
         circuit=circuit,
@@ -263,7 +300,12 @@ def estimations(
         backend=backend,
         noise=noise,
         endianness=endianness,
+        robust_shadow=robust_shadow,
+        robust_correlations=robust_correlations,
     )
+    if return_shadows:
+        return shadow
+
     estimations = []
     for observable in observables:
         pauli_decomposition = unroll_block_with_scaling(observable)
