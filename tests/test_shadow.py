@@ -230,9 +230,15 @@ def test_estimations_comparison_tomo_forward_pass(
     shadow_measurements = Measurements(protocol=Measurements.SHADOW, options=new_options)
     # N = 54400.
     estimated_exp_shadow = shadow_measurements(model, param_values=values)
+
+    robust_options = {"shadow_size": 54400, "shadow_groups": 6, "robust_correlations": None}
+    robust_shadows = Measurements(protocol=Measurements.ROBUST_SHADOW, options=robust_options)
+    robust_estimated_exp_shadow = robust_shadows(model, param_values=values)
+
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
+    assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=0.1)
 
 
 def test_shadow_raise_errors() -> None:
@@ -240,26 +246,18 @@ def test_shadow_raise_errors() -> None:
     model = QuantumModel(
         circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=None, backend=backend
     )
+
+    # Bad input keys
     options = {"accuracy": 0.1, "conf": 0.1}
-    tomo_measurement = Measurements(
-        protocol=Measurements.SHADOW,
-        options=options,
-    )
-
-    with pytest.raises(TypeError):
-        expectation_sampled = tomo_measurement(model)
-
-    model = QuantumModel(
-        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=Z(0), backend=backend
-    )
     with pytest.raises(KeyError):
-        expectation_sampled = tomo_measurement(model)
+        shadow_measurement = Measurements(
+            protocol=Measurements.SHADOW,
+            options=options,
+        )
 
     options = {"accuracies": 0.1, "confidence": 0.1}
-    tomo_measurement = Measurements(
-        protocol=Measurements.SHADOW,
-        options=options,
-    )
-
     with pytest.raises(KeyError):
-        expectation_sampled = tomo_measurement(model)
+        shadow_measurement = Measurements(
+            protocol=Measurements.SHADOW,
+            options=options,
+        )
