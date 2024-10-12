@@ -40,9 +40,6 @@ def zero_state_calibration(
         torch.Tensor: Calibration coefficients
     """
     unitary_ids = np.random.randint(0, 3, size=(n_unitaries, n_qubits))
-
-    zero_circuit = QuantumCircuit(n_qubits)
-    conv_circ = backend.circuit(zero_circuit)
     param_values: dict = dict()
 
     state1 = product_state("1").T
