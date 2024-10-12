@@ -1,37 +1,88 @@
 from __future__ import annotations
 
+import numpy as np
 import torch
-from torch import Tensor
+from qadence import kron, product_state
+from qadence.backend import Backend
+from qadence.backends.pyqtorch import Backend as PyQBackend
+from qadence.blocks.block_to_tensor import XMAT, YMAT, ZMAT
+from qadence.circuit import QuantumCircuit
+from qadence.engines.differentiable_backend import DifferentiableBackend
+from qadence.noise import Noise
+from qadence.operations import X, Y, Z
+from qadence.types import Endianness
 
-from qadence import kron, QuantumCircuit, QuantumModel, MatrixBlock
+pauli_gates = [X, Y, Z]
+pauli_tensors = [XMAT, YMAT, ZMAT]
 
-def random_operation(qubit: int) -> MatrixBlock:
-    """Create a random unitary for a calibration circuit.
+
+def zero_state_calibration(
+    n_unitaries: int,
+    n_qubits: int,
+    n_measurement_random_unitary: int = 1,
+    backend: Backend | DifferentiableBackend = PyQBackend(),
+    noise: Noise | None = None,
+    endianness: Endianness = Endianness.BIG,
+) -> torch.Tensor:
+    """Calculate the calibration coefficients for Robust shadows.
 
     Args:
-        qubit (int): Qubit it acts on
-
-    Returns:
-        MatrixBlock: Operation for circuit
-    """
-    U = (torch.randn(2,2) + 1j * torch.randn(2,2)) / torch.sqrt(2.0)
-    Q, R = torch.linalg.qr(U)
-
-    d = torch.diagonal(R)
-    d = d / torch.abs(d)
-    U = torch.multiply(Q,d,Q)
-    return MatrixBlock(U, qubit)
-
-def calibration_circuits(N: int, n_qubits: int) -> list[QuantumModel]:
-    """Create calibration circuits.
-
-    Args:
-        N (int): Number of circuits
+        n_unitaries (int): Number of pauli unitary to sample.
         n_qubits (int): Number of qubits
+        n_measurement_random_unitary (int, optional): Number of measurements per unitary.
+            Defaults to 1.
+        backend (Backend | DifferentiableBackend, optional): Backend to run circuits.
+            Defaults to PyQBackend().
+        noise (Noise | None, optional): Noise model. Defaults to None.
+        endianness (Endianness, optional): Endianness of operations. Defaults to Endianness.BIG.
 
     Returns:
-        list[QuantumModel]: List of calibration circuits.
+        torch.Tensor: Calibration coefficients
     """
+    unitary_ids = np.random.randint(0, 3, size=(n_unitaries, n_qubits))
 
-    return [QuantumModel(circuit=QuantumCircuit(n_qubits, kron([random_operation(i) for i in range(n_qubits)]))) for _ in range(N)]
+    zero_circuit = QuantumCircuit(n_qubits)
+    conv_circ = backend.circuit(zero_circuit)
+    param_values: dict = dict()
 
+    state1 = product_state("1").T
+
+    calibrations = torch.zeros(n_qubits)
+    for i in range(n_unitaries):
+        random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
+
+        if len(random_unitary) == 1:
+            random_unitary_block = random_unitary[0]
+        else:
+            random_unitary_block = kron(*random_unitary)
+
+        random_circuit = QuantumCircuit(
+            n_qubits,
+            random_unitary_block,
+        )
+        conv_circ = backend.circuit(random_circuit)
+        samples = backend.sample(
+            circuit=conv_circ,
+            param_values=param_values,
+            n_shots=n_measurement_random_unitary,
+            state=None,
+            noise=noise,
+            endianness=endianness,
+        )[0]
+
+        born_probas = torch.zeros(n_qubits)
+        for bitstring, freq in samples.items():
+            born_probas += freq * torch.tensor([b_i == "1" for b_i in bitstring])
+        born_probas /= n_measurement_random_unitary
+
+        noiseless_born_probas = torch.tensor(
+            [
+                torch.sum(torch.pow(torch.abs(pauli_tensors[unitary_ids[i][qubit]] @ state1), 2))
+                for qubit in range(n_qubits)
+            ]
+        )
+        calibrations += 3.0 * (born_probas - noiseless_born_probas) * noiseless_born_probas + 1.0
+
+    calibrations /= n_unitaries
+
+    return calibrations
