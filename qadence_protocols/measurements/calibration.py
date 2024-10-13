@@ -13,7 +13,7 @@ from qadence.operations import X, Y, Z
 from qadence.types import Endianness
 
 pauli_gates = [X, Y, Z]
-pauli_tensors = [XMAT, YMAT, ZMAT]
+pauli_tensors = [XMAT[0], YMAT[0], ZMAT[0]]
 
 
 def zero_state_calibration(
@@ -42,9 +42,10 @@ def zero_state_calibration(
     unitary_ids = np.random.randint(0, 3, size=(n_unitaries, n_qubits))
     param_values: dict = dict()
 
-    state1 = product_state("1").T
+    state0 = product_state("0").T
 
-    calibrations = torch.zeros(n_qubits)
+    calibrations = torch.zeros(n_qubits, dtype=torch.complex64)
+    divider = n_measurement_random_unitary * n_unitaries
     for i in range(n_unitaries):
         random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
 
@@ -67,19 +68,19 @@ def zero_state_calibration(
             endianness=endianness,
         )[0]
 
-        born_probas = torch.zeros(n_qubits)
         for bitstring, freq in samples.items():
-            born_probas += freq * torch.tensor([b_i == "1" for b_i in bitstring])
-        born_probas /= n_measurement_random_unitary
-
-        noiseless_born_probas = torch.tensor(
-            [
-                torch.sum(torch.pow(torch.abs(pauli_tensors[unitary_ids[i][qubit]] @ state1), 2))
-                for qubit in range(n_qubits)
-            ]
-        )
-        calibrations += 3.0 * (born_probas - noiseless_born_probas) * noiseless_born_probas + 1.0
-
-    calibrations /= n_unitaries
+            calibrations += (
+                freq
+                * torch.tensor(
+                    [
+                        2.0
+                        * pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0]
+                        * pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0].conj()
+                        - 1
+                        for qubit in range(n_qubits)
+                    ]
+                )
+                / divider
+            )
 
     return calibrations
