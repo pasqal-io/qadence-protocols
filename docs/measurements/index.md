@@ -114,7 +114,7 @@ model = QuantumModel(
 
 calibration_coefficients = zero_state_calibration(N, n_qubits=2, n_measurement_random_unitary=100, backend=model.backend, noise=noise)
 # This linear transformation should give us the probability error
-print(0.5 * (3.0 * correlations + 1))
+print(0.5 * (3.0 * calibration_coefficients + 1))
 
 Rshadow_options = {"shadow_size": N, "shadow_groups": K, "calibration_coefficients": calibration_coefficients}
 robust_shadow_measurement = Measurements(protocol=Measurements.ROBUST_SHADOW, options=Rshadow_options)
