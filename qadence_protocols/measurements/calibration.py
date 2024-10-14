@@ -45,7 +45,7 @@ def zero_state_calibration(
     state0 = product_state("0").T
 
     calibrations = torch.zeros(n_qubits, dtype=torch.complex64)
-    divider = n_measurement_random_unitary * n_unitaries
+    divider = 3.0 * n_measurement_random_unitary * n_unitaries
     for i in range(n_unitaries):
         random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
 
