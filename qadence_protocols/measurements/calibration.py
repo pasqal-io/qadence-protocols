@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import torch
-from qadence import kron, product_state
+from qadence import kron
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.blocks.block_to_tensor import XMAT, YMAT, ZMAT
@@ -41,8 +41,6 @@ def zero_state_calibration(
     """
     unitary_ids = np.random.randint(0, 3, size=(n_unitaries, n_qubits))
     param_values: dict = dict()
-
-    state0 = product_state("0").T
 
     calibrations = torch.zeros(n_qubits, dtype=torch.complex64)
     divider = 3.0 * n_measurement_random_unitary * n_unitaries
