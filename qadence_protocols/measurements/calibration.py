@@ -45,7 +45,7 @@ def zero_state_calibration(
     unitary_ids = np.random.randint(0, 3, size=(n_unitaries, n_qubits))
     param_values: dict = dict()
 
-    calibrations = torch.zeros(n_qubits, dtype=torch.complex64)
+    calibrations = torch.zeros(n_qubits, dtype=torch.float64)
     divider = 3.0 * n_measurement_random_unitary * n_unitaries
     for i in range(n_unitaries):
         random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
@@ -75,8 +75,10 @@ def zero_state_calibration(
                 * torch.tensor(
                     [
                         2.0
-                        * pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0]
-                        * pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0].conj()
+                        * torch.real(
+                            pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0]
+                            * pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0].conj()
+                        )
                         - 1
                         for qubit in range(n_qubits)
                     ]
