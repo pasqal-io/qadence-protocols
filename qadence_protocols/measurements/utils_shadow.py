@@ -112,15 +112,15 @@ def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
 
 
 def robust_local_shadow(
-    sample: Counter, unitary_ids: list, correlations: list | None = None
+    sample: Counter, unitary_ids: list, calibation_coefficients: list | None = None
 ) -> Tensor:
     """Compute robust shadow by inverting the quantum channel for each projector state."""
     bitstring = list(sample.keys())[0]
-    if correlations is None:
-        correlations = [1.0 / 3.0] * len(bitstring)
+    if calibation_coefficients is None:
+        calibation_coefficients = [1.0 / 3.0] * len(bitstring)
     local_density_matrices = []
     idmat = identity(1)
-    for bit, unitary_id, corr_coeff in zip(bitstring, unitary_ids, correlations):
+    for bit, unitary_id, corr_coeff in zip(bitstring, unitary_ids, calibation_coefficients):
         proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
         unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
         local_density_matrices.append(
@@ -142,12 +142,12 @@ def classical_shadow(
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
     robust_shadow: bool = False,
-    robust_correlations: list | None = None,
+    calibration_coefficients: list | None = None,
 ) -> list:
     shadow: list = []
     shadow_caller = local_shadow
     if robust_shadow:
-        shadow_caller = partial(robust_local_shadow, correlations=robust_correlations)
+        shadow_caller = partial(robust_local_shadow, correlations=calibration_coefficients)
     # TODO: Parallelize embarrassingly parallel loop.
     for _ in range(shadow_size):
         unitary_ids = np.random.randint(0, 3, size=(1, circuit.n_qubits))[0]
@@ -277,7 +277,7 @@ def estimations(
     endianness: Endianness = Endianness.BIG,
     return_shadows: bool = False,
     robust_shadow: bool = False,
-    robust_correlations: list | None = None,
+    calibration_coefficients: list | None = None,
 ) -> Tensor:
     """Compute expectation values for all local observables using median of means."""
     # N is the estimated shot budget for the classical shadow to
@@ -301,7 +301,7 @@ def estimations(
         noise=noise,
         endianness=endianness,
         robust_shadow=robust_shadow,
-        robust_correlations=robust_correlations,
+        calibration_coefficients=calibration_coefficients,
     )
     if return_shadows:
         return shadow

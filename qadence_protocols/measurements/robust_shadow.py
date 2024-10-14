@@ -48,7 +48,7 @@ def compute_measurements(
         noise=model._noise,
         return_shadows=True,
         robust_shadow=True,
-        robust_correlations=calibration_coefficients,
+        calibration_coefficients=calibration_coefficients,
     )
 
 
@@ -93,5 +93,5 @@ def compute_expectation(
         noise=model._noise,
         return_shadows=False,
         robust_shadow=True,
-        robust_correlations=calibration_coefficients,
+        calibration_coefficients=calibration_coefficients,
     )
