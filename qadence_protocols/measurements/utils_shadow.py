@@ -147,7 +147,7 @@ def classical_shadow(
     shadow: list = []
     shadow_caller = local_shadow
     if robust_shadow:
-        shadow_caller = partial(robust_local_shadow, correlations=calibration_coefficients)
+        shadow_caller = partial(robust_local_shadow, calibration_coefficients=calibration_coefficients)
     # TODO: Parallelize embarrassingly parallel loop.
     for _ in range(shadow_size):
         unitary_ids = np.random.randint(0, 3, size=(1, circuit.n_qubits))[0]
