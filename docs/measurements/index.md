@@ -24,7 +24,7 @@ In Qadence, running a tomographical experiment is made simple by defining a `Mea
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 from torch import tensor
-from qadence import hamiltonian_factory, BackendName, DiffMode
+from qadence import hamiltonian_factory, BackendName, DiffMode, Noise
 from qadence import chain, kron, X, Z, QuantumCircuit, QuantumModel
 from qadence_protocols import Measurements
 
@@ -81,7 +81,11 @@ Along the same lines as the example before, estimating the expectation value usi
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 # Classical shadows are defined up to some accuracy and confidence.
-shadow_options = {"accuracy": 0.1, "confidence": 0.1}  # Shadow size N=54400.
+from qadence_protocols.measurements.utils_shadow import number_of_samples
+
+shadow_options = {"accuracy": 0.1, "confidence": 0.1}
+N, K = number_of_samples(observable, shadow_options["accuracy"], shadow_options["confidence"])
+print("Shadow size and groups: ", N, K)
 shadow_measurement = Measurements(protocol=Measurements.SHADOW, options=shadow_options)
 
 # Run the shadow experiment.
@@ -92,17 +96,32 @@ print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markd
 
 ## Robust shadows
 
-Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting `robust_correlations` to $\frac{1}{3}$ for each qubit as follows:
+Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting `calibration_coefficients` to $\frac{1}{3}$ for each qubit.
 
 ```python exec="on" source="material-block" session="measurements" result="json"
-shadow_options = {"shadow_size": 54400, "shadow_groups": 6, "robust_correlations": [1.0 / 3.0] * 2}
-robust_shadow_measurement = Measurements(protocol=Measurements.ROBUST_SHADOW, options=shadow_options)
+from qadence_protocols.measurements.calibration import zero_state_calibration
+
+error_probability = 0.1
+noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+
+model = QuantumModel(
+    circuit=circuit,
+    observable=observable,
+    backend=BackendName.PYQTORCH,
+    diff_mode=DiffMode.GPSR,
+    noise=noise
+)
+
+calibration_coefficients = zero_state_calibration(N, n_qubits=2, n_measurement_random_unitary=100, backend=model.backend, noise=noise)
+# This linear transformation should give us the probability error
+print(0.5 * (3.0 * correlations + 1))
+
+Rshadow_options = {"shadow_size": N, "shadow_groups": K, "calibration_coefficients": calibration_coefficients}
+robust_shadow_measurement = Measurements(protocol=Measurements.ROBUST_SHADOW, options=Rshadow_options)
 estimated_values_robust_shadow = robust_shadow_measurement(model)
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide
 ```
-
- `robust_correlations` are generally learned using a calibration scheme described in [^4,^5] that will come soon.
 
 ### Getting measurements/shadows
 

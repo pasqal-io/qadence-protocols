@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import torch
 from qadence import Noise
+
 from qadence_protocols.measurements.calibration import zero_state_calibration
+
 
 def test_zero_state_calibration() -> None:
     coeffs = zero_state_calibration(10, 3, 1000)
