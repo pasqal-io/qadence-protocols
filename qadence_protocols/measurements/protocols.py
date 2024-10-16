@@ -64,12 +64,12 @@ class MeasurementOptions:
         if shadow_groups is None:
             raise KeyError("Shadow protocol requires an option 'shadow_groups' of type 'int'.")
 
-        calibration_coefficients = self.options.get("calibration_coefficients", None)
+        calibration = self.options.get("calibration", None)
 
         return {
             "shadow_size": shadow_size,
             "shadow_groups": shadow_groups,
-            "calibration_coefficients": calibration_coefficients,
+            "calibration": calibration,
         }
 
 

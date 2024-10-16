@@ -19,7 +19,7 @@ pauli_tensors = [XMAT[0], YMAT[0], ZMAT[0]]
 def zero_state_calibration(
     n_unitaries: int,
     n_qubits: int,
-    n_measurement_random_unitary: int = 1,
+    n_shots: int = 1,
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: Noise | None = None,
     endianness: Endianness = Endianness.BIG,
@@ -32,7 +32,7 @@ def zero_state_calibration(
     Args:
         n_unitaries (int): Number of pauli unitary to sample.
         n_qubits (int): Number of qubits
-        n_measurement_random_unitary (int, optional): Number of measurements per unitary.
+        n_shots (int, optional): Number of shots per circuit.
             Defaults to 1.
         backend (Backend | DifferentiableBackend, optional): Backend to run circuits.
             Defaults to PyQBackend().
@@ -46,7 +46,7 @@ def zero_state_calibration(
     param_values: dict = dict()
 
     calibrations = torch.zeros(n_qubits, dtype=torch.float64)
-    divider = 3.0 * n_measurement_random_unitary * n_unitaries
+    divider = 3.0 * n_shots * n_unitaries
     for i in range(n_unitaries):
         random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
 
@@ -63,7 +63,7 @@ def zero_state_calibration(
         samples = backend.sample(
             circuit=conv_circ,
             param_values=param_values,
-            n_shots=n_measurement_random_unitary,
+            n_shots=n_shots,
             state=None,
             noise=noise,
             endianness=endianness,

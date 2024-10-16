@@ -34,7 +34,7 @@ def compute_measurements(
     circuit = model._circuit.original
     shadow_size = options["shadow_size"]
     shadow_groups = options["shadow_groups"]
-    calibration_coefficients = options["calibration_coefficients"]
+    calibration = options["calibration"]
 
     return estimations(
         circuit=circuit,
@@ -48,7 +48,7 @@ def compute_measurements(
         noise=model._noise,
         return_shadows=True,
         robust_shadow=True,
-        calibration_coefficients=calibration_coefficients,
+        calibration=calibration,
     )
 
 
@@ -79,7 +79,7 @@ def compute_expectation(
     circuit = model._circuit.original
     shadow_size = options["shadow_size"]
     shadow_groups = options["shadow_groups"]
-    calibration_coefficients = options["calibration_coefficients"]
+    calibration = options["calibration"]
 
     return estimations(
         circuit=circuit,
@@ -93,5 +93,5 @@ def compute_expectation(
         noise=model._noise,
         return_shadows=False,
         robust_shadow=True,
-        calibration_coefficients=calibration_coefficients,
+        calibration=calibration,
     )
