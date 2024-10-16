@@ -112,12 +112,10 @@ def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
 
 
 def robust_local_shadow(
-    sample: Counter, unitary_ids: list, calibration: list[float] | Tensor | None = None
+    sample: Counter, unitary_ids: list, calibration: list[float] | Tensor
 ) -> Tensor:
     """Compute robust shadow by inverting the quantum channel for each projector state."""
     bitstring = list(sample.keys())[0]
-    if calibration is None:
-        calibration = [1.0 / 3.0] * len(bitstring)
     local_density_matrices = []
     idmat = identity(1)
     for bit, unitary_id, corr_coeff in zip(bitstring, unitary_ids, calibration):

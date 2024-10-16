@@ -27,6 +27,7 @@ def zero_state_calibration(
     """Calculate the calibration coefficients for Robust shadows.
 
     They correspond to (2 G - 1) / 3 in PRXQuantum.5.030338
+    (also https://arxiv.org/html/2307.16882v2)
     and can be used directly in the robust shadow protocol.
 
     Args:

@@ -35,6 +35,8 @@ def compute_measurements(
     shadow_size = options["shadow_size"]
     shadow_groups = options["shadow_groups"]
     calibration = options["calibration"]
+    if calibration is None:
+        calibration = [1.0 / 3.0] * circuit.n_qubits
 
     return estimations(
         circuit=circuit,
@@ -80,6 +82,8 @@ def compute_expectation(
     shadow_size = options["shadow_size"]
     shadow_groups = options["shadow_groups"]
     calibration = options["calibration"]
+    if calibration is None:
+        calibration = [1.0 / 3.0] * circuit.n_qubits
 
     return estimations(
         circuit=circuit,
