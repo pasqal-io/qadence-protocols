@@ -14,10 +14,11 @@ from qadence import (
     QuantumModel,
     add,
     chain,
+    hamiltonian_factory,
     kron,
 )
 from qadence.divergences import js_divergence
-from qadence.operations import CNOT, RX, X, Y, Z
+from qadence.operations import CNOT, RX, RZ, X, Y, Z
 from qadence.types import BackendName
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import gmres
@@ -38,81 +39,23 @@ from qadence_protocols.types import ReadOutOptimization
 @pytest.mark.parametrize(
     "error_probability, n_shots, block, backend, optimization_type",
     [
-        (0.1, 100, kron(X(0), X(1)), BackendName.BRAKET, ReadOutOptimization.MLE),
-        # (
-        #     0.1,
-        #     1000,
-        #     kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (0.15, 1000, add(Z(0), Z(1), Z(2)), BackendName.BRAKET, ReadOutOptimization.CONSTRAINED),
-        # (
-        #     0.1,
-        #     5000,
-        #     kron(X(0), X(1)) + kron(Z(0), Z(1)) + kron(X(2), X(3)),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
-        # (
-        #     0.1,
-        #     500,
-        #     add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (
-        #     0.1,
-        #     2000,
-        #     add(kron(Z(0), Z(1)), kron(X(2), X(3))),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (
-        #     0.1,
-        #     1300,
-        #     kron(Z(0), Z(1)) + CNOT(0, 1),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
-        # (
-        #     0.05,
-        #     1500,
-        #     kron(RZ(0, parameter=0.01), RZ(1, parameter=0.01))
-        #     + kron(RX(0, parameter=0.01), RX(1, parameter=0.01)),
-        #     BackendName.PULSER,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
-        # (
-        #     0.001,
-        #     5000,
-        #     HamEvo(generator=kron(Z(0), Z(1)), parameter=0.05),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (
-        #     0.12,
-        #     2000,
-        #     HamEvo(generator=kron(Z(0), Z(1), Z(2)), parameter=0.001),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (
-        #     0.1,
-        #     1000,
-        #     HamEvo(generator=kron(Z(0), Z(1)) + kron(Z(0), Z(1), Z(2)), parameter=0.005),
-        #     BackendName.BRAKET,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
-        # (0.1, 100, kron(X(0), X(1)), BackendName.PYQTORCH, ReadOutOptimization.CONSTRAINED),
-        # (
-        #     0.1,
-        #     200,
-        #     kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)),
-        #     BackendName.PYQTORCH,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (0.01, 1000, add(Z(0), Z(1), Z(2)), BackendName.PYQTORCH, ReadOutOptimization.MLE),
+        (
+            0.05,
+            1500,
+            kron(RZ(0, parameter=0.01), RZ(1, parameter=0.01))
+            + kron(RX(0, parameter=0.01), RX(1, parameter=0.01)),
+            BackendName.PULSER,
+            ReadOutOptimization.CONSTRAINED,
+        ),
+        (0.1, 100, kron(X(0), X(1)), BackendName.PYQTORCH, ReadOutOptimization.CONSTRAINED),
+        (
+            0.1,
+            200,
+            kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)),
+            BackendName.PYQTORCH,
+            ReadOutOptimization.MLE,
+        ),
+        (0.01, 1000, add(Z(0), Z(1), Z(2)), BackendName.PYQTORCH, ReadOutOptimization.MLE),
         # (
         #     0.1,
         #     2000,
@@ -122,34 +65,34 @@ from qadence_protocols.types import ReadOutOptimization
         #     BackendName.PYQTORCH,
         #     ReadOutOptimization.CONSTRAINED,
         # ),
-        # (
-        #     0.1,
-        #     500,
-        #     add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)),
-        #     BackendName.PYQTORCH,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
-        # (
-        #     0.05,
-        #     10000,
-        #     add(kron(Z(0), Z(1)), kron(X(2), X(3))),
-        #     BackendName.PYQTORCH,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (
-        #     0.2,
-        #     1000,
-        #     hamiltonian_factory(4, detuning=Z),
-        #     BackendName.PYQTORCH,
-        #     ReadOutOptimization.MLE,
-        # ),
-        # (
-        #     0.1,
-        #     500,
-        #     kron(Z(0), Z(1)) + CNOT(0, 1),
-        #     BackendName.PYQTORCH,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
+        (
+            0.1,
+            500,
+            add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)),
+            BackendName.PYQTORCH,
+            ReadOutOptimization.CONSTRAINED,
+        ),
+        (
+            0.05,
+            10000,
+            add(kron(Z(0), Z(1)), kron(X(2), X(3))),
+            BackendName.PYQTORCH,
+            ReadOutOptimization.MLE,
+        ),
+        (
+            0.2,
+            1000,
+            hamiltonian_factory(4, detuning=Z),
+            BackendName.PYQTORCH,
+            ReadOutOptimization.MLE,
+        ),
+        (
+            0.1,
+            500,
+            kron(Z(0), Z(1)) + CNOT(0, 1),
+            BackendName.PYQTORCH,
+            ReadOutOptimization.CONSTRAINED,
+        ),
     ],
 )
 def test_readout_mitigation_quantum_model(
