@@ -13,7 +13,7 @@ from qadence import (
     kron,
 )
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence.operations import CNOT, RX, H, SDagger, X, Y, Z
+from qadence.operations import CNOT, RX, H, I, SDagger, X, Y, Z
 from qadence.types import BackendName
 from torch import allclose, pi, tensor
 
@@ -74,7 +74,7 @@ def test_get_qubit_indices_for_op(
             QuantumCircuit(2, kron(X(0), X(1))),
             kron(X(0), Z(2)) + 1.5 * kron(Y(1), Z(2)),
             [
-                QuantumCircuit(2, chain(kron(X(0), X(1)), Z(0) * H(0))),
+                QuantumCircuit(2, chain(kron(X(0), X(1)), I(0) * H(0))),
                 QuantumCircuit(2, chain(kron(X(0), X(1)), SDagger(1) * H(1))),
             ],
         ),
@@ -90,8 +90,8 @@ def test_get_qubit_indices_for_op(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        Z(0) * H(0),
-                        Z(2) * H(2),
+                        I(0) * H(0),
+                        I(2) * H(2),
                         SDagger(1) * H(1),
                         SDagger(3) * H(3),
                     ),
@@ -108,8 +108,8 @@ def test_get_qubit_indices_for_op(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        Z(1) * H(1),
-                        Z(3) * H(3),
+                        I(1) * H(1),
+                        I(3) * H(3),
                     ),
                 ),
             ],
