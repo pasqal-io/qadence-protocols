@@ -146,10 +146,10 @@ def test_readout_mitigation_quantum_model(
 @pytest.mark.parametrize(
     "error_probability, n_shots, block, backend",
     [
-        (0.1, 5000, kron(X(0), X(1)), BackendName.BRAKET),
-        (0.1, 5000, kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)), BackendName.BRAKET),
-        (0.1, 5000, add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)), BackendName.BRAKET),
-        (0.1, 5000, add(kron(Z(0), Z(1)), kron(X(2), X(3))), BackendName.BRAKET),
+        (0.1, 5000, kron(X(0), X(1)), BackendName.PYQTORCH),
+        (0.1, 5000, kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)), BackendName.PYQTORCH),
+        (0.1, 5000, add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)), BackendName.PYQTORCH),
+        (0.1, 5000, add(kron(Z(0), Z(1)), kron(X(2), X(3))), BackendName.PYQTORCH),
     ],
 )
 def test_compare_readout_methods(
