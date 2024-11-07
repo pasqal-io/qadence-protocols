@@ -6,6 +6,7 @@ from typing import Callable
 import pytest
 from qadence import (
     AbstractBlock,
+    PrimitiveBlock,
     QuantumCircuit,
     QuantumModel,
     add,
@@ -13,8 +14,9 @@ from qadence import (
     kron,
 )
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence.operations import CNOT, RX, H, I, SDagger, X, Y, Z
-from qadence.types import BackendName
+from qadence.operations import CNOT, RX, RY, H, I, SDagger, X, Y, Z
+from qadence.parameters import Parameter
+from qadence.types import BackendName, DiffMode
 from torch import allclose, pi, tensor
 
 from qadence_protocols import Measurements
@@ -237,6 +239,63 @@ def test_tomography(
 
     assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-01)
     assert allclose(expectation_sampled_more_shots, expectation_analytical, atol=1.0e-02)
+
+
+theta1 = Parameter("theta1", trainable=False)
+theta2 = Parameter("theta2", trainable=False)
+theta3 = Parameter("theta3", trainable=False)
+theta4 = Parameter("theta4", trainable=False)
+
+blocks = chain(
+    kron(RX(0, theta1), RY(1, theta2)),
+    kron(RX(0, theta3), RY(1, theta4)),
+)
+
+values = {
+    "theta1": tensor([0.5]),
+    "theta2": tensor([1.5]),
+    "theta3": tensor([2.0]),
+    "theta4": tensor([2.5]),
+}
+
+values2 = {
+    "theta1": tensor([0.5, 1.0]),
+    "theta2": tensor([1.5, 2.0]),
+    "theta3": tensor([2.0, 2.5]),
+    "theta4": tensor([2.5, 3.0]),
+}
+
+
+@pytest.mark.parametrize(
+    "circuit, values",
+    [
+        (
+            QuantumCircuit(2, blocks),
+            values,
+        ),
+        (
+            QuantumCircuit(2, blocks),
+            values2,
+        ),
+    ],
+)
+@pytest.mark.parametrize("base_op", [X, Y, Z])
+@pytest.mark.parametrize("do_kron", [True, False])
+def test_basic_tomography_for_parametric_circuit_forward_pass(
+    circuit: QuantumCircuit, values: dict, base_op: PrimitiveBlock, do_kron: bool
+) -> None:
+    observable = base_op(0) ^ circuit.n_qubits if do_kron else base_op(1)  # type: ignore[operator]
+    model = QuantumModel(
+        circuit=circuit,
+        observable=observable,
+        backend=BackendName.PYQTORCH,
+        diff_mode=DiffMode.GPSR,
+    )
+    analytical_result = model.expectation(values)
+    tomo = Measurements(protocol=Measurements.TOMOGRAPHY, options={"n_shots": 100000})
+    estimated_values = tomo(model, values)
+
+    assert allclose(estimated_values, analytical_result, atol=0.01)
 
 
 def test_tomography_raise_errors() -> None:
