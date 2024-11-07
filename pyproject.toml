@@ -30,7 +30,7 @@ classifiers=[
 ]
 dependencies = [
     "torch",
-    "qadence[braket, pulser, horqrux]<1.8.0",
+    "qadence[pulser, horqrux]==1.7.8",
 ]
 
 [tool.hatch.metadata]
