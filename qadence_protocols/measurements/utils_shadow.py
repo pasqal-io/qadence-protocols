@@ -18,13 +18,15 @@ from qadence.noise import Noise
 from qadence.operations import X, Y, Z
 from qadence.types import Endianness
 from qadence.utils import P0_MATRIX, P1_MATRIX
+from qadence_protocols.measurements.utils_trace import apply_operator_dm
+from qadence_protocols.measurements.utils_tomography import rotate
 from torch import Tensor
 
 pauli_gates = [X, Y, Z]
 
 
 UNITARY_TENSOR = [
-    ZMAT @ HMAT,
+    HMAT,
     SDAGMAT.squeeze(dim=0) @ HMAT,
     IMAT,
 ]
@@ -130,6 +132,33 @@ def robust_local_shadow(
     else:
         return reduce(torch.kron, local_density_matrices)
 
+def nested_operator_indexing(idx_array: np.ndarray) -> list[list[AbstractBlock]]:
+    """Obtain the list of operators from indices.
+
+    Args:
+        idx_array (np.ndarray): Indices for obtaining the operators.
+
+    Returns:
+        list[list[AbstractBlock]]: Map of pauli operators.
+    """
+    if idx_array.ndim == 1:
+        return [pauli_gates[int(ind_pauli)](i) for i, ind_pauli in enumerate(idx_array)]
+    return [nested_operator_indexing(sub_array) for sub_array in idx_array]
+
+def extract_unitaries(unitary_ids: np.ndarray, n_qubits: int) -> list[AbstractBlock]:
+    """Sample `shadow_size` pauli strings of `n_qubits`.
+
+    Args:
+        unitary_ids (np.ndarray): Indices for obtaining the operators.
+        n_qubits (int): Number of qubits
+
+    Returns:
+        list[AbstractBlock]: Pauli strings.
+    """
+    unitaries = nested_operator_indexing(unitary_ids)
+    if n_qubits > 1:
+        unitaries = [kron(*l) for l in unitaries]
+    return unitaries
 
 def classical_shadow(
     shadow_size: int,
@@ -146,20 +175,13 @@ def classical_shadow(
     shadow_caller = local_shadow
     if robust_shadow:
         shadow_caller = partial(robust_local_shadow, calibration=calibration)
+    
+    unitary_ids = np.random.randint(0, 3, size=(shadow_size, circuit.n_qubits))
+    all_unitaries = extract_unitaries(unitary_ids, circuit.n_qubits)
     # TODO: Parallelize embarrassingly parallel loop.
-    for _ in range(shadow_size):
-        unitary_ids = np.random.randint(0, 3, size=(1, circuit.n_qubits))[0]
-        random_unitary = [
-            pauli_gates[unitary_ids[qubit]](qubit) for qubit in range(circuit.n_qubits)
-        ]
-        if len(random_unitary) == 1:
-            random_unitary_block = random_unitary[0]
-        else:
-            random_unitary_block = kron(*random_unitary)
-        rotated_circuit = QuantumCircuit(
-            circuit.n_qubits,
-            chain(circuit.block, random_unitary_block),
-        )
+    for i in range(shadow_size):
+        random_unitary_block = all_unitaries[i]
+        rotated_circuit = rotate(circuit, random_unitary_block)
         # Reverse endianness to get sample bitstrings in ILO.
         conv_circ = backend.circuit(rotated_circuit)
         samples = backend.sample(
@@ -170,14 +192,10 @@ def classical_shadow(
             noise=noise,
             endianness=endianness,
         )
-        batched_shadow = []
-        for batch in samples:
-            batched_shadow.append(shadow_caller(sample=batch, unitary_ids=unitary_ids))
+        batched_shadow = [shadow_caller(sample=batch, unitary_ids=unitary_ids[i]) for batch in samples]
         shadow.append(batched_shadow)
 
-    # Reshape the shadow by batches of samples instead of samples of batches.
-    # FIXME: Improve performance.
-    return [list(s) for s in zip(*shadow)]
+    return torch.stack([torch.stack(s) for s in zip(*shadow)]), unitary_ids
 
 
 def reconstruct_state(shadow: list) -> Tensor:
@@ -186,42 +204,47 @@ def reconstruct_state(shadow: list) -> Tensor:
 
 
 def compute_traces(
-    qubit_support: tuple,
     N: int,
     K: int,
     shadow: list,
+    unitary_shadow_ids: list,
     observable: AbstractBlock,
     endianness: Endianness = Endianness.BIG,
 ) -> list:
     floor = int(np.floor(N / K))
     traces = []
+
+    # if isinstance(observable, PrimitiveBlock):
+    #     obs_to_pauli_index = [pauli_gates.index(type(observable))]
+    # else:
+    #     obs_to_pauli_index = [pauli_gates.index(type(p)) for p in observable.blocks]
+    obs_qubit_support = observable.qubit_support
+    obs_matrix = block_to_tensor(observable, endianness=endianness, qubit_support=obs_qubit_support).squeeze(dim=0)
     # TODO: Parallelize embarrassingly parallel loop.
     for k in range(K):
+        # indices_match = np.all(unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support] == obs_to_pauli_index, axis=1)
+        # if indices_match.sum() > 0:
+        #     reconstructed_state = reconstruct_state(shadow=shadow[k * floor : (k + 1) * floor][indices_match])
+        #     # Please note the endianness is also flipped to get results in LE.
+        #     trace = apply_operator_dm(reconstructed_state, obs_matrix, qubit_support=obs_qubit_support).trace().real
+        #     traces.append(trace)
+        # else:
+        #     traces.append(torch.tensor(0.0))
+        
+        
         reconstructed_state = reconstruct_state(shadow=shadow[k * floor : (k + 1) * floor])
-        # Reshape the observable matrix to fit the density matrix dimensions
-        # by filling indentites.
         # Please note the endianness is also flipped to get results in LE.
-        trace = (
-            (
-                block_to_tensor(
-                    block=observable,
-                    qubit_support=qubit_support,
-                    endianness=Endianness.BIG,
-                ).squeeze(dim=0)
-                @ reconstructed_state
-            )
-            .trace()
-            .real
-        )
+        # trace = apply_operator_dm(reconstructed_state, obs_matrix, qubit_support=obs_qubit_support).trace().real
+        trace = apply_operator_dm(reconstructed_state, obs_matrix, qubit_support=obs_qubit_support).trace().real
         traces.append(trace)
     return traces
 
 
 def estimators(
-    qubit_support: tuple,
     N: int,
     K: int,
     shadow: list,
+    unitary_shadow_ids: list,
     observable: AbstractBlock,
     endianness: Endianness = Endianness.BIG,
 ) -> Tensor:
@@ -233,32 +256,15 @@ def estimators(
     See https://arxiv.org/pdf/2002.08953.pdf
     Algorithm 1.
     """
-    # If there is no Pauli-Z operator in the observable,
-    # the sample can't "hit" that measurement.
-    if isinstance(observable, PrimitiveBlock):
-        if type(observable) == Z:
-            traces = compute_traces(
-                qubit_support=qubit_support,
-                N=N,
-                K=K,
-                shadow=shadow,
-                observable=observable,
-                endianness=endianness,
-            )
-        else:
-            traces = [torch.tensor(0.0)]
-    elif isinstance(observable, CompositeBlock):
-        if Z in observable:
-            traces = compute_traces(
-                qubit_support=qubit_support,
-                N=N,
-                K=K,
-                shadow=shadow,
-                observable=observable,
-                endianness=endianness,
-            )
-        else:
-            traces = [torch.tensor(0.0)]
+    
+    traces = compute_traces(
+        N=N,
+        K=K,
+        shadow=shadow,
+        unitary_shadow_ids=unitary_shadow_ids,
+        observable=observable,
+        endianness=endianness,
+    )
     return torch.tensor(traces, dtype=torch.get_default_dtype())
 
 
@@ -289,8 +295,7 @@ def estimations(
         )
     if shadow_size is not None:
         N = shadow_size
-
-    shadow = classical_shadow(
+    shadow, unitaries_id = classical_shadow(
         shadow_size=N,
         circuit=circuit,
         param_values=param_values,
@@ -302,7 +307,7 @@ def estimations(
         calibration=calibration,
     )
     if return_shadows:
-        return shadow
+        return shadow, unitaries_id
 
     estimations = []
     for observable in observables:
@@ -314,10 +319,10 @@ def estimations(
                 # Get the estimators for the current Pauli term.
                 # This is a tensor<float> of size K.
                 estimation = estimators(
-                    qubit_support=circuit.block.qubit_support,
                     N=N,
                     K=K,
                     shadow=batch,
+                    unitary_shadow_ids=unitaries_id,
                     observable=pauli_term[0],
                     endianness=endianness,
                 )
