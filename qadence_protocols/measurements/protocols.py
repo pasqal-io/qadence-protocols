@@ -19,11 +19,13 @@ PROTOCOL_TO_MODULE = {
 class Measurements(Protocol):
     def __init__(self, protocol: str, options: dict = dict()) -> None:
         try:
-            module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol][0])
-            proto_class = getattr(module, PROTOCOL_TO_MODULE[self.protocol][1])
+            module = importlib.import_module(PROTOCOL_TO_MODULE[protocol][0])
+            proto_class = getattr(module, PROTOCOL_TO_MODULE[protocol][1])
         except (KeyError, ModuleNotFoundError, ImportError) as e:
             raise type(e)(f"Failed to import Mitigations due to {e}.")
-        self.measurement_manager: MeasurementManager = proto_class(measurement_data=None, **options)
+        self.measurement_manager: MeasurementManager = proto_class(
+            measurement_data=None, options=options
+        )
         verified_options = self.measurement_manager.verify_options()
         super().__init__(protocol, verified_options)
 
@@ -31,6 +33,7 @@ class Measurements(Protocol):
         self,
         model: QuantumModel,
         param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
         return_expectations: bool = True,
     ) -> Tensor:
         """Compute measurements or expectation values via measurements.
@@ -38,6 +41,7 @@ class Measurements(Protocol):
         Args:
             model (QuantumModel): Model to evaluate.
             param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
 
         Returns:
             Tensor: Expectation values.
@@ -51,7 +55,7 @@ class Measurements(Protocol):
         output_fn = partial(
             getattr(self.measurement_manager, compute_fn),
             observables=observables,
-            options=self.options,
+            state=state,
         )
 
         return output_fn(model, param_values=param_values)
