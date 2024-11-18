@@ -64,9 +64,6 @@ class RobustShadowManager(MeasurementManager):
 
         circuit = model._circuit.original
         shadow_size = self.options["shadow_size"]
-        calibration = self.options["calibration"]
-        if calibration is None:
-            calibration = [1.0 / 3.0] * circuit.n_qubits
 
         self.measurement_data = shadow_samples(
             shadow_size=shadow_size,
@@ -86,9 +83,12 @@ class RobustShadowManager(MeasurementManager):
         state: Tensor | None = None,
     ) -> Tensor:
         K = int(self.options["shadow_groups"])
+        calibration = self.options["calibration"]
 
         if self.measurement_data is None:
             self.measure(model, observables, param_values, state)
 
         unitaries_ids, batch_shadow_samples = self.measurement_data  # type: ignore[misc]
-        return expectation_estimations(observables, unitaries_ids, batch_shadow_samples, K)
+        return expectation_estimations(
+            observables, unitaries_ids, batch_shadow_samples, K, calibration=calibration
+        )

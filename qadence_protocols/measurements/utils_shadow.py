@@ -246,6 +246,7 @@ def estimators(
     unitary_shadow_ids: np.ndarray,
     shadow_samples: Tensor,
     observable: AbstractBlock,
+    calibration: Tensor,
 ) -> Tensor:
     """
     Return trace estimators from the samples for K equally-sized shadow partitions.
@@ -253,6 +254,8 @@ def estimators(
     See https://arxiv.org/pdf/2002.08953.pdf
     Algorithm 1.
     """
+
+    shadow_samples *= calibration
 
     obs_qubit_support = observable.qubit_support
     if isinstance(observable, PrimitiveBlock):
@@ -291,9 +294,15 @@ def expectation_estimations(
     unitaries_ids: np.ndarray,
     batch_shadow_samples: Tensor,
     K: int,
+    calibration: Tensor | None = None,
 ) -> Tensor:
     estimations = []
     N = unitaries_ids.shape[0]
+
+    if calibration is None:
+        n_qubits = unitaries_ids.shape[1]
+        calibration = torch.tensor([3.0] * n_qubits)
+
     for observable in observables:
         pauli_decomposition = unroll_block_with_scaling(observable)
         batch_estimations = []
@@ -308,6 +317,7 @@ def expectation_estimations(
                     unitary_shadow_ids=unitaries_ids,
                     shadow_samples=batch,
                     observable=pauli_term[0],
+                    calibration=calibration,
                 )
                 # Compute the median of means for the current Pauli term.
                 # Weigh the median by the Pauli term scaling.
