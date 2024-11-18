@@ -190,16 +190,16 @@ def shadow_samples(
         circuit (QuantumCircuit): Circuit to rotate.
         param_values (dict): Circuit parameters.
         state (Tensor | None, optional): Input state. Defaults to None.
-        backend (Backend | DifferentiableBackend, optional): Backend to run program. Defaults to PyQBackend().
+        backend (Backend | DifferentiableBackend, optional): Backend to run program.
+            Defaults to PyQBackend().
         noise (Noise | None, optional): Noise description. Defaults to None.
-        endianness (Endianness, optional): Endianness use within program. Defaults to Endianness.BIG.
+        endianness (Endianness, optional): Endianness use within program.
+            Defaults to Endianness.BIG.
 
     Returns:
         tuple[np.ndarray, Tensor]: The pauli indices of local unitaries and sampled bitstrings.
             0, 1, 2 correspond to X, Y, Z.
     """
-
-    shadow: list = []
 
     unitary_ids = np.random.randint(0, 3, size=(shadow_size, circuit.n_qubits))
     shadow: list = list()

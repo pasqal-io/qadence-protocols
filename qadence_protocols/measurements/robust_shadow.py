@@ -4,98 +4,91 @@ from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
-from qadence_protocols.measurements.utils_shadow import estimations
+from qadence_protocols.measurements.abstract import MeasurementManager
+from qadence_protocols.measurements.utils_shadow import (
+    expectation_estimations,
+    shadow_samples,
+)
+from qadence_protocols.types import MeasurementData
 
 
-def compute_measurements(
-    model: QuantumModel,
-    observables: list[AbstractBlock],
-    options: dict,
-    param_values: dict[str, Tensor] = dict(),
-    state: Tensor | None = None,
-) -> Tensor:
-    """
-    Construct a classical shadow of a state to estimate observable expectation values.
+class RobustShadowManager(MeasurementManager):
+    """The abstract class that defines the interface for.
 
-    Args:
-        model (QuantumModel): Model to evaluate.
-        observables (list[AbstractBlock]): a list of observables
-            to estimate the expectation values from.
-        param_values (dict): a dict of values to substitute the
-            symbolic parameters for.
-        options (dict): a dict of options for the measurement protocol.
-            Here, shadow_size (int), accuracy (float) and confidence (float) are supported.
-        state (Tensor | None): an initial input state.
-
-    Returns:
-        expectations (Tensor): an estimation of the expectation values.
+    the managing measurements for robust shadows.
     """
 
-    circuit = model._circuit.original
-    shadow_size = options["shadow_size"]
-    shadow_groups = options["shadow_groups"]
-    calibration = options["calibration"]
-    if calibration is None:
-        calibration = [1.0 / 3.0] * circuit.n_qubits
+    def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
+        self.measurement_data = measurement_data
+        self.options = options
 
-    return estimations(
-        circuit=circuit,
-        observables=observables,
-        param_values=model.embedding_fn(model._params, param_values),
-        shadow_size=shadow_size,
-        accuracy=0.0,
-        confidence_or_groups=shadow_groups,
-        state=state,
-        backend=model.backend,
-        noise=model._noise,
-        return_shadows=True,
-        robust_shadow=True,
-        calibration=calibration,
-    )
+    def verify_options(self) -> dict:
+        """Extract shadow_size, accuracy and confidence from options."""
 
+        shadow_size = self.options.get("shadow_size", None)
+        if shadow_size is None:
+            raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
+        shadow_groups = self.options.get("shadow_groups", None)
+        if shadow_groups is None:
+            raise KeyError("Shadow protocol requires an option 'shadow_groups' of type 'int'.")
 
-def compute_expectation(
-    model: QuantumModel,
-    observables: list[AbstractBlock],
-    options: dict,
-    param_values: dict[str, Tensor] = dict(),
-    state: Tensor | None = None,
-) -> Tensor:
-    """
-    Construct a classical shadow of a state to estimate observable expectation values.
+        calibration = self.options.get("calibration", None)
 
-    Args:
-        model (QuantumModel): Model to evaluate.
-        observables (list[AbstractBlock]): a list of observables
-            to estimate the expectation values from.
-        param_values (dict): a dict of values to substitute the
-            symbolic parameters for.
-        options (dict): a dict of options for the measurement protocol.
-            Here, shadow_size (int), accuracy (float) and confidence (float) are supported.
-        state (Tensor | None): an initial input state.
+        self.options = {
+            "shadow_size": shadow_size,
+            "shadow_groups": shadow_groups,
+            "calibration": calibration,
+        }
+        return self.options
 
-    Returns:
-        expectations (Tensor): an estimation of the expectation values.
-    """
+    def measure(
+        self,
+        model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> MeasurementData:
+        """Obtain measurement data from a quantum program for classical shadows.
 
-    circuit = model._circuit.original
-    shadow_size = options["shadow_size"]
-    shadow_groups = options["shadow_groups"]
-    calibration = options["calibration"]
-    if calibration is None:
-        calibration = [1.0 / 3.0] * circuit.n_qubits
+        Args:
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
 
-    return estimations(
-        circuit=circuit,
-        observables=observables,
-        param_values=model.embedding_fn(model._params, param_values),
-        shadow_size=shadow_size,
-        accuracy=0.0,
-        confidence_or_groups=shadow_groups,
-        state=state,
-        backend=model.backend,
-        noise=model._noise,
-        return_shadows=False,
-        robust_shadow=True,
-        calibration=calibration,
-    )
+        Returns:
+            MeasurementData: Measurement data as locally sampled pauli unitaries and
+                samples from the circuit
+                rotated according to the locally sampled pauli unitaries.
+        """
+
+        circuit = model._circuit.original
+        shadow_size = self.options["shadow_size"]
+        calibration = self.options["calibration"]
+        if calibration is None:
+            calibration = [1.0 / 3.0] * circuit.n_qubits
+
+        self.measurement_data = shadow_samples(
+            shadow_size=shadow_size,
+            circuit=circuit,
+            param_values=model.embedding_fn(model._params, param_values),
+            state=state,
+            backend=model.backend,
+            noise=model._noise,
+        )
+        return self.measurement_data
+
+    def expectation(
+        self,
+        model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
+        K = int(self.options["shadow_groups"])
+
+        if self.measurement_data is None:
+            self.measure(model, observables, param_values, state)
+
+        unitaries_ids, batch_shadow_samples = self.measurement_data  # type: ignore[misc]
+        return expectation_estimations(observables, unitaries_ids, batch_shadow_samples, K)

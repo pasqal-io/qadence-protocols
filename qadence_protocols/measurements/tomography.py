@@ -6,11 +6,12 @@ from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.utils import unroll_block_with_scaling
 from torch import Tensor
 
-from qadence_protocols.measurements.abstract import MeasurementData, MeasurementManager
+from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.measurements.utils_tomography import (
     convert_samples_to_pauli_expectation,
     iterate_pauli_decomposition,
 )
+from qadence_protocols.types import MeasurementData
 
 
 class Tomography(MeasurementManager):
@@ -96,7 +97,7 @@ class Tomography(MeasurementManager):
             self.measure(model, observables, param_values, state)
 
         estimated_values = []
-        for samples, observable in zip(self.measurement_data, observables):
+        for samples, observable in zip(self.measurement_data, observables):  # type: ignore[arg-type]
             estimated_values.append(
                 convert_samples_to_pauli_expectation(samples, unroll_block_with_scaling(observable))
             )

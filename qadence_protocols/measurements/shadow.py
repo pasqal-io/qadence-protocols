@@ -4,12 +4,13 @@ from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
-from qadence_protocols.measurements.abstract import MeasurementData, MeasurementManager
+from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.measurements.utils_shadow import (
     expectation_estimations,
     number_of_samples,
     shadow_samples,
 )
+from qadence_protocols.types import MeasurementData
 
 
 class ShadowManager(MeasurementManager):
@@ -90,5 +91,5 @@ class ShadowManager(MeasurementManager):
         if self.measurement_data is None:
             self.measure(model, observables, param_values, state)
 
-        unitaries_ids, batch_shadow_samples = self.measurement_data
+        unitaries_ids, batch_shadow_samples = self.measurement_data  # type: ignore[misc]
         return expectation_estimations(observables, unitaries_ids, batch_shadow_samples, K)
