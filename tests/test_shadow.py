@@ -22,11 +22,11 @@ from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils_shadow import (
     UNITARY_TENSOR,
     _max_observable_weight,
-    classical_shadow,
     estimations,
     estimators,
     local_shadow,
     number_of_samples,
+    shadow_samples,
 )
 
 
@@ -103,7 +103,7 @@ theta = Parameter("theta")
 )
 def test_classical_shadow(layer: AbstractBlock, param_values: dict, exp_shadows: list) -> None:
     circuit = QuantumCircuit(2, layer)
-    shadows = classical_shadow(
+    shadows = shadow_samples(
         shadow_size=2,
         circuit=circuit,
         param_values=param_values,
@@ -127,7 +127,7 @@ def test_estimators(
     observable: AbstractBlock,
     exp_traces: Tensor,
 ) -> None:
-    shadows = classical_shadow(shadow_size=N, circuit=circuit, param_values=param_values)
+    shadows = shadow_samples(shadow_size=N, circuit=circuit, param_values=param_values)
     estimated_traces = estimators(
         qubit_support=circuit.block.qubit_support,
         N=N,

@@ -3,16 +3,16 @@ from __future__ import annotations
 from math import log2
 from string import ascii_letters as ABC
 
-from numpy import array, argsort
+from numpy import argsort, array
 from numpy.typing import NDArray
 from torch import Tensor, einsum
 
-from pyqtorch.utils import permute_basis
-
 ABC_ARRAY: NDArray = array(list(ABC))
 
+
 def permute_basis(operator: Tensor, qubit_support: tuple, inv: bool = False) -> Tensor:
-    """Takes an operator tensor and permutes the rows and
+    """Takes an operator tensor and permutes the rows and.
+
     columns according to the order of the qubit support.
 
     Args:
@@ -30,14 +30,13 @@ def permute_basis(operator: Tensor, qubit_support: tuple, inv: bool = False) -> 
         return operator
     operator = operator.view([2] * 2 * n_qubits)
 
-    perm = list(
-        tuple(ranked_support) + tuple(ranked_support + n_qubits)
-    )
+    perm = list(tuple(ranked_support) + tuple(ranked_support + n_qubits))
 
     if inv:
         perm = argsort(perm).tolist()
 
     return operator.permute(perm).reshape([2**n_qubits, 2**n_qubits])
+
 
 def apply_operator_dm(
     state: Tensor,
@@ -61,15 +60,9 @@ def apply_operator_dm(
     n_qubits = int(log2(state.size()[0]))
     n_support = len(qubit_support)
     full_support = tuple(range(n_qubits))
-    support_perm = tuple(sorted(qubit_support)) + tuple(
-        set(full_support) - set(qubit_support)
-    )
+    support_perm = tuple(sorted(qubit_support)) + tuple(set(full_support) - set(qubit_support))
     state = permute_basis(state, support_perm)
 
-    state = state.reshape(
-        [2**n_support, (2 ** (2 * n_qubits - n_support))]
-    )
-    state = einsum("ij,jk->ik", operator, state).reshape(
-        [2**n_qubits, 2**n_qubits]
-    )
+    state = state.reshape([2**n_support, (2 ** (2 * n_qubits - n_support))])
+    state = einsum("ij,jk->ik", operator, state).reshape([2**n_qubits, 2**n_qubits])
     return permute_basis(state, support_perm, inv=True)

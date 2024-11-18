@@ -35,3 +35,12 @@ class ReadOutOptimization(StrEnum):
     MTHREE = "mthree"
     # Majority voting
     MAJ_VOTE = "majority_vote"
+
+
+class MeasurementProtocols(StrEnum):
+    TOMOGRAPHY = "tomography"
+    """Tomography of a quantum state."""
+    SHADOW = "shadow"
+    """Snapshots of a state via shadows."""
+    ROBUST_SHADOW = "robust_shadow"
+    """Snapshots of a state via shadows for noisy settings."""
