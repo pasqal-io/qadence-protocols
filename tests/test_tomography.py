@@ -285,7 +285,7 @@ values2 = {
 def test_basic_tomography_for_parametric_circuit_forward_pass(
     circuit: QuantumCircuit, values: dict, base_op: PrimitiveBlock, do_kron: bool
 ) -> None:
-    observable = base_op(0) ^ circuit.n_qubits if do_kron else base_op(1)  # type: ignore[operator]
+    observable = base_op(0) ^ circuit.n_qubits if do_kron else base_op(min(1, circuit.n_qubits - 1))  # type: ignore[operator]
     model = QuantumModel(
         circuit=circuit,
         observable=observable,
