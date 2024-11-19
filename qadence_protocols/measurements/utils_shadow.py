@@ -270,7 +270,7 @@ def estimators(
     Algorithm 1.
     """
 
-    obs_qubit_support = observable.qubit_support
+    obs_qubit_support = list(observable.qubit_support)
     if isinstance(observable, PrimitiveBlock):
         if isinstance(observable, I):
             return torch.tensor(1.0, dtype=torch.get_default_dtype())
@@ -281,13 +281,13 @@ def estimators(
             pauli_gates.index(type(p)) for p in observable.blocks if not isinstance(p, I)  # type: ignore[arg-type]
         ]
         ind_I = set(get_qubit_indices_for_op((observable, 1.0), I(0)))
-        obs_qubit_support = tuple([ind for ind in observable.qubit_support if ind not in ind_I])
+        obs_qubit_support = [ind for ind in observable.qubit_support if ind not in ind_I]
 
     floor = int(np.floor(N / K))
     traces = []
 
     if calibration is not None:
-        calibration_match = calibration[list(obs_qubit_support)]
+        calibration_match = calibration[obs_qubit_support]
     for k in range(K):
         indices_match = np.all(
             unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support]
