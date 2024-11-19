@@ -4,12 +4,14 @@ from collections import Counter
 
 import pytest
 import torch
+from qadence import PrimitiveBlock
 from qadence.backends.api import backend_factory
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.block_to_tensor import IMAT
 from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
+from qadence.execution import expectation
 from qadence.model import QuantumModel
 from qadence.operations import RX, RY, H, I, X, Y, Z
 from qadence.parameters import Parameter
@@ -21,8 +23,10 @@ from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils_shadow import (
     UNITARY_TENSOR,
     _max_observable_weight,
+    expectation_estimations,
     local_shadow,
     number_of_samples,
+    shadow_samples,
 )
 from qadence_protocols.types import MeasurementProtocols
 
@@ -90,38 +94,44 @@ def test_local_shadow(sample: Counter, unitary_ids: list, exp_shadow: Tensor) ->
 theta = Parameter("theta")
 
 
-# @pytest.mark.flaky(max_runs=5)
-# @pytest.mark.parametrize(
-#     "circuit, observable, values",
-#     [
-#         (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ X(1), {}),
-#         (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ Y(1), {}),
-#         (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ X(1), {}),
-#         (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ Y(1), {}),
-#         (QuantumCircuit(2, kron(Z(0), H(1))), X(0) @ Z(1), {}),
-#         (
-#             QuantumCircuit(2, kron(RX(0, theta), X(1))),
-#             kron(Z(0), Z(1)),
-#             {"theta": torch.tensor([0.5, 1.0])},
-#         ),
-#         (QuantumCircuit(2, kron(X(0), Z(1))), ising_hamiltonian(2), {}),
-#     ],
-# )
-# def test_estimations_comparison_exact(
-#     circuit: QuantumCircuit, observable: AbstractBlock, values: dict
-# ) -> None:
-#     backend = backend_factory(backend=BackendName.PYQTORCH, diff_mode=DiffMode.GPSR)
-#     (conv_circ, _, embed, params) = backend.convert(circuit=circuit, observable=observable)
-#     param_values = embed(params, values)
+@pytest.mark.flaky(max_runs=5)
+@pytest.mark.parametrize(
+    "circuit, observable, values",
+    [
+        (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ X(1), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ Y(1), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ X(1), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ Y(1), {}),
+        (QuantumCircuit(2, kron(Z(0), H(1))), X(0) @ Z(1), {}),
+        (
+            QuantumCircuit(2, kron(RX(0, theta), X(1))),
+            kron(Z(0), Z(1)),
+            {"theta": torch.tensor([0.5, 1.0])},
+        ),
+        (QuantumCircuit(2, kron(X(0), Z(1))), ising_hamiltonian(2), {}),
+    ],
+)
+def test_estimations_comparison_exact(
+    circuit: QuantumCircuit, observable: AbstractBlock, values: dict
+) -> None:
+    backend = backend_factory(backend=BackendName.PYQTORCH, diff_mode=DiffMode.GPSR)
+    (conv_circ, _, embed, params) = backend.convert(circuit=circuit, observable=observable)
+    param_values = embed(params, values)
+    exact_exp = expectation(circuit, observable, values=values)
 
-#     estimated_exp = expectation_estimations(
-#         circuit=conv_circ.abstract,
-#         observables=[observable],
-#         param_values=param_values,
-#         shadow_size=5000,
-#     )
-#     exact_exp = expectation(circuit, observable, values=values)
-#     assert torch.allclose(estimated_exp, exact_exp, atol=0.2)
+    unitaries_ids, batch_shadow_samples = shadow_samples(
+        shadow_size=5000, circuit=circuit, param_values=param_values
+    )
+    observables = [observable]
+    K = number_of_samples(observables=observables, accuracy=0.1, confidence=0.1)[1]
+    estimated_exp = expectation_estimations(
+        observables=[observable],
+        unitaries_ids=unitaries_ids,
+        batch_shadow_samples=batch_shadow_samples,
+        K=K,
+    )
+
+    assert torch.allclose(estimated_exp, exact_exp, atol=0.2)
 
 
 theta1 = Parameter("theta1", trainable=False)
@@ -158,8 +168,14 @@ values2 = {
         (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
     ],
 )
+@pytest.mark.parametrize("base_op", [X, Y, Z])
+@pytest.mark.parametrize("do_kron", [True, False])
 def test_estimations_comparison_tomo_forward_pass(
-    circuit: QuantumCircuit, values: dict, diff_mode: DiffMode
+    circuit: QuantumCircuit,
+    values: dict,
+    diff_mode: DiffMode,
+    base_op: PrimitiveBlock,
+    do_kron: bool,
 ) -> None:
     observable = Z(0) ^ circuit.n_qubits
 
