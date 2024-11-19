@@ -200,8 +200,8 @@ print(f"mitigated solution index: {result_index}" ) # markdown-exec: hide
 This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
+from qadence import NoiseHandler, NoiseProtocol
 from qadence.measurements import Measurements
-from qadence.noise.protocols import NoiseHandler
 from qadence.operations import CNOT, RX, Z
 from qadence_protocols import Mitigations
 
