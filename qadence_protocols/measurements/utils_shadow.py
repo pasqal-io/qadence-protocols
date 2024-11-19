@@ -16,6 +16,7 @@ from qadence.circuit import QuantumCircuit
 from qadence.engines.differentiable_backend import DifferentiableBackend
 from qadence.noise import NoiseHandler
 from qadence.operations import H, I, SDagger, X, Y, Z
+from qadence.transpile.noise import set_noise
 from qadence.types import Endianness
 from qadence.utils import P0_MATRIX, P1_MATRIX
 from torch import Tensor
@@ -153,14 +154,10 @@ def nested_operator_indexing(
     return [nested_operator_indexing(sub_array) for sub_array in idx_array]
 
 
-def circuit_kron_if_non_empty(list_operations: list, n_qubits: int) -> KronBlock | None:
+def kron_if_non_empty(list_operations: list) -> KronBlock | None:
     """Apply kron to a list of operations."""
     filtered_op: list = list(filter(None, list_operations))
-    return (
-        QuantumCircuit(n_qubits, kron(*filtered_op))
-        if len(filtered_op) > 0
-        else QuantumCircuit(n_qubits)
-    )
+    return kron(*filtered_op) if len(filtered_op) > 0 else None
 
 
 def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
@@ -174,7 +171,7 @@ def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
     """
     operations = nested_operator_indexing(unitary_ids)
     if n_qubits > 1:
-        operations = [circuit_kron_if_non_empty(ops, n_qubits) for ops in operations]
+        operations = [kron_if_non_empty(ops) for ops in operations]
     return operations
 
 
@@ -196,7 +193,7 @@ def shadow_samples(
         state (Tensor | None, optional): Input state. Defaults to None.
         backend (Backend | DifferentiableBackend, optional): Backend to run program.
             Defaults to PyQBackend().
-        noise (NoiseHandler | None, optional): NoiseHandler description. Defaults to None.
+        noise (NoiseHandler | None, optional): Noise description. Defaults to None.
         endianness (Endianness, optional): Endianness use within program.
             Defaults to Endianness.BIG.
 
@@ -208,23 +205,32 @@ def shadow_samples(
     unitary_ids = np.random.randint(0, 3, size=(shadow_size, circuit.n_qubits))
     shadow: list = list()
     all_rotations = extract_operators(unitary_ids, circuit.n_qubits)
+    all_rotations = [
+        QuantumCircuit(circuit.n_qubits, rots) if rots else QuantumCircuit(circuit.n_qubits)
+        for rots in all_rotations
+    ]
 
+    if noise is not None:
+        all_rotations = [set_noise(rots, noise) for rots in all_rotations]
+        circuit = set_noise(circuit, noise)
+
+    # run the initial circuit without rotations
     conv_circ = backend.circuit(circuit)
-    circuit_output_state = backend.run(
+    circ_output = backend.run(
         circuit=conv_circ,
         param_values=param_values,
         state=state,
-        noise=noise,
         endianness=endianness,
     )
+
     for i in range(shadow_size):
         # Reverse endianness to get sample bitstrings in ILO.
-        conv_circ_rot = backend.circuit(all_rotations[i])
+        conv_circ = backend.circuit(all_rotations[i])
         batch_samples = backend.sample(
-            circuit=conv_circ_rot,
+            circuit=conv_circ,
             param_values=param_values,
             n_shots=1,
-            state=circuit_output_state,
+            state=circ_output,
             noise=noise,
             endianness=endianness,
         )
