@@ -107,7 +107,7 @@ def noise_level_experiment(
     endianness: Endianness,
     state: Tensor | None = None,
 ) -> Tensor:
-    noise_probs = noise.options.get("noise_probs")
+    noise_probs = noise.options[-1].get("noise_probs")
     converted_circuit = backend.circuit(circuit)
     converted_observables = [backend.observable(obs) for obs in observable]
     zne_datasets = backend.expectation(

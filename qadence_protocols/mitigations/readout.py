@@ -206,7 +206,8 @@ def mitigation_minimization(
     Returns:
         Mitigated counts computed by the algorithm
     """
-    noise_matrices = noise.options.get("noise_matrix", noise.options["confusion_matrices"]).numpy()
+    noise_options = noise.options[-1]
+    noise_matrices = noise_options.get("noise_matrix", noise_options["confusion_matrices"]).numpy()
     optimization_type = options.get("optimization_type", ReadOutOptimization.MLE)
     n_qubits = len(list(samples[0].keys())[0])
     n_shots = sum(samples[0].values())
