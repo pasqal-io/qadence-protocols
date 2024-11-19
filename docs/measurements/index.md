@@ -125,11 +125,14 @@ print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") 
 
 ### Getting measurements/shadows
 
-If we are interested in accessing the measurements or shadows for computing different quantities of interest other than the expectation values, we can simply pass `return_expectations=False` as follows:
+If we are interested in accessing the measurements or shadows for computing different quantities of interest other than the expectation values, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-measurements_tomo = tomo_measurement(model, return_expectations=False)
+measurements_tomo = tomo_measurement.measurement_manager.measurement_data
+# measurements_tomo = tomo_measurement(model, return_expectations=False)
+measurements_rshadows = robust_shadow_measurement.measurement_manager.measurement_data
+# measurements_rshadows = robust_shadow_measurement(model, return_expectations=False)
 
 print(measurements_tomo)
 ```

@@ -17,6 +17,16 @@ PROTOCOL_TO_MODULE = {
 
 
 class Measurements(Protocol):
+    """Define a measurement protocol using a `MeasurementManager`.
+
+    Possible options are available via the `MeasurementProtocols` type.
+    The `MeasurementManager` instance has a verify_options
+
+    Attributes:
+        protocol (str): Protocol name.
+        options (dict): Options to run protocol.
+    """
+
     def __init__(self, protocol: str, options: dict = dict()) -> None:
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[protocol][0])
