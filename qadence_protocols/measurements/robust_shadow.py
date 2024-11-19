@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
@@ -82,8 +83,21 @@ class RobustShadowManager(MeasurementManager):
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
     ) -> Tensor:
+        """Compute expectation values by medians of means from the emasurement data.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+
+        Returns:
+            Tensor: Expectation values.
+        """
         K = int(self.options["shadow_groups"])
-        calibration = self.options["calibration"]
+        calibration = self.options["calibration"] or torch.tensor(
+            [1.0 / 3.0] * model._circuit.original.n_qubits
+        )
 
         if self.measurement_data is None:
             self.measure(model, observables, param_values, state)

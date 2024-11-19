@@ -241,7 +241,7 @@ def shadow_samples(
     for b in range(batchsize):
         bitstrings.append([list(batch[b].keys())[0] for batch in shadow])
     bitstrings_torch = [
-       torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
+        torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
         for batch in bitstrings
     ]
     return unitary_ids, bitstrings_torch
@@ -290,10 +290,12 @@ def estimators(
             axis=1,
         )
         if indices_match.sum() > 0:
-            matching_bits = shadow_samples[k * floor : (k + 1) * floor][indices_match][:, obs_qubit_support]
-            matching_bits = 1 - 2 * matching_bits
-            if calibration:
-                matching_bits *= calibration
+            matching_bits = shadow_samples[k * floor : (k + 1) * floor][indices_match][
+                :, obs_qubit_support
+            ]
+            matching_bits = 1.0 - 2.0 * matching_bits
+            if calibration is not None:
+                matching_bits *= 3.0 * calibration[obs_qubit_support]
 
             # recalibrate for robust shadow mainly
             trace = torch.prod(

@@ -36,6 +36,24 @@ class ShadowManager(MeasurementManager):
         self.options = {"shadow_size": shadow_size, "accuracy": accuracy, "confidence": confidence}
         return self.options
 
+    def number_of_samples_and_groups(
+        self, observables: list[AbstractBlock] = list()
+    ) -> tuple[int, ...]:
+        """Return the shadow size and number of groups for a list of observables.
+
+        Args:
+            observables (list[AbstractBlock], optional): List of observables.
+                Defaults to list().
+
+        Returns:
+            tuple[int, ...]: the shadow size and number of groups
+        """
+        return number_of_samples(
+            observables=observables,
+            accuracy=self.options["accuracy"],
+            confidence=self.options["confidence"],
+        )
+
     def measure(
         self,
         model: QuantumModel,
@@ -84,6 +102,17 @@ class ShadowManager(MeasurementManager):
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
     ) -> Tensor:
+        """Compute expectation values by medians of means from the emasurement data.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+
+        Returns:
+            Tensor: Expectation values.
+        """
         accuracy = self.options["accuracy"]
         confidence = self.options["confidence"]
         _, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
