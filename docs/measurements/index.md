@@ -24,7 +24,7 @@ In Qadence, running a tomographical experiment is made simple by defining a `Mea
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 from torch import tensor
-from qadence import hamiltonian_factory, BackendName, DiffMode, Noise
+from qadence import hamiltonian_factory, BackendName, DiffMode, NoiseHandler
 from qadence import chain, kron, X, Z, QuantumCircuit, QuantumModel
 from qadence_protocols import Measurements
 
@@ -101,7 +101,7 @@ Robust shadows [^4] were built upon the classical shadow scheme but have the par
 from qadence_protocols.measurements.calibration import zero_state_calibration
 
 error_probability = 0.1
-noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability})
 
 model = QuantumModel(
     circuit=circuit,

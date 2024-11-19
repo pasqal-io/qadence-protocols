@@ -9,7 +9,7 @@ import pytest
 from metrics import LOW_ACCEPTANCE
 from qadence import (
     AbstractBlock,
-    Noise,
+    NoiseHandler,
     QuantumCircuit,
     QuantumModel,
     add,
@@ -19,7 +19,7 @@ from qadence import (
 )
 from qadence.divergences import js_divergence
 from qadence.operations import CNOT, RX, RZ, X, Y, Z
-from qadence.types import BackendName
+from qadence.types import BackendName, NoiseProtocol
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import gmres
 from scipy.stats import wasserstein_distance
@@ -104,7 +104,9 @@ def test_readout_mitigation_quantum_model(
 ) -> None:
     diff_mode = "ad" if backend == BackendName.PYQTORCH else "gpsr"
     circuit = QuantumCircuit(block.n_qubits, block)
-    noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+    noise = NoiseHandler(
+        protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability}
+    )
     model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
 
     noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
@@ -162,7 +164,9 @@ def test_compare_readout_methods(
     circuit = QuantumCircuit(block.n_qubits, block)
     model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
 
-    noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+    noise = NoiseHandler(
+        protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability}
+    )
 
     noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
 
@@ -241,7 +245,9 @@ def test_readout_mthree_mitigation(
     backend: BackendName,
 ) -> None:
     circuit = QuantumCircuit(block.n_qubits, block)
-    noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+    noise = NoiseHandler(
+        protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability}
+    )
 
     model = QuantumModel(circuit=circuit, backend=backend)
 

@@ -8,13 +8,14 @@ from qadence.backends.pulser.backend import Backend
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.analog import ConstantAnalogRotation, InteractionBlock
 from qadence.circuit import QuantumCircuit
-from qadence.noise import Noise
+from qadence.noise import NoiseHandler
 from qadence.operations import AnalogRot
 from qadence.transpile import apply_fn_to_blocks
+from qadence.types import NoiseProtocol
 from qadence.utils import Endianness
 from torch import Tensor
 
-supported_noise_models = [Noise.DEPOLARIZING, Noise.DEPHASING]
+supported_noise_models = [NoiseProtocol.DEPOLARIZING, NoiseProtocol.DEPHASING]
 
 
 def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
@@ -31,7 +32,7 @@ def pulse_experiment(
     circuit: QuantumCircuit,
     observable: list[AbstractBlock],
     param_values: dict[str, Tensor],
-    noise: Noise,
+    noise: NoiseHandler,
     stretches: Tensor,
     endianness: Endianness,
     state: Tensor | None = None,
@@ -102,7 +103,7 @@ def noise_level_experiment(
     circuit: QuantumCircuit,
     observable: list[AbstractBlock],
     param_values: dict[str, Tensor],
-    noise: Noise,
+    noise: NoiseHandler,
     endianness: Endianness,
     state: Tensor | None = None,
 ) -> Tensor:
@@ -123,7 +124,7 @@ def noise_level_experiment(
 def analog_zne(
     model: QuantumModel,
     options: dict,
-    noise: Noise,
+    noise: NoiseHandler,
     param_values: dict[str, Tensor],
     state: Tensor | None = None,
     endianness: Endianness = Endianness.BIG,
@@ -159,13 +160,13 @@ def analog_zne(
 def mitigate(
     model: QuantumModel,
     options: dict,
-    noise: Noise | None = None,
+    noise: NoiseHandler | None = None,
     param_values: dict[str, Tensor] = dict(),
 ) -> Tensor:
     if noise is None or noise.protocol not in supported_noise_models:
         if model._noise is None or model._noise.protocol not in supported_noise_models:
             raise ValueError(
-                "A Noise.DEPOLARIZING or Noise.DEPHASING model must be provided"
+                "A NoiseProtocol.DEPOLARIZING or NoiseProtocol.DEPHASING model must be provided"
                 " either to .mitigate() or through the <class QuantumModel>."
             )
         noise = model._noise

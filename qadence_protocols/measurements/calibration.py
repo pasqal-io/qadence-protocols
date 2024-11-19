@@ -8,7 +8,7 @@ from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.blocks.block_to_tensor import XMAT, YMAT, ZMAT
 from qadence.circuit import QuantumCircuit
 from qadence.engines.differentiable_backend import DifferentiableBackend
-from qadence.noise import Noise
+from qadence.noise import NoiseHandler
 from qadence.operations import X, Y, Z
 from qadence.types import Endianness
 
@@ -21,7 +21,7 @@ def zero_state_calibration(
     n_qubits: int,
     n_shots: int = 1,
     backend: Backend | DifferentiableBackend = PyQBackend(),
-    noise: Noise | None = None,
+    noise: NoiseHandler | None = None,
     endianness: Endianness = Endianness.BIG,
 ) -> torch.Tensor:
     """Calculate the calibration coefficients for Robust shadows.
@@ -37,7 +37,7 @@ def zero_state_calibration(
             Defaults to 1.
         backend (Backend | DifferentiableBackend, optional): Backend to run circuits.
             Defaults to PyQBackend().
-        noise (Noise | None, optional): Noise model. Defaults to None.
+        noise (NoiseHandler | None, optional): NoiseHandler model. Defaults to None.
         endianness (Endianness, optional): Endianness of operations. Defaults to Endianness.BIG.
 
     Returns:

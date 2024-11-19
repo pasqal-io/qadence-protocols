@@ -7,7 +7,8 @@ import numpy.typing as npt
 from numpy.linalg import inv, matrix_rank, pinv
 from qadence import QuantumModel
 from qadence.logger import get_logger
-from qadence.noise.protocols import Noise
+from qadence.noise.protocols import NoiseHandler
+from qadence.types import NoiseProtocol
 from scipy.linalg import norm
 from scipy.optimize import LinearConstraint, minimize
 from scipy.sparse import csr_matrix
@@ -180,7 +181,7 @@ def majority_vote(noise_matrices: npt.NDArray, p_raw: npt.NDArray) -> npt.NDArra
 
 
 def mitigation_minimization(
-    noise: Noise,
+    noise: NoiseHandler,
     options: dict,
     samples: list[Counter],
 ) -> list[Counter]:
@@ -262,13 +263,13 @@ def mitigation_minimization(
 def mitigate(
     model: QuantumModel,
     options: dict,
-    noise: Noise | None = None,
+    noise: NoiseHandler | None = None,
     param_values: dict[str, Tensor] = dict(),
 ) -> list[Counter]:
-    if noise is None or noise.protocol != Noise.READOUT:
-        if model._noise is None or model._noise.protocol != Noise.READOUT:
+    if noise is None or noise.protocol != NoiseProtocol.READOUT:
+        if model._noise is None or model._noise.protocol != NoiseProtocol.READOUT:
             raise ValueError(
-                "A Noise.READOUT model must be provided either to .mitigate()"
+                "A NoiseProtocol.READOUT model must be provided either to .mitigate()"
                 " or through the <class QuantumModel>."
             )
         noise = model._noise

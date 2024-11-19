@@ -4,7 +4,7 @@ import pytest
 import torch
 from qadence import (
     AbstractBlock,
-    Noise,
+    NoiseHandler,
     QuantumCircuit,
     QuantumModel,
     add,
@@ -13,7 +13,7 @@ from qadence import (
 )
 from qadence.measurements import Measurements
 from qadence.operations import CNOT, RX, Z
-from qadence.types import BackendName
+from qadence.types import BackendName, NoiseProtocol
 
 from qadence_protocols import Mitigations
 
@@ -59,7 +59,9 @@ def test_readout_twirl_mitigation(
     backend: BackendName,
 ) -> None:
     circuit = QuantumCircuit(block.n_qubits, block)
-    noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+    noise = NoiseHandler(
+        protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability}
+    )
     tomo_measurement = Measurements(
         protocol=Measurements.TOMOGRAPHY,
         options={"n_shots": n_shots},

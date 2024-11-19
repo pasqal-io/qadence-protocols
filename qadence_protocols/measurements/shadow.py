@@ -62,7 +62,7 @@ class ShadowManager(MeasurementManager):
         accuracy = self.options["accuracy"]
         confidence = self.options["confidence"]
 
-        if shadow_size is not None:
+        if shadow_size is None:
             shadow_size = number_of_samples(
                 observables=observables, accuracy=accuracy, confidence=confidence
             )[0]

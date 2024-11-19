@@ -4,7 +4,7 @@ import itertools
 from collections import Counter
 
 import torch
-from qadence import Noise, QuantumCircuit, QuantumModel, X, chain, kron
+from qadence import NoiseHandler, QuantumCircuit, QuantumModel, X, chain, kron
 from qadence.blocks.utils import unroll_block_with_scaling
 from qadence.measurements.samples import compute_expectation
 from torch import Tensor, tensor
@@ -27,7 +27,7 @@ def twirl_swap(n_qubits: int, twirl: tuple, samples_twirl: Counter[str]) -> dict
 def mitigate(
     model: QuantumModel,
     options: dict,
-    noise: Noise | None = None,
+    noise: NoiseHandler | None = None,
     param_values: dict[str, Tensor] = dict(),
 ) -> tensor:
     """Corrects for readout errors on expectation values using all possible twirl operations.

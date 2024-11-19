@@ -7,14 +7,14 @@ import numpy as np
 import torch
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
-from qadence.blocks import AbstractBlock, KronBlock, chain, kron
+from qadence.blocks import AbstractBlock, KronBlock, kron
 from qadence.blocks.block_to_tensor import HMAT, IMAT, SDAGMAT
 from qadence.blocks.composite import CompositeBlock
 from qadence.blocks.primitive import PrimitiveBlock
 from qadence.blocks.utils import get_pauli_blocks, unroll_block_with_scaling
 from qadence.circuit import QuantumCircuit
 from qadence.engines.differentiable_backend import DifferentiableBackend
-from qadence.noise import Noise
+from qadence.noise import NoiseHandler
 from qadence.operations import H, I, SDagger, X, Y, Z
 from qadence.types import Endianness
 from qadence.utils import P0_MATRIX, P1_MATRIX
@@ -153,10 +153,14 @@ def nested_operator_indexing(
     return [nested_operator_indexing(sub_array) for sub_array in idx_array]
 
 
-def kron_if_non_empty(list_operations: list) -> KronBlock | None:
+def circuit_kron_if_non_empty(list_operations: list, n_qubits: int) -> KronBlock | None:
     """Apply kron to a list of operations."""
     filtered_op: list = list(filter(None, list_operations))
-    return kron(*filtered_op) if len(filtered_op) > 0 else None
+    return (
+        QuantumCircuit(n_qubits, kron(*filtered_op))
+        if len(filtered_op) > 0
+        else QuantumCircuit(n_qubits)
+    )
 
 
 def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
@@ -170,7 +174,7 @@ def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
     """
     operations = nested_operator_indexing(unitary_ids)
     if n_qubits > 1:
-        operations = [kron_if_non_empty(ops) for ops in operations]
+        operations = [circuit_kron_if_non_empty(ops, n_qubits) for ops in operations]
     return operations
 
 
@@ -180,7 +184,7 @@ def shadow_samples(
     param_values: dict,
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
-    noise: Noise | None = None,
+    noise: NoiseHandler | None = None,
     endianness: Endianness = Endianness.BIG,
 ) -> tuple[np.ndarray, Tensor]:
     """Sample the circuit rotated according to locally sampled pauli unitaries.
@@ -192,7 +196,7 @@ def shadow_samples(
         state (Tensor | None, optional): Input state. Defaults to None.
         backend (Backend | DifferentiableBackend, optional): Backend to run program.
             Defaults to PyQBackend().
-        noise (Noise | None, optional): Noise description. Defaults to None.
+        noise (NoiseHandler | None, optional): NoiseHandler description. Defaults to None.
         endianness (Endianness, optional): Endianness use within program.
             Defaults to Endianness.BIG.
 
@@ -205,20 +209,22 @@ def shadow_samples(
     shadow: list = list()
     all_rotations = extract_operators(unitary_ids, circuit.n_qubits)
 
+    conv_circ = backend.circuit(circuit)
+    circuit_output_state = backend.run(
+        circuit=conv_circ,
+        param_values=param_values,
+        state=state,
+        noise=noise,
+        endianness=endianness,
+    )
     for i in range(shadow_size):
-        if all_rotations[i]:
-            rotated_circuit = QuantumCircuit(
-                circuit.register, chain(circuit.block, all_rotations[i])
-            )
-        else:
-            rotated_circuit = circuit
         # Reverse endianness to get sample bitstrings in ILO.
-        conv_circ = backend.circuit(rotated_circuit)
+        conv_circ_rot = backend.circuit(all_rotations[i])
         batch_samples = backend.sample(
-            circuit=conv_circ,
+            circuit=conv_circ_rot,
             param_values=param_values,
             n_shots=1,
-            state=state,
+            state=circuit_output_state,
             noise=noise,
             endianness=endianness,
         )
@@ -254,8 +260,6 @@ def estimators(
     See https://arxiv.org/pdf/2002.08953.pdf
     Algorithm 1.
     """
-
-    shadow_samples *= calibration
 
     obs_qubit_support = observable.qubit_support
     if isinstance(observable, PrimitiveBlock):
@@ -301,7 +305,7 @@ def expectation_estimations(
 
     if calibration is None:
         n_qubits = unitaries_ids.shape[1]
-        calibration = torch.tensor([3.0] * n_qubits)
+        calibration = torch.tensor([1.0] * n_qubits)
 
     for observable in observables:
         pauli_decomposition = unroll_block_with_scaling(observable)
