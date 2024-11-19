@@ -182,16 +182,21 @@ def test_estimations_comparison_tomo_forward_pass(
     shadow_measurements = Measurements(protocol=MeasurementProtocols.SHADOW, options=new_options)
     estimated_exp_shadow = shadow_measurements(model, param_values=values)
 
-    robust_options = {"shadow_size": 54400, "shadow_groups": 6, "robust_correlations": None}
+    N, K = number_of_samples([observable], **new_options)
+    robust_options = {"shadow_size": N, "shadow_groups": K, "robust_correlations": None}
     robust_shadows = Measurements(
         protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_options
+    )
+
+    # set measurement same as classical shadows
+    robust_shadows.measurement_manager.measurement_data = (
+        shadow_measurements.measurement_manager.measurement_data
     )
     robust_estimated_exp_shadow = robust_shadows(model, param_values=values)
 
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
-    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
-    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
-    assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=0.1)
+    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
+    assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
 
 
 def test_shadow_raise_errors() -> None:

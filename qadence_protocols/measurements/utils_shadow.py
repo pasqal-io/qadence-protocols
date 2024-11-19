@@ -286,6 +286,8 @@ def estimators(
     floor = int(np.floor(N / K))
     traces = []
 
+    if calibration is not None:
+        calibration_match = calibration[list(obs_qubit_support)]
     for k in range(K):
         indices_match = np.all(
             unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support]
@@ -298,7 +300,7 @@ def estimators(
             ]
             matching_bits = 1.0 - 2.0 * matching_bits
             if calibration is not None:
-                matching_bits *= 3.0 * calibration[obs_qubit_support]
+                matching_bits *= 3.0 * calibration_match
 
             # recalibrate for robust shadow mainly
             trace = torch.prod(
