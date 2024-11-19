@@ -27,7 +27,7 @@ from qadence_protocols.mitigations.protocols import Mitigations
             chain(AnalogRX(PI / 2.0), AnalogRZ(PI)),
             [Z(0) + Z(1)],
             np.linspace(0.1, 0.5, 8),
-            NoiseProtocol.DEPOLARIZING,
+            NoiseProtocol.ANALOG.DEPOLARIZING,
         ),
         (
             # Hardcoded time and angle for Bell state preparation.
@@ -37,12 +37,15 @@ from qadence_protocols.mitigations.protocols import Mitigations
             ),
             [hamiltonian_factory(2, detuning=Z)],
             np.linspace(0.1, 0.5, 8),
-            NoiseProtocol.DEPHASING,
+            NoiseProtocol.ANALOG.DEPHASING,
         ),
     ],
 )
 def test_analog_zne_with_noise_levels(
-    analog_block: AbstractBlock, observable: AbstractBlock, noise_probs: Tensor, noise_type: str
+    analog_block: AbstractBlock,
+    observable: AbstractBlock,
+    noise_probs: Tensor,
+    noise_type: NoiseProtocol.ANALOG,
 ) -> None:
     circuit = QuantumCircuit(2, analog_block)
     model = QuantumModel(
@@ -64,7 +67,7 @@ def test_analog_zne_with_noise_levels(
             chain(AnalogRX(PI / 2.0), AnalogRZ(PI)),
             [Z(0) + Z(1)],
             [0.1],
-            NoiseProtocol.DEPOLARIZING,
+            NoiseProtocol.ANALOG.DEPOLARIZING,
             {},
         ),
         # (
@@ -75,7 +78,7 @@ def test_analog_zne_with_noise_levels(
         #     ),
         #     [hamiltonian_factory(2, detuning=Z)],
         #     torch.tensor([0.1]),
-        #     NoiseProtocol.DEPHASING,
+        #     NoiseProtocol.ANALOG.DEPHASING,
         #     {"t": torch.tensor([1.0])},
         # ),
     ],
@@ -84,7 +87,7 @@ def test_analog_zne_with_pulse_stretching(
     analog_block: AbstractBlock,
     observable: AbstractBlock,
     noise_probs: Tensor,
-    noise_type: str,
+    noise_type: NoiseProtocol.ANALOG,
     param_values: dict,
 ) -> None:
     circuit = QuantumCircuit(2, analog_block)

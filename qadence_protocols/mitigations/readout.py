@@ -266,8 +266,8 @@ def mitigate(
     noise: NoiseHandler | None = None,
     param_values: dict[str, Tensor] = dict(),
 ) -> list[Counter]:
-    if noise is None or noise.protocol != NoiseProtocol.READOUT:
-        if model._noise is None or model._noise.protocol != NoiseProtocol.READOUT:
+    if noise is None or noise.protocol[-1] != NoiseProtocol.READOUT:
+        if model._noise is None or model._noise.protocol[-1] != NoiseProtocol.READOUT:
             raise ValueError(
                 "A NoiseProtocol.READOUT model must be provided either to .mitigate()"
                 " or through the <class QuantumModel>."

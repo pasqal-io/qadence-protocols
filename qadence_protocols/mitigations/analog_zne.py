@@ -15,7 +15,7 @@ from qadence.types import NoiseProtocol
 from qadence.utils import Endianness
 from torch import Tensor
 
-supported_noise_models = [NoiseProtocol.DEPOLARIZING, NoiseProtocol.DEPHASING]
+supported_noise_models = [NoiseProtocol.ANALOG.DEPOLARIZING, NoiseProtocol.ANALOG.DEPHASING]
 
 
 def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
@@ -163,8 +163,8 @@ def mitigate(
     noise: NoiseHandler | None = None,
     param_values: dict[str, Tensor] = dict(),
 ) -> Tensor:
-    if noise is None or noise.protocol not in supported_noise_models:
-        if model._noise is None or model._noise.protocol not in supported_noise_models:
+    if noise is None or noise.protocol[-1] not in supported_noise_models:
+        if model._noise is None or model._noise.protocol[-1] not in supported_noise_models:
             raise ValueError(
                 "A NoiseProtocol.DEPOLARIZING or NoiseProtocol.DEPHASING model must be provided"
                 " either to .mitigate() or through the <class QuantumModel>."

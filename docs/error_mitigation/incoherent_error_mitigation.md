@@ -20,7 +20,7 @@ print(f"noiseless_expectation = {model_noiseless.expectation()}") # markdown-exe
 
 ```python exec="on" source="material-block" session="zne" result="json"
 
-from qadence.noise import NoiseHandler
+from qadence import NoiseProtocol, NoiseHandler
 from qadence_protocols import Mitigations
 import torch
 

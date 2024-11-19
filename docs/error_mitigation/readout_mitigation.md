@@ -24,7 +24,7 @@ $$
 
 ```python exec="on" source="material-block" session="mitigation" result="json"
 from qadence import QuantumModel, QuantumCircuit, hamiltonian_factory, kron, H, Z, I
-from qadence.noise import NoiseHandler
+from qadence import NoiseProtocol, NoiseHandler
 
 
 # Simple circuit and observable construction.

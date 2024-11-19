@@ -95,9 +95,9 @@ class RobustShadowManager(MeasurementManager):
             Tensor: Expectation values.
         """
         K = int(self.options["shadow_groups"])
-        calibration = self.options["calibration"] or torch.tensor(
-            [1.0 / 3.0] * model._circuit.original.n_qubits
-        )
+        calibration = self.options["calibration"]
+        if calibration is None:
+            calibration = torch.tensor([1.0 / 3.0] * model._circuit.original.n_qubits)
 
         if self.measurement_data is None:
             self.measure(model, observables, param_values, state)
