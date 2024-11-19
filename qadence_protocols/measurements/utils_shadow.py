@@ -17,7 +17,7 @@ from qadence.engines.differentiable_backend import DifferentiableBackend
 from qadence.noise import NoiseHandler
 from qadence.operations import H, I, SDagger, X, Y, Z
 from qadence.transpile.noise import set_noise
-from qadence.types import Endianness
+from qadence.types import Endianness, NoiseProtocol
 from qadence.utils import P0_MATRIX, P1_MATRIX
 from torch import Tensor
 
@@ -211,8 +211,11 @@ def shadow_samples(
     ]
 
     if noise is not None:
-        all_rotations = [set_noise(rots, noise) for rots in all_rotations]
-        circuit = set_noise(circuit, noise)
+        # temporary fix before qadence bump
+        if sum([isinstance(proto, NoiseProtocol.DIGITAL) for proto in noise.protocol]) > 0:
+            digital_part = noise.filter(NoiseProtocol.DIGITAL)
+            all_rotations = [set_noise(rots, digital_part) for rots in all_rotations]
+            circuit = set_noise(circuit, digital_part)
 
     # run the initial circuit without rotations
     conv_circ = backend.circuit(circuit)

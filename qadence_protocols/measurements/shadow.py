@@ -54,6 +54,28 @@ class ShadowManager(MeasurementManager):
             confidence=self.options["confidence"],
         )
 
+    def get_snapshots(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> list:
+        """Obtain snapshots from the measurement data.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+
+        Returns:
+            list: Snapshots for a input circuit model and state.
+        """
+        if self.measurement_data is None:
+            self.measure(model, list(), param_values, state)
+
+        snapshots: list = list()
+        return snapshots
+
     def measure(
         self,
         model: QuantumModel,

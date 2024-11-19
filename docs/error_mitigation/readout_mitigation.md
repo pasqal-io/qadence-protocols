@@ -155,7 +155,7 @@ Mitigation protocol to be used only when the circuit output has a single expecte
 
 ```python exec="on" source="material-block" session="mv" result="json"
 from qadence import QuantumModel, QuantumCircuit,kron, H, Z, I
-from qadence.noise import NoiseHandler
+from qadence import NoiseHandler, NoiseProtocol
 from qadence_protocols.mitigations.readout import majority_vote
 import numpy as np
 

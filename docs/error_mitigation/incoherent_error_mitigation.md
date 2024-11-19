@@ -24,7 +24,7 @@ from qadence import NoiseProtocol, NoiseHandler
 from qadence_protocols import Mitigations
 import torch
 
-noise = NoiseHandler(protocol=NoiseProtocol.DEPOLARIZING, options={"noise_probs": [0.2]})
+noise = NoiseHandler(protocol=NoiseProtocol.ANALOG.DEPOLARIZING, options={"noise_probs": [0.2]})
 model = QuantumModel(
     circuit=circuit, observable=observable, backend=BackendName.PULSER, diff_mode=DiffMode.GPSR
 )
