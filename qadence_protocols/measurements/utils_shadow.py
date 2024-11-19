@@ -241,7 +241,7 @@ def shadow_samples(
     for b in range(batchsize):
         bitstrings.append([list(batch[b].keys())[0] for batch in shadow])
     bitstrings_torch = [
-        1 - 2 * torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
+       torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
         for batch in bitstrings
     ]
     return unitary_ids, bitstrings_torch
@@ -258,7 +258,7 @@ def estimators(
     unitary_shadow_ids: np.ndarray,
     shadow_samples: Tensor,
     observable: AbstractBlock,
-    calibration: Tensor,
+    calibration: Tensor | None = None,
 ) -> Tensor:
     """
     Return trace estimators from the samples for K equally-sized shadow partitions.
@@ -282,6 +282,7 @@ def estimators(
 
     floor = int(np.floor(N / K))
     traces = []
+
     for k in range(K):
         indices_match = np.all(
             unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support]
@@ -289,10 +290,17 @@ def estimators(
             axis=1,
         )
         if indices_match.sum() > 0:
+            matching_bits = shadow_samples[k * floor : (k + 1) * floor][indices_match][:, obs_qubit_support]
+            matching_bits = 1 - 2 * matching_bits
+            if calibration:
+                matching_bits *= calibration
+
+            # recalibrate for robust shadow mainly
             trace = torch.prod(
-                shadow_samples[k * floor : (k + 1) * floor][indices_match][:, obs_qubit_support],
+                matching_bits,
                 axis=-1,
-            ).sum() / sum(indices_match)
+            )
+            trace = trace.sum() / sum(indices_match)
             traces.append(trace)
         else:
             traces.append(torch.tensor(0.0))
@@ -308,10 +316,6 @@ def expectation_estimations(
 ) -> Tensor:
     estimations = []
     N = unitaries_ids.shape[0]
-
-    if calibration is None:
-        n_qubits = unitaries_ids.shape[1]
-        calibration = torch.tensor([1.0] * n_qubits)
 
     for observable in observables:
         pauli_decomposition = unroll_block_with_scaling(observable)
