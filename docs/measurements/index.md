@@ -93,6 +93,20 @@ estimated_values_shadow = shadow_measurement(model)
 print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markdown-exec: hide
 ```
 
+## Getting measurements/shadows
+
+If we are interested in accessing the measurements or shadows for computing different quantities of interest other than the expectation values, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+
+```python exec="on" source="material-block" session="measurements" result="json"
+
+measurements_tomo = tomo_measurement.measurement_manager.measurement_data
+# measurements_tomo = tomo_measurement(model, return_expectations=False)
+measurements_shadows = shadow_measurement.measurement_manager.measurement_data
+# measurements_shadows = shadow_measurement(model, return_expectations=False)
+
+print(measurements_tomo)
+```
+
 ## Robust shadows
 
 Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting the `calibration` coefficients to $\frac{1}{3}$ for each qubit.
@@ -121,20 +135,6 @@ robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SH
 estimated_values_robust_shadow = robust_shadow_measurement(model)
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide
-```
-
-### Getting measurements/shadows
-
-If we are interested in accessing the measurements or shadows for computing different quantities of interest other than the expectation values, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
-
-```python exec="on" source="material-block" session="measurements" result="json"
-
-measurements_tomo = tomo_measurement.measurement_manager.measurement_data
-# measurements_tomo = tomo_measurement(model, return_expectations=False)
-measurements_rshadows = robust_shadow_measurement.measurement_manager.measurement_data
-# measurements_rshadows = robust_shadow_measurement(model, return_expectations=False)
-
-print(measurements_tomo)
 ```
 
 ## References
