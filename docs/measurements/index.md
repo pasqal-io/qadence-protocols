@@ -59,6 +59,17 @@ print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
 ```
 
+## Getting measurements
+
+If we are interested in accessing the measurements for computing different quantities of interest other than the expectation values, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+
+```python exec="on" source="material-block" session="measurements" result="json"
+
+measurements_tomo = tomo_measurement.measurement_manager.measurement_data
+# measurements_tomo = tomo_measurement(model, return_expectations=False)
+print(measurements_tomo)
+```
+
 ## Classical shadows
 
 A much less resource demanding protocol based on _classical shadows_ has been proposed[^1]. It combines ideas from shadow tomography[^2] and randomized measurement protocols [^3] capable of learning a classical shadow of an unknown quantum state $\rho$. It relies on deliberately discarding the full classical characterization of the quantum state, and instead focuses on accurately predicting a restricted set of properties that provide efficient resources for the study of the system.
@@ -88,23 +99,40 @@ N, K = number_of_samples(observable, **shadow_options)
 shadow_measurement = Measurements(protocol=MeasurementProtocols.SHADOW, options=shadow_options)
 
 # Run the shadow experiment.
-estimated_values_shadow = shadow_measurement(model)
+estimated_values_shadow = shadow_measurement(model, return_expectations=True)
 
 print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markdown-exec: hide
 ```
 
-## Getting measurements/shadows
+## Getting shadows
 
-If we are interested in accessing the measurements or shadows for computing different quantities of interest other than the expectation values, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+If we are interested in accessing the measurement data from shadows, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-measurements_tomo = tomo_measurement.measurement_manager.measurement_data
-# measurements_tomo = tomo_measurement(model, return_expectations=False)
 measurements_shadows = shadow_measurement.measurement_manager.measurement_data
 # measurements_shadows = shadow_measurement(model, return_expectations=False)
 
-print(measurements_tomo)
+print("Sampled unitary indices shape: ", measurements_shadows[0].shape)
+print("Number of batched measurements: ", len(measurements_shadows[1]))
+print("Shape of a batch measurements: ", len(measurements_shadows[1][0].shape))
+```
+
+In the case of shadows, the measurement data is a tuple of two elements:
+- the first one is the indices corresponding to the randomly sampled Pauli unitaries $U$. It is returned as a tensor of shape (shadow_size, n_qubits). Its elements are integer values 0, 1, 2 corresponding respectively to X, Y, Z.
+- the second one are the bistrings obtained by measurements of the circuit rotated depending on the sampled Pauli basis.
+It as returned as a list of batched measurements where one batch has the shape (shadow_size, n_qubits).
+
+Such a measurement data can be used directly for computing different quantities of interest other than the expectation values. For instance, we can do state reconstruction as follows:
+
+```python exec="on" source="material-block" session="measurements" result="json"
+
+# obtaining snapshots
+snapshots = shadow_measurement.measurement_manager.get_snapshots(model)
+
+# reconstruct state from snapshots
+state = shadow_measurement.measurement_manager.reconstruct_state(snapshots)
+print(state)
 ```
 
 ## Robust shadows
