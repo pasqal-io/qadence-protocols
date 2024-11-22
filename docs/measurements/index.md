@@ -114,14 +114,13 @@ measurements_shadows = shadow_measurement.measurement_manager.measurement_data
 # measurements_shadows = shadow_measurement(model, return_expectations=False)
 
 print("Sampled unitary indices shape: ", measurements_shadows[0].shape)
-print("Number of batched measurements: ", len(measurements_shadows[1]))
-print("Shape of a batch measurements: ", len(measurements_shadows[1][0].shape))
+print("Shape of batched measurements: ", measurements_shadows[1].shape)
 ```
 
 In the case of shadows, the measurement data is a tuple of two elements:
 - the first one is the indices corresponding to the randomly sampled Pauli unitaries $U$. It is returned as a tensor of shape (shadow_size, n_qubits). Its elements are integer values 0, 1, 2 corresponding respectively to X, Y, Z.
 - the second one are the bistrings obtained by measurements of the circuit rotated depending on the sampled Pauli basis.
-It as returned as a list of batched measurements where one batch has the shape (shadow_size, n_qubits).
+It as returned as a tensor of batched measurements with shape (batch_size, shadow_size, n_qubits).
 
 Such a measurement data can be used directly for computing different quantities of interest other than the expectation values. For instance, we can do state reconstruction as follows:
 

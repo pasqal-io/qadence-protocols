@@ -206,7 +206,7 @@ def shadow_samples(
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: NoiseHandler | None = None,
     endianness: Endianness = Endianness.BIG,
-) -> tuple[np.ndarray, Tensor]:
+) -> tuple[Tensor, Tensor]:
     """Sample the circuit rotated according to locally sampled pauli unitaries.
 
     Args:
@@ -221,7 +221,7 @@ def shadow_samples(
             Defaults to Endianness.BIG.
 
     Returns:
-        tuple[np.ndarray, Tensor]: The pauli indices of local unitaries and sampled bitstrings.
+        tuple[Tensor, Tensor]: The pauli indices of local unitaries and sampled bitstrings.
             0, 1, 2 correspond to X, Y, Z.
     """
 
@@ -266,11 +266,13 @@ def shadow_samples(
     batchsize = len(batch_samples)
     for b in range(batchsize):
         bitstrings.append([list(batch[b].keys())[0] for batch in shadow])
-    bitstrings_torch = [
-        torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
-        for batch in bitstrings
-    ]
-    return unitary_ids, bitstrings_torch
+    bitstrings_torch = torch.stack(
+        [
+            torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
+            for batch in bitstrings
+        ]
+    )
+    return torch.tensor(unitary_ids), bitstrings_torch
 
 
 def reconstruct_state(shadow: list) -> Tensor:
@@ -281,7 +283,7 @@ def reconstruct_state(shadow: list) -> Tensor:
 def estimators(
     N: int,
     K: int,
-    unitary_shadow_ids: np.ndarray,
+    unitary_shadow_ids: Tensor,
     shadow_samples: Tensor,
     observable: AbstractBlock,
     calibration: Tensor | None = None,
@@ -311,8 +313,10 @@ def estimators(
 
     if calibration is not None:
         calibration_match = calibration[obs_qubit_support]
+
+    obs_to_pauli_index = torch.tensor(obs_to_pauli_index)
     for k in range(K):
-        indices_match = np.all(
+        indices_match = torch.all(
             unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support]
             == obs_to_pauli_index,
             axis=1,
@@ -330,7 +334,7 @@ def estimators(
                 matching_bits,
                 axis=-1,
             )
-            trace = trace.sum() / sum(indices_match)
+            trace = trace.sum() / indices_match.sum()
             traces.append(trace)
         else:
             traces.append(torch.tensor(0.0))

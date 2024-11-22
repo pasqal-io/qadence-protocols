@@ -83,7 +83,6 @@ class RobustShadowManager(MeasurementManager):
         caller = partial(robust_local_shadow, calibration=calibration)
 
         unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
-        unitaries_ids = torch.tensor(unitaries_ids)
         return compute_snapshots(bitstrings, unitaries_ids, caller)
 
     def measure(

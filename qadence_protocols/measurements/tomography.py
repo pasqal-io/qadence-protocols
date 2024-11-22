@@ -35,6 +35,14 @@ class Tomography(MeasurementManager):
             raise KeyError("Tomography protocol requires a 'n_shots' kwarg of type 'int').")
         return self.options
 
+    def get_snapshots(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
+        raise NotImplementedError
+
     def measure(
         self,
         model: QuantumModel,

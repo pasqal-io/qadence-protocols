@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
@@ -91,7 +90,6 @@ class ShadowManager(MeasurementManager):
             self.measure(model, list(), param_values, state)
 
         unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
-        unitaries_ids = torch.tensor(unitaries_ids)
         return compute_snapshots(bitstrings, unitaries_ids, local_shadow)
 
     def measure(
