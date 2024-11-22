@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import reduce
+from typing import Callable
 
 import numpy as np
 import torch
@@ -124,11 +125,21 @@ def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Te
         bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
     )
     idmatcal = torch.stack([idmat * 0.5 * (1.0 / corr_coeff - 1.0) for corr_coeff in calibration])
-
-    local_densities = (
-        calibration * (nested_unitaries_adjoint @ projmat @ nested_unitaries) - idmatcal
-    )
+    local_densities = (1.0 / calibration.unsqueeze(-1).unsqueeze(-1)) * (
+        nested_unitaries_adjoint @ projmat @ nested_unitaries
+    ) - idmatcal
     return local_densities
+
+
+def compute_snapshots(
+    bitstrings: list[Tensor], unitaries_ids: Tensor, local_shadow_caller: Callable
+) -> Tensor:
+    snapshots: list = list()
+    for batch_bitstrings in bitstrings:
+        snapshots.append(local_shadow_caller(batch_bitstrings, unitaries_ids))
+        if snapshots[-1].shape[-1] > 2:
+            snapshots[-1] = batch_kron(snapshots[-1])
+    return torch.stack(snapshots)
 
 
 def nested_operator_indexing(

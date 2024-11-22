@@ -7,7 +7,7 @@ from torch import Tensor
 
 from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.measurements.utils_shadow import (
-    batch_kron,
+    compute_snapshots,
     expectation_estimations,
     local_shadow,
     number_of_samples,
@@ -60,11 +60,15 @@ class ShadowManager(MeasurementManager):
     def reconstruct_state(self, snapshots: Tensor) -> Tensor:
         """Reconstruct the state from the snapshots.
 
+        Args:
+            snapshots (Tensor): Snapshots of size
+                (batch_size, shadow_size, 2**n, 2**n).
+
         Returns:
-            Tensor: Reconstructed state
+            Tensor: Reconstructed state.
         """
-        N = snapshots.shape[0]
-        return snapshots.sum(axis=0) / N
+        N = snapshots.shape[1]
+        return snapshots.sum(axis=(0, 1)) / N
 
     def get_snapshots(
         self,
@@ -81,17 +85,14 @@ class ShadowManager(MeasurementManager):
 
         Returns:
             Tensor: Snapshots for a input circuit model and state.
-                The shape is (N, 2**n, 2**n).
+                The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
         if self.measurement_data is None:
             self.measure(model, list(), param_values, state)
 
         unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
         unitaries_ids = torch.tensor(unitaries_ids)
-        snapshots = local_shadow(bitstrings, unitaries_ids)
-        if snapshots.shape[-1] > 2:
-            snapshots = batch_kron(snapshots)
-        return snapshots
+        return compute_snapshots(bitstrings, unitaries_ids, local_shadow)
 
     def measure(
         self,

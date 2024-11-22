@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import partial
+
 import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
@@ -7,7 +9,7 @@ from torch import Tensor
 
 from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.measurements.utils_shadow import (
-    batch_kron,
+    compute_snapshots,
     expectation_estimations,
     robust_local_shadow,
     shadow_samples,
@@ -44,11 +46,15 @@ class RobustShadowManager(MeasurementManager):
     def reconstruct_state(self, snapshots: Tensor) -> Tensor:
         """Reconstruct the state from the snapshots.
 
+        Args:
+            snapshots (Tensor): Snapshots of size
+                (batch_size, shadow_size, 2**n, 2**n).
+
         Returns:
-            Tensor: Reconstructed state
+            Tensor: Reconstructed state.
         """
-        N = snapshots.shape[0]
-        return snapshots.sum(axis=0) / N
+        N = snapshots.shape[1]
+        return snapshots.sum(axis=(0, 1)) / N
 
     def get_snapshots(
         self,
@@ -64,8 +70,8 @@ class RobustShadowManager(MeasurementManager):
             state (Tensor | None, optional): Input state. Defaults to None.
 
         Returns:
-            Tensor: Snapshots for a input circuit model and state.
-                The shape is (N, 2**n, 2**n).
+            list[Tensor]: Snapshots for a input circuit model and state.
+                The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
         if self.measurement_data is None:
             self.measure(model, list(), param_values, state)
@@ -74,12 +80,11 @@ class RobustShadowManager(MeasurementManager):
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * model._circuit.original.n_qubits)
 
+        caller = partial(robust_local_shadow, calibration=calibration)
+
         unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
         unitaries_ids = torch.tensor(unitaries_ids)
-        snapshots = robust_local_shadow(bitstrings, unitaries_ids, calibration)
-        if snapshots.shape[-1] > 2:
-            snapshots = batch_kron(snapshots)
-        return snapshots
+        return compute_snapshots(bitstrings, unitaries_ids, caller)
 
     def measure(
         self,

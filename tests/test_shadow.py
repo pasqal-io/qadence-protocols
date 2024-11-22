@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 import torch
-from qadence import PrimitiveBlock
 from qadence.backends.api import backend_factory
 from qadence.blocks.abstract import AbstractBlock
 from qadence.blocks.utils import add, chain, kron
@@ -23,6 +22,7 @@ from qadence_protocols.measurements.utils_shadow import (
     expectation_estimations,
     local_shadow,
     number_of_samples,
+    robust_local_shadow,
     shadow_samples,
 )
 from qadence_protocols.types import MeasurementProtocols
@@ -87,7 +87,13 @@ def test_number_of_samples(
 )
 def test_local_shadow(sample: Tensor, unitary_ids: list, exp_shadow: Tensor) -> None:
     shadow = local_shadow(bitstrings=sample, unitary_ids=unitary_ids)
+    rshadow = robust_local_shadow(
+        bitstrings=sample,
+        unitary_ids=unitary_ids,
+        calibration=torch.tensor([1.0 / 3.0] * len(sample)),
+    )
     assert torch.allclose(shadow, exp_shadow)
+    assert torch.allclose(rshadow, shadow)
 
 
 theta = Parameter("theta")
@@ -167,16 +173,14 @@ values2 = {
         (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
     ],
 )
-@pytest.mark.parametrize("base_op", [X, Y, Z])
 @pytest.mark.parametrize("do_kron", [True, False])
 def test_estimations_comparison_tomo_forward_pass(
     circuit: QuantumCircuit,
     values: dict,
     diff_mode: DiffMode,
-    base_op: PrimitiveBlock,
     do_kron: bool,
 ) -> None:
-    observable = Z(0) ^ circuit.n_qubits
+    observable = Z(0) ^ circuit.n_qubits if do_kron else X(1)  # type: ignore[operator]
 
     pyq_backend = backend_factory(BackendName.PYQTORCH, diff_mode=diff_mode)
     (conv_circ, conv_obs, embed, params) = pyq_backend.convert(circuit, observable)
