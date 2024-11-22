@@ -7,17 +7,16 @@ from torch import Tensor
 
 from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.measurements.utils_shadow import (
+    batch_kron,
     expectation_estimations,
+    robust_local_shadow,
     shadow_samples,
 )
 from qadence_protocols.types import MeasurementData
 
 
 class RobustShadowManager(MeasurementManager):
-    """The abstract class that defines the interface for.
-
-    the managing measurements for robust shadows.
-    """
+    """The class for managing randomized robust shadow."""
 
     def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
         self.measurement_data = measurement_data
@@ -41,6 +40,46 @@ class RobustShadowManager(MeasurementManager):
             "calibration": calibration,
         }
         return self.options
+
+    def reconstruct_state(self, snapshots: Tensor) -> Tensor:
+        """Reconstruct the state from the snapshots.
+
+        Returns:
+            Tensor: Reconstructed state
+        """
+        N = snapshots.shape[0]
+        return snapshots.sum(axis=0) / N
+
+    def get_snapshots(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
+        """Obtain snapshots from the measurement data.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+
+        Returns:
+            Tensor: Snapshots for a input circuit model and state.
+                The shape is (N, 2**n, 2**n).
+        """
+        if self.measurement_data is None:
+            self.measure(model, list(), param_values, state)
+
+        calibration = self.options["calibration"]
+        if calibration is None:
+            calibration = torch.tensor([1.0 / 3.0] * model._circuit.original.n_qubits)
+
+        unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
+        unitaries_ids = torch.tensor(unitaries_ids)
+        snapshots = robust_local_shadow(bitstrings, unitaries_ids, calibration)
+        if snapshots.shape[-1] > 2:
+            snapshots = batch_kron(snapshots)
+        return snapshots
 
     def measure(
         self,

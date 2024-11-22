@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from collections import Counter
-
 import pytest
 import torch
 from qadence import PrimitiveBlock
 from qadence.backends.api import backend_factory
 from qadence.blocks.abstract import AbstractBlock
-from qadence.blocks.block_to_tensor import IMAT
 from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
@@ -29,6 +26,8 @@ from qadence_protocols.measurements.utils_shadow import (
     shadow_samples,
 )
 from qadence_protocols.types import MeasurementProtocols
+
+idmat = torch.eye(2, dtype=torch.complex128)
 
 
 @pytest.mark.parametrize(
@@ -63,31 +62,31 @@ def test_number_of_samples(
     "sample, unitary_ids, exp_shadow",
     [
         (
-            Counter({"10": 1}),
-            [0, 2],
-            torch.kron(
-                3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - IMAT,
-                3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
+            torch.tensor([1, 0]),
+            torch.tensor([0, 2]),
+            torch.stack(
+                [
+                    3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - idmat,
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                ]
             ),
         ),
         (
-            Counter({"0111": 1}),
-            [2, 0, 2, 2],
-            torch.kron(
-                torch.kron(
-                    3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
-                    3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - IMAT,
-                ),
-                torch.kron(
-                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
-                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
-                ),
+            torch.tensor([0, 1, 1, 1]),
+            torch.tensor([2, 0, 2, 2]),
+            torch.stack(
+                [
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                    3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - idmat,
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                ]
             ),
         ),
     ],
 )
-def test_local_shadow(sample: Counter, unitary_ids: list, exp_shadow: Tensor) -> None:
-    shadow = local_shadow(sample=sample, unitary_ids=unitary_ids)
+def test_local_shadow(sample: Tensor, unitary_ids: list, exp_shadow: Tensor) -> None:
+    shadow = local_shadow(bitstrings=sample, unitary_ids=unitary_ids)
     assert torch.allclose(shadow, exp_shadow)
 
 

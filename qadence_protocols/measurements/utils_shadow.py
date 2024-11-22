@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import Counter
 from functools import reduce
 
 import numpy as np
@@ -23,6 +22,8 @@ from torch import Tensor
 
 from qadence_protocols.measurements.utils_tomography import get_qubit_indices_for_op
 
+batch_kron = torch.func.vmap(lambda x: reduce(torch.kron, x))
+
 pauli_gates = [X, Y, Z]
 pauli_rotations = [
     lambda index: H(index),
@@ -31,14 +32,13 @@ pauli_rotations = [
 ]
 
 UNITARY_TENSOR = [
-    HMAT,
-    HMAT @ SDAGMAT,
-    IMAT,
+    HMAT.squeeze(dim=0),
+    (HMAT @ SDAGMAT).squeeze(dim=0),
+    IMAT.squeeze(dim=0),
 ]
+UNITARY_TENSOR_adjoint = [unit.adjoint() for unit in UNITARY_TENSOR]
 
-
-def identity(n_qubits: int) -> Tensor:
-    return torch.eye(2**n_qubits, dtype=torch.complex128)
+idmat = UNITARY_TENSOR[-1]
 
 
 def _max_observable_weight(observable: AbstractBlock) -> int:
@@ -94,7 +94,7 @@ def number_of_samples(
     return N, K
 
 
-def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
+def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
     """
     Compute local shadow by inverting the quantum channel for each projector state.
 
@@ -103,39 +103,32 @@ def local_shadow(sample: Counter, unitary_ids: list) -> Tensor:
 
     Expects a sample bitstring in ILO.
     """
-    bitstring = list(sample.keys())[0]
-    local_density_matrices = []
-    idmat = identity(1)
-    for bit, unitary_id in zip(bitstring, unitary_ids):
-        proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
-        unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
-        local_density_matrices.append(
-            3 * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor) - idmat
-        )
-    if len(local_density_matrices) == 1:
-        return local_density_matrices[0]
-    else:
-        return reduce(torch.kron, local_density_matrices)
+
+    nested_unitaries = rotations_unitary_map(unitary_ids)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
+    projmat[..., :, :] = torch.where(
+        bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
+    )
+    local_densities = 3.0 * (nested_unitaries_adjoint @ projmat @ nested_unitaries) - idmat
+    return local_densities
 
 
-def robust_local_shadow(
-    sample: Counter, unitary_ids: list, calibration: list[float] | Tensor
-) -> Tensor:
-    """Compute robust shadow by inverting the quantum channel for each projector state."""
-    bitstring = list(sample.keys())[0]
-    local_density_matrices = []
-    idmat = identity(1)
-    for bit, unitary_id, corr_coeff in zip(bitstring, unitary_ids, calibration):
-        proj_mat = P0_MATRIX if bit == "0" else P1_MATRIX
-        unitary_tensor = UNITARY_TENSOR[unitary_id].squeeze(dim=0)
-        local_density_matrices.append(
-            (1.0 / corr_coeff) * (unitary_tensor.adjoint() @ proj_mat @ unitary_tensor)
-            - 0.5 * (1.0 / corr_coeff - 1.0) * idmat
-        )
-    if len(local_density_matrices) == 1:
-        return local_density_matrices[0]
-    else:
-        return reduce(torch.kron, local_density_matrices)
+def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
+    """Compute robust local shadow by inverting the quantum channel for each projector state."""
+
+    nested_unitaries = rotations_unitary_map(unitary_ids)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
+    projmat[..., :, :] = torch.where(
+        bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
+    )
+    idmatcal = torch.stack([idmat * 0.5 * (1.0 / corr_coeff - 1.0) for corr_coeff in calibration])
+
+    local_densities = (
+        calibration * (nested_unitaries_adjoint @ projmat @ nested_unitaries) - idmatcal
+    )
+    return local_densities
 
 
 def nested_operator_indexing(
@@ -152,6 +145,25 @@ def nested_operator_indexing(
     if idx_array.ndim == 1:
         return [pauli_rotations[int(ind_pauli)](i) for i, ind_pauli in enumerate(idx_array)]  # type: ignore[abstract]
     return [nested_operator_indexing(sub_array) for sub_array in idx_array]
+
+
+def rotations_unitary_map(
+    idx_array: Tensor, rotation_unitaries_choice: list[Tensor] = UNITARY_TENSOR
+) -> Tensor:
+    """Obtain the list of unitaries rotation operators from indices.
+
+    Args:
+        idx_array (Tensor): Indices for obtaining the unitaries.
+        rotation_unitaries_choice (list[Tensor]): Map of indices to unitaries.
+
+    Returns:
+        list: Map of local unitaries.
+    """
+    result = torch.empty(idx_array.size() + (2, 2), dtype=rotation_unitaries_choice[0].dtype)
+    for n in range(3):
+        mask = idx_array == n
+        result[mask] = rotation_unitaries_choice[n]
+    return result
 
 
 def kron_if_non_empty(list_operations: list) -> KronBlock | None:
