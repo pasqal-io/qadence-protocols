@@ -54,7 +54,7 @@ class RobustShadowManager(MeasurementManager):
             Tensor: Reconstructed state.
         """
         N = snapshots.shape[1]
-        return snapshots.sum(axis=(0, 1)) / N
+        return snapshots.sum(axis=1) / N
 
     def get_snapshots(
         self,
@@ -127,7 +127,7 @@ class RobustShadowManager(MeasurementManager):
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
     ) -> Tensor:
-        """Compute expectation values by medians of means from the emasurement data.
+        """Compute expectation values by medians of means from the measurement data.
 
         Args:
             model (QuantumModel): Quantum model instance.

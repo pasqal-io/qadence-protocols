@@ -217,6 +217,14 @@ def test_estimations_comparison_tomo_forward_pass(
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
     assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
 
+    shapshots_shadows = shadow_measurements.measurement_manager.get_snapshots(
+        model, param_values=values
+    )
+    shapshots_rshadows = robust_shadows.measurement_manager.get_snapshots(
+        model, param_values=values
+    )
+    assert torch.allclose(shapshots_shadows, shapshots_rshadows)
+
 
 def test_shadow_raise_errors() -> None:
     backend = BackendName.PYQTORCH

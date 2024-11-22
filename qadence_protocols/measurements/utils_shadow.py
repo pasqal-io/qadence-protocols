@@ -137,7 +137,7 @@ def compute_snapshots(
     snapshots: list = list()
     for batch_bitstrings in bitstrings:
         snapshots.append(local_shadow_caller(batch_bitstrings, unitaries_ids))
-        if snapshots[-1].shape[-1] > 2:
+        if snapshots[-1].shape[1] > 1:
             snapshots[-1] = batch_kron(snapshots[-1])
     return torch.stack(snapshots)
 
