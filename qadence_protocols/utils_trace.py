@@ -3,13 +3,12 @@ from __future__ import annotations
 from math import log2
 from string import ascii_letters as ABC
 
+import torch
 from numpy import argsort, array
 from numpy.typing import NDArray
-import torch
-from torch import Tensor, einsum
-
-from qadence.blocks.abstract import AbstractBlock
 from qadence import block_to_tensor
+from qadence.blocks.abstract import AbstractBlock
+from torch import Tensor, einsum
 
 ABC_ARRAY: NDArray = array(list(ABC))
 
@@ -39,7 +38,7 @@ def permute_basis(operator: Tensor, qubit_support: tuple, inv: bool = False) -> 
 
     if inv:
         perm = argsort(perm).tolist()
-    perm = [0] + [i+1 for i in perm]
+    perm = [0] + [i + 1 for i in perm]
 
     return operator.permute(perm).reshape([batchsize, 2**n_qubits, 2**n_qubits])
 
@@ -63,15 +62,18 @@ def apply_operator_dm(
         DensityMatrix: The resulting density matrix after applying the operator.
     """
 
-    batchsize = state.size()[0] 
+    batchsize = state.size()[0]
     n_qubits = int(log2(state.size()[1]))
     n_support = len(qubit_support)
     full_support = tuple(range(n_qubits))
     support_perm = tuple(sorted(qubit_support)) + tuple(set(full_support) - set(qubit_support))
     state = permute_basis(state, support_perm)
     state = state.reshape([batchsize, 2**n_support, (2 ** (2 * n_qubits - n_support))])
-    state = einsum("ij,bjk->bik", operator, state).reshape([batchsize, 2**n_qubits, 2**n_qubits])
+    state = einsum("ij,bjk->bik", operator, state).reshape(
+        [batchsize, 2**n_qubits, 2**n_qubits]
+    )
     return permute_basis(state, support_perm, inv=True)
+
 
 def expectation_trace(state: Tensor, observables: list[AbstractBlock]) -> Tensor:
     """Calculate the expectation using the trace operator.
@@ -86,7 +88,14 @@ def expectation_trace(state: Tensor, observables: list[AbstractBlock]) -> Tensor
 
     if not isinstance(observables, list):
         observables = [observables]
-    tr_obs_rho = [apply_operator_dm(state, block_to_tensor(obs, use_full_support=False).squeeze(0), qubit_support=obs.qubit_support) for obs in observables]
+    tr_obs_rho = [
+        apply_operator_dm(
+            state,
+            block_to_tensor(obs, use_full_support=False).squeeze(0),
+            qubit_support=obs.qubit_support,
+        )
+        for obs in observables
+    ]
     vmap_trace = torch.vmap(torch.trace)
     tr_obs_rho = [vmap_trace(res_dm_obs).real for res_dm_obs in tr_obs_rho]
     return torch.stack(tr_obs_rho, axis=1)
