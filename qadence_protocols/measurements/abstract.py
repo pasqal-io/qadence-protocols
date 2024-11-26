@@ -69,6 +69,19 @@ class MeasurementManager(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def reconstruct_state(self, snapshots: Tensor) -> Tensor:
+        """Reconstruct the state from the snapshots.
+
+        Args:
+            snapshots (Tensor): Snapshots of size
+                (batch_size, shadow_size, 2**n, 2**n).
+
+        Returns:
+            Tensor: Reconstructed state.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def get_snapshots(
         self,
         model: QuantumModel,

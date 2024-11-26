@@ -131,8 +131,14 @@ snapshots = shadow_measurement.measurement_manager.get_snapshots(model)
 
 # reconstruct state from snapshots
 state = shadow_measurement.measurement_manager.reconstruct_state(snapshots)
-print(state)
+print("Reconstructed state shape", state.shape)
+
+# calculate expectations
+from qadence_protocols.utils_trace import expectation_trace
+exp_reconstructed_state = expectation_trace(state, observable)
+print(exp_reconstructed_state)
 ```
+
 
 ## Robust shadows
 

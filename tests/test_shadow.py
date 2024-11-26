@@ -26,6 +26,7 @@ from qadence_protocols.measurements.utils_shadow import (
     shadow_samples,
 )
 from qadence_protocols.types import MeasurementProtocols
+from qadence_protocols.utils_trace import expectation_trace
 
 idmat = torch.eye(2, dtype=torch.complex128)
 
@@ -224,6 +225,20 @@ def test_estimations_comparison_tomo_forward_pass(
         model, param_values=values
     )
     assert torch.allclose(shapshots_shadows, shapshots_rshadows)
+
+    # test expectation from reconstructed state
+    state_snapshots_shadow = shadow_measurements.measurement_manager.reconstruct_state(
+        shapshots_shadows
+    )
+    state_snapshots_rshadow = robust_shadows.measurement_manager.reconstruct_state(
+        shapshots_rshadows
+    )
+
+    exp_snapshots_shadow = expectation_trace(state_snapshots_shadow, observable)
+    exp_snapshots_rshadow = expectation_trace(state_snapshots_rshadow, observable)
+
+    assert torch.allclose(exp_snapshots_shadow, pyq_exp_exact, atol=new_options["accuracy"])
+    assert torch.allclose(exp_snapshots_rshadow, pyq_exp_exact, atol=new_options["accuracy"])
 
 
 def test_shadow_raise_errors() -> None:
