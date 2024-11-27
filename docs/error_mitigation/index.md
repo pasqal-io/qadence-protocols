@@ -19,4 +19,4 @@ $$
     \frac{d\rho}{dt} = L[\rho] = -i[H,\rho] + \sum \gamma_i \bigg(L_i\rho L_i^{\dagger} - \frac{1}{2} \{L_i^{\dagger}L_i,\rho\}\bigg)
 $$
 
-We use qutip `mesolve` for the computation as a Pulser backend invoked for analog circuits written in Qadence. Qadence Protocols offers a number of noise mitigation techniques to achieve better accuracy of simulation outputs. Currently supported methods mitigate primarily measurement readout errors. For analog blocks we support mitigating depolarizing and dephasing noise via Zero NoiseHandler Extrapolation.
+We use qutip `mesolve` for the computation as a Pulser backend invoked for analog circuits written in Qadence. Qadence Protocols offers a number of noise mitigation techniques to achieve better accuracy of simulation outputs. Currently supported methods mitigate primarily measurement readout errors. For analog blocks we support mitigating depolarizing and dephasing noise via Zero Noise Extrapolation.
