@@ -48,14 +48,6 @@ from qadence_protocols.types import ReadOutOptimization
             BackendName.PYQTORCH,
             ReadOutOptimization.MLE,
         ),
-        # (
-        #     0.05,
-        #     1500,
-        #     kron(RZ(0, parameter=0.01), RZ(1, parameter=0.01))
-        #     + kron(RX(0, parameter=0.01), RX(1, parameter=0.01)),
-        #     BackendName.PULSER,
-        #     ReadOutOptimization.CONSTRAINED,
-        # ),
         (0.01, 1000, add(Z(0), Z(1), Z(2)), BackendName.PYQTORCH, ReadOutOptimization.MLE),
         (
             0.1,
