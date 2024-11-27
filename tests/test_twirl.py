@@ -60,7 +60,7 @@ def test_readout_twirl_mitigation(
 ) -> None:
     circuit = QuantumCircuit(block.n_qubits, block)
     noise = NoiseHandler(
-        protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability}
+        protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability}
     )
     tomo_measurement = Measurements(
         protocol=Measurements.TOMOGRAPHY,

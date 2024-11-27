@@ -235,10 +235,10 @@ def shadow_samples(
 
     if noise is not None:
         # temporary fix before qadence bump
-        if sum([isinstance(proto, NoiseProtocol.DIGITAL) for proto in noise.protocol]) > 0:
-            digital_part = noise.filter(NoiseProtocol.DIGITAL)
+        digital_part = noise.filter(NoiseProtocol.DIGITAL)
+        if digital_part is not None:
             all_rotations = [set_noise(rots, digital_part) for rots in all_rotations]
-            circuit = set_noise(circuit, digital_part)
+            set_noise(circuit, digital_part)
 
     # run the initial circuit without rotations
     conv_circ = backend.circuit(circuit)

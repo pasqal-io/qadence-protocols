@@ -5,7 +5,9 @@ from collections import Counter
 import numpy as np
 import numpy.typing as npt
 from numpy.linalg import inv, matrix_rank, pinv
+from pyqtorch.noise import CorrelatedReadoutNoise
 from qadence import QuantumModel
+from qadence.backends.pyqtorch.convert_ops import convert_readout_noise
 from qadence.logger import get_logger
 from qadence.noise.protocols import NoiseHandler
 from qadence.types import NoiseProtocol
@@ -206,11 +208,18 @@ def mitigation_minimization(
     Returns:
         Mitigated counts computed by the algorithm
     """
-    noise_options = noise.options[-1]
-    noise_matrices = noise_options.get("noise_matrix", noise_options["confusion_matrices"]).numpy()
-    optimization_type = options.get("optimization_type", ReadOutOptimization.MLE)
     n_qubits = len(list(samples[0].keys())[0])
+    readout_noise = convert_readout_noise(n_qubits, noise)
+    if readout_noise is None or isinstance(readout_noise, CorrelatedReadoutNoise):
+        raise ValueError("Specify a noise source of type NoiseProtocol.READOUT.INDEPENDENT.")
     n_shots = sum(samples[0].values())
+    noise_matrices = readout_noise.confusion_matrix
+    if readout_noise._compute_confusion:
+        noise_matrices = readout_noise.create_noise_matrix(n_shots)
+        noise_matrices = readout_noise.confusion_matrix
+    noise_matrices = noise_matrices.numpy()
+
+    optimization_type = options.get("optimization_type", ReadOutOptimization.MLE)
     corrected_counters: list[Counter] = []
 
     for sample in samples:
@@ -267,8 +276,10 @@ def mitigate(
     noise: NoiseHandler | None = None,
     param_values: dict[str, Tensor] = dict(),
 ) -> list[Counter]:
-    if noise is None or noise.protocol[-1] != NoiseProtocol.READOUT:
-        if model._noise is None or model._noise.protocol[-1] != NoiseProtocol.READOUT:
+    if noise is None or (not isinstance(noise.protocol[-1], NoiseProtocol.READOUT)):
+        if model._noise is None or (
+            not isinstance(model._noise.protocol[-1], NoiseProtocol.READOUT)
+        ):
             raise ValueError(
                 "A NoiseProtocol.READOUT model must be provided either to .mitigate()"
                 " or through the <class QuantumModel>."

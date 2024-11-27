@@ -149,7 +149,7 @@ from qadence import NoiseProtocol, NoiseHandler
 from qadence_protocols.measurements.calibration import zero_state_calibration
 
 error_probability = 0.1
-noise = NoiseHandler(protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability})
 
 model = QuantumModel(
     circuit=circuit,

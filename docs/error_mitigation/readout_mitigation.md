@@ -35,7 +35,7 @@ n_shots = 10000
 # Construct a quantum model and noise
 model = QuantumModel(circuit=circuit)
 error_probability = 0.2
-noise = NoiseHandler(protocol=NoiseProtocol.READOUT,options={"error_probability": error_probability})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT,options={"error_probability": error_probability})
 
 noiseless_samples = model.sample(n_shots=n_shots)
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)
@@ -170,7 +170,7 @@ model = QuantumModel(circuit=circuit)
 
 # Sampling the noisy solution
 error_p = 0.2
-noise = NoiseHandler(protocol=NoiseProtocol.READOUT,options={"error_probability": error_p})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT,options={"error_probability": error_p})
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)[0]
 
 # Removing samples that correspond to actual solution
@@ -219,7 +219,7 @@ block= chain(kron(RX(0, torch.pi / 3), RX(1, torch.pi / 6)), CNOT(0, 1))
 observable=[3 * kron(Z(0), Z(1)) + 2 * Z(0)]
 
 circuit = QuantumCircuit(block.n_qubits, block)
-noise = NoiseHandler(protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability})
 tomo_measurement = Measurements(
     protocol=Measurements.TOMOGRAPHY,
     options={"n_shots": n_shots},

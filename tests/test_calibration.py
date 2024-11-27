@@ -13,7 +13,7 @@ def test_zero_state_calibration() -> None:
 
     error_probability = 0.1
     noise = NoiseHandler(
-        protocol=NoiseProtocol.READOUT, options={"error_probability": error_probability}
+        protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability}
     )
     coeffs = zero_state_calibration(10, 3, 1000, noise=noise)
     assert torch.allclose((3 * coeffs + 1) / 2.0, torch.ones(3) - error_probability, atol=0.1)
