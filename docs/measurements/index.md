@@ -111,8 +111,8 @@ If we are interested in accessing the measurement data from shadows, we can acce
 
 measurements_shadows = shadow_measurement.manager.data
 
-print("Sampled unitary indices shape: ", measurements_shadows[0].shape)
-print("Shape of batched measurements: ", measurements_shadows[1].shape)
+print("Sampled unitary indices shape: ", measurements_shadows["unitaries"].shape)
+print("Shape of batched measurements: ", measurements_shadows["measurements"].shape)
 ```
 
 In the case of shadows, the measurement data is a tuple of two elements:
