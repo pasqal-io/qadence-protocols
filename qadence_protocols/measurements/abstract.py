@@ -10,15 +10,15 @@ from qadence_protocols.types import MeasurementData
 
 
 class MeasurementManager(ABC):
-    """The abstract class that defines the interface for the managing measurements.
+    """The abstract class that defines the interface for managing measurements.
 
     Attributes:
-        measurement_data (MeasurementData, optional): Measurement data if already obtained.
+        data (MeasurementData, optional): Measurement data if already obtained.
         options (dict, optional): Dictionary of options specific to protocol.
     """
 
-    def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
-        self.measurement_data = measurement_data
+    def __init__(self, data: MeasurementData = None, options: dict = dict()):
+        self.measurement_data = data
         self.options = options
 
     @abstractmethod
@@ -64,9 +64,21 @@ class MeasurementManager(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def verify_options(self) -> dict:
-        """Validate options passed to procotol."""
+    def validate_options(self) -> dict:
+        """Validate options passed to procotol and return a dict with default validated values."""
         raise NotImplementedError
+
+
+class ShadowManagerAbstract(MeasurementManager, ABC):
+    """The abstract class that defines the interface for managing shadows.
+
+    Attributes:
+        data (MeasurementData, optional): Measurement data if already obtained.
+        options (dict, optional): Dictionary of options specific to protocol.
+    """
+
+    def __init__(self, data: MeasurementData = None, options: dict = dict()):
+        super().__init__(data, options)
 
     @abstractmethod
     def reconstruct_state(self, snapshots: Tensor) -> Tensor:

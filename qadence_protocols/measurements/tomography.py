@@ -21,7 +21,7 @@ class Tomography(MeasurementManager):
         self.measurement_data = measurement_data
         self.options = options
 
-    def verify_options(self) -> dict:
+    def validate_options(self) -> dict:
         """Verify options contain `n_shots`.
 
         Raises:

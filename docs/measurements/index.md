@@ -61,12 +61,11 @@ print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-
 
 ## Getting measurements
 
-If we are interested in accessing the measurements for computing different quantities of interest other than the expectation values, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+If we are interested in accessing the measurements for computing different quantities of interest other than the expectation values, we can access the measurement data via the `manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-measurements_tomo = tomo_measurement.measurement_manager.measurement_data
-# measurements_tomo = tomo_measurement(model, return_expectations=False)
+measurements_tomo = tomo_measurement.manager.data
 print(measurements_tomo)
 ```
 
@@ -106,12 +105,11 @@ print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markd
 
 ## Getting shadows
 
-If we are interested in accessing the measurement data from shadows, we can access the measurement data via the `measurement_manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+If we are interested in accessing the measurement data from shadows, we can access the measurement data via the `manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-measurements_shadows = shadow_measurement.measurement_manager.measurement_data
-# measurements_shadows = shadow_measurement(model, return_expectations=False)
+measurements_shadows = shadow_measurement.manager.data
 
 print("Sampled unitary indices shape: ", measurements_shadows[0].shape)
 print("Shape of batched measurements: ", measurements_shadows[1].shape)
@@ -127,10 +125,10 @@ Such a measurement data can be used directly for computing different quantities 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
 # obtaining snapshots
-snapshots = shadow_measurement.measurement_manager.get_snapshots(model)
+snapshots = shadow_measurement.manager.get_snapshots(model)
 
 # reconstruct state from snapshots
-state = shadow_measurement.measurement_manager.reconstruct_state(snapshots)
+state = shadow_measurement.manager.reconstruct_state(snapshots)
 print("Reconstructed state shape", state.shape)
 
 # calculate expectations

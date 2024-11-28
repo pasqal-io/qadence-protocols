@@ -4,7 +4,7 @@ from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
-from qadence_protocols.measurements.abstract import MeasurementManager
+from qadence_protocols.measurements.abstract import ShadowManagerAbstract
 from qadence_protocols.measurements.utils_shadow import (
     compute_snapshots,
     expectation_estimations,
@@ -15,14 +15,14 @@ from qadence_protocols.measurements.utils_shadow import (
 from qadence_protocols.types import MeasurementData
 
 
-class ShadowManager(MeasurementManager):
+class ShadowManager(ShadowManagerAbstract):
     """The class for managing randomized classical shadow."""
 
     def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
         self.measurement_data = measurement_data
         self.options = options
 
-    def verify_options(self) -> dict:
+    def validate_options(self) -> dict:
         """Extract shadow_size, accuracy and confidence from options."""
 
         shadow_size = self.options.get("shadow_size", None)

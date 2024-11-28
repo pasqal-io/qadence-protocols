@@ -33,10 +33,8 @@ class Measurements(Protocol):
             proto_class = getattr(module, PROTOCOL_TO_MODULE[protocol][1])
         except (KeyError, ModuleNotFoundError, ImportError) as e:
             raise type(e)(f"Failed to import Mitigations due to {e}.")
-        self.measurement_manager: MeasurementManager = proto_class(
-            measurement_data=None, options=options
-        )
-        verified_options = self.measurement_manager.verify_options()
+        self.manager: MeasurementManager = proto_class(measurement_data=None, options=options)
+        verified_options = self.manager.validate_options()
         super().__init__(protocol, verified_options)
 
     def __call__(
@@ -63,7 +61,7 @@ class Measurements(Protocol):
         # Partially pass the options and observable.
         compute_fn = "expectation" if return_expectations else "measure"
         output_fn = partial(
-            getattr(self.measurement_manager, compute_fn),
+            getattr(self.manager, compute_fn),
             observables=observables,
             state=state,
         )
