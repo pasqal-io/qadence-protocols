@@ -33,7 +33,7 @@ class Measurements(Protocol):
             proto_class = getattr(module, PROTOCOL_TO_MODULE[protocol][1])
         except (KeyError, ModuleNotFoundError, ImportError) as e:
             raise type(e)(f"Failed to import Mitigations due to {e}.")
-        self.manager: MeasurementManager = proto_class(measurement_data=None, options=options)
+        self.manager: MeasurementManager = proto_class(data=None, options=options)
         verified_options = self.manager.validate_options()
         super().__init__(protocol, verified_options)
 

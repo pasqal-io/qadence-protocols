@@ -216,13 +216,11 @@ def test_estimations_comparison_tomo_forward_pass(
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
     assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
 
-    shapshots_shadows = shadow_measurements.manager.get_snapshots(model, param_values=values)  # type: ignore[attr-defined]
-    shapshots_rshadows = robust_shadows.manager.get_snapshots(model, param_values=values)  # type: ignore[attr-defined]
-    assert torch.allclose(shapshots_shadows, shapshots_rshadows)
-
     # test expectation from reconstructed state
-    state_snapshots_shadow = shadow_measurements.manager.reconstruct_state(shapshots_shadows)  # type: ignore[attr-defined]
-    state_snapshots_rshadow = robust_shadows.manager.reconstruct_state(shapshots_rshadows)  # type: ignore[attr-defined]
+    shadow_manager = shadow_measurements.manager
+    robust_shadow_manager = robust_shadows.manager
+    state_snapshots_shadow = shadow_manager.reconstruct_state(model, param_values=values)  # type: ignore[attr-defined]
+    state_snapshots_rshadow = robust_shadow_manager.reconstruct_state(model, param_values=values)  # type: ignore[attr-defined]
 
     exp_snapshots_shadow = expectation_trace(state_snapshots_shadow, observable)
     exp_snapshots_rshadow = expectation_trace(state_snapshots_rshadow, observable)

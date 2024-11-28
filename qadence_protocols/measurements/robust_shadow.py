@@ -20,8 +20,8 @@ from qadence_protocols.types import MeasurementData
 class RobustShadowManager(ShadowManagerAbstract):
     """The class for managing randomized robust shadow."""
 
-    def __init__(self, measurement_data: MeasurementData | None = None, options: dict = dict()):
-        self.measurement_data = measurement_data
+    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
+        self.data = data
         self.options = options
 
     def validate_options(self) -> dict:
@@ -43,16 +43,24 @@ class RobustShadowManager(ShadowManagerAbstract):
         }
         return self.options
 
-    def reconstruct_state(self, snapshots: Tensor) -> Tensor:
+    def reconstruct_state(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
         """Reconstruct the state from the snapshots.
 
         Args:
-            snapshots (Tensor): Snapshots of size
-                (batch_size, shadow_size, 2**n, 2**n).
+             model (QuantumModel): Quantum model instance.
+             param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+             state (Tensor | None, optional): Input state. Defaults to None.
 
-        Returns:
-            Tensor: Reconstructed state.
+         Returns:
+             Tensor: Reconstructed state.
         """
+        snapshots = self.get_snapshots(model, param_values, state)
+
         N = snapshots.shape[1]
         return snapshots.sum(axis=1) / N
 
@@ -73,7 +81,7 @@ class RobustShadowManager(ShadowManagerAbstract):
             list[Tensor]: Snapshots for a input circuit model and state.
                 The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
-        if self.measurement_data is None:
+        if self.data is None:
             self.measure(model, list(), param_values, state)
 
         calibration = self.options["calibration"]
@@ -82,7 +90,7 @@ class RobustShadowManager(ShadowManagerAbstract):
 
         caller = partial(robust_local_shadow, calibration=calibration)
 
-        unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
+        unitaries_ids, bitstrings = self.data  # type: ignore[misc]
         return compute_snapshots(bitstrings, unitaries_ids, caller)
 
     def measure(
@@ -109,7 +117,7 @@ class RobustShadowManager(ShadowManagerAbstract):
         circuit = model._circuit.original
         shadow_size = self.options["shadow_size"]
 
-        self.measurement_data = shadow_samples(
+        self.data = shadow_samples(
             shadow_size=shadow_size,
             circuit=circuit,
             param_values=model.embedding_fn(model._params, param_values),
@@ -117,7 +125,7 @@ class RobustShadowManager(ShadowManagerAbstract):
             backend=model.backend,
             noise=model._noise,
         )
-        return self.measurement_data
+        return self.data
 
     def expectation(
         self,
@@ -142,10 +150,10 @@ class RobustShadowManager(ShadowManagerAbstract):
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * model._circuit.original.n_qubits)
 
-        if self.measurement_data is None:
+        if self.data is None:
             self.measure(model, observables, param_values, state)
 
-        unitaries_ids, batch_shadow_samples = self.measurement_data  # type: ignore[misc]
+        unitaries_ids, batch_shadow_samples = self.data  # type: ignore[misc]
         return expectation_estimations(
             observables, unitaries_ids, batch_shadow_samples, K, calibration=calibration
         )

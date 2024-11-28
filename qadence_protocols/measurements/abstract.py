@@ -81,12 +81,18 @@ class ShadowManagerAbstract(MeasurementManager, ABC):
         super().__init__(data, options)
 
     @abstractmethod
-    def reconstruct_state(self, snapshots: Tensor) -> Tensor:
+    def reconstruct_state(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
         """Reconstruct the state from the snapshots.
 
         Args:
-            snapshots (Tensor): Snapshots of size
-                (batch_size, shadow_size, 2**n, 2**n).
+            model (QuantumModel): Quantum model instance.
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
 
         Returns:
             Tensor: Reconstructed state.

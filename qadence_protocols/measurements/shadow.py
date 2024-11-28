@@ -38,17 +38,20 @@ class ShadowManager(ShadowManagerAbstract):
         self.options = {"shadow_size": shadow_size, "accuracy": accuracy, "confidence": confidence}
         return self.options
 
-    def number_of_samples_and_groups(
+    def number_of_samples_and_medians(
         self, observables: list[AbstractBlock] = list()
     ) -> tuple[int, ...]:
-        """Return the shadow size and number of groups for a list of observables.
+        """Return the shadow size and number of groups to apply the.
+
+         medians of means algorithm for a list of observables.
 
         Args:
             observables (list[AbstractBlock], optional): List of observables.
                 Defaults to list().
 
         Returns:
-            tuple[int, ...]: the shadow size and number of groups
+            tuple[int, ...]: the shadow size and number of groups to apply the
+                medians of means
         """
         return number_of_samples(
             observables=observables,
@@ -56,16 +59,24 @@ class ShadowManager(ShadowManagerAbstract):
             confidence=self.options["confidence"],
         )
 
-    def reconstruct_state(self, snapshots: Tensor) -> Tensor:
+    def reconstruct_state(
+        self,
+        model: QuantumModel,
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
         """Reconstruct the state from the snapshots.
 
         Args:
-            snapshots (Tensor): Snapshots of size
-                (batch_size, shadow_size, 2**n, 2**n).
+             model (QuantumModel): Quantum model instance.
+             param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+             state (Tensor | None, optional): Input state. Defaults to None.
 
-        Returns:
-            Tensor: Reconstructed state.
+         Returns:
+             Tensor: Reconstructed state.
         """
+        snapshots = self.get_snapshots(model, param_values, state)
+
         N = snapshots.shape[1]
         return snapshots.sum(axis=1) / N
 
