@@ -206,7 +206,7 @@ def shadow_samples(
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: NoiseHandler | None = None,
     endianness: Endianness = Endianness.BIG,
-) -> tuple[Tensor, Tensor]:
+) -> dict[str, Tensor]:
     """Sample the circuit rotated according to locally sampled pauli unitaries.
 
     Args:
@@ -221,7 +221,8 @@ def shadow_samples(
             Defaults to Endianness.BIG.
 
     Returns:
-        tuple[Tensor, Tensor]: The pauli indices of local unitaries and sampled bitstrings.
+        MeasurementData: A dictionary containing
+            the pauli indices of local unitaries and sampled bitstrings.
             0, 1, 2 correspond to X, Y, Z.
     """
 
@@ -272,7 +273,7 @@ def shadow_samples(
             for batch in bitstrings
         ]
     )
-    return torch.tensor(unitary_ids), bitstrings_torch
+    return {"unitaries": torch.tensor(unitary_ids), "measurements": bitstrings_torch}
 
 
 def reconstruct_state(shadow: list) -> Tensor:

@@ -5,7 +5,7 @@ from typing import Union
 
 from torch import Tensor
 
-MeasurementData = Union[Tensor, list, tuple]
+MeasurementData = Union[Tensor, dict[str, Tensor]]
 
 
 class StrEnum(str, Enum):

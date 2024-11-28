@@ -90,7 +90,7 @@ class RobustShadowManager(ShadowManagerAbstract):
 
         caller = partial(robust_local_shadow, calibration=calibration)
 
-        unitaries_ids, bitstrings = self.data  # type: ignore[misc]
+        unitaries_ids, bitstrings = self.data["unitaries"], self.data["measurements"]  # type: ignore[index]
         return compute_snapshots(bitstrings, unitaries_ids, caller)
 
     def measure(
@@ -153,7 +153,7 @@ class RobustShadowManager(ShadowManagerAbstract):
         if self.data is None:
             self.measure(model, observables, param_values, state)
 
-        unitaries_ids, batch_shadow_samples = self.data  # type: ignore[misc]
+        unitaries_ids, batch_shadow_samples = self.data["unitaries"], self.data["measurements"]  # type: ignore[index]
         return expectation_estimations(
             observables, unitaries_ids, batch_shadow_samples, K, calibration=calibration
         )

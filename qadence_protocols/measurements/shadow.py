@@ -100,7 +100,7 @@ class ShadowManager(ShadowManagerAbstract):
         if self.data is None:
             self.measure(model, list(), param_values, state)
 
-        unitaries_ids, bitstrings = self.data  # type: ignore[misc]
+        unitaries_ids, bitstrings = self.data["unitaries"], self.data["measurements"]  # type: ignore[index]
         return compute_snapshots(bitstrings, unitaries_ids, local_shadow)
 
     def measure(
@@ -169,5 +169,5 @@ class ShadowManager(ShadowManagerAbstract):
         if self.data is None:
             self.measure(model, observables, param_values, state)
 
-        unitaries_ids, batch_shadow_samples = self.data  # type: ignore[misc]
+        unitaries_ids, batch_shadow_samples = self.data["unitaries"], self.data["measurements"]  # type: ignore[index]
         return expectation_estimations(observables, unitaries_ids, batch_shadow_samples, K)

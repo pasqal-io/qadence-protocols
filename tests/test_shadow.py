@@ -125,8 +125,10 @@ def test_estimations_comparison_exact(
     param_values = embed(params, values)
     exact_exp = expectation(circuit, observable, values=values)
 
-    unitaries_ids, batch_shadow_samples = shadow_samples(
-        shadow_size=5000, circuit=circuit, param_values=param_values
+    measurement_data = shadow_samples(shadow_size=5000, circuit=circuit, param_values=param_values)
+    unitaries_ids, batch_shadow_samples = (
+        measurement_data["unitaries"],
+        measurement_data["measurements"],
     )
     observables = [observable]
     K = number_of_samples(observables=observables, accuracy=0.1, confidence=0.1)[1]
