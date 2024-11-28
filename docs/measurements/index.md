@@ -161,7 +161,7 @@ calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.b
 # This linear transformation should give us the probability error
 print(0.5 * (3.0 * calibration + 1))
 
-Rshadow_options = {"shadow_size": N, "shadow_groups": K, "calibration": calibration}
+Rshadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
 robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=Rshadow_options)
 estimated_values_robust_shadow = robust_shadow_measurement(model)
 

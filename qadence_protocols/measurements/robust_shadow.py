@@ -30,15 +30,15 @@ class RobustShadowManager(ShadowManagerAbstract):
         shadow_size = self.options.get("shadow_size", None)
         if shadow_size is None:
             raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
-        shadow_groups = self.options.get("shadow_groups", None)
-        if shadow_groups is None:
-            raise KeyError("Shadow protocol requires an option 'shadow_groups' of type 'int'.")
+        shadow_medians = self.options.get("shadow_medians", None)
+        if shadow_medians is None:
+            raise KeyError("Shadow protocol requires an option 'shadow_medians' of type 'int'.")
 
         calibration = self.options.get("calibration", None)
 
         self.options = {
             "shadow_size": shadow_size,
-            "shadow_groups": shadow_groups,
+            "shadow_medians": shadow_medians,
             "calibration": calibration,
         }
         return self.options
@@ -145,7 +145,7 @@ class RobustShadowManager(ShadowManagerAbstract):
         Returns:
             Tensor: Expectation values.
         """
-        K = int(self.options["shadow_groups"])
+        K = int(self.options["shadow_medians"])
         calibration = self.options["calibration"]
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * model._circuit.original.n_qubits)

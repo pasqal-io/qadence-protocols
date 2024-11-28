@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Union
 
 from torch import Tensor
 
-MeasurementData = Tensor | list | tuple
+MeasurementData = Union[Tensor, list, tuple]
 
 
 class StrEnum(str, Enum):

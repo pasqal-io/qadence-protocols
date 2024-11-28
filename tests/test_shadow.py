@@ -203,7 +203,7 @@ def test_estimations_comparison_tomo_forward_pass(
     estimated_exp_shadow = shadow_measurements(model, param_values=values)
 
     N, K = number_of_samples([observable], **new_options)
-    robust_options = {"shadow_size": N, "shadow_groups": K, "robust_correlations": None}
+    robust_options = {"shadow_size": N, "shadow_medians": K, "robust_correlations": None}
     robust_shadows = Measurements(
         protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_options
     )
