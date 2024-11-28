@@ -209,7 +209,7 @@ def test_estimations_comparison_tomo_forward_pass(
     )
 
     # set measurement same as classical shadows
-    robust_shadows.manager.measurement_data = shadow_measurements.manager.measurement_data
+    robust_shadows.manager.data = shadow_measurements.manager.data
     robust_estimated_exp_shadow = robust_shadows(model, param_values=values)
 
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)

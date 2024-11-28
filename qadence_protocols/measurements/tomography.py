@@ -17,8 +17,8 @@ from qadence_protocols.types import MeasurementData
 class Tomography(MeasurementManager):
     """The abstract class that defines the interface for the managing measurements."""
 
-    def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
-        self.measurement_data = measurement_data
+    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
+        self.data = data
         self.options = options
 
     def validate_options(self) -> dict:
@@ -82,7 +82,7 @@ class Tomography(MeasurementManager):
                     noise=model._noise,
                 )
             )
-        self.measurement_data = samples
+        self.data = samples
         return samples
 
     def expectation(
@@ -104,11 +104,11 @@ class Tomography(MeasurementManager):
         Returns:
             Tensor: Expectation values
         """
-        if self.measurement_data is None:
+        if self.data is None:
             self.measure(model, observables, param_values, state)
 
         estimated_values = []
-        for samples, observable in zip(self.measurement_data, observables):  # type: ignore[arg-type]
+        for samples, observable in zip(self.data, observables):  # type: ignore[arg-type]
             estimated_values.append(
                 convert_samples_to_pauli_expectation(samples, unroll_block_with_scaling(observable))
             )

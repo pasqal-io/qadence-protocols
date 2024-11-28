@@ -18,8 +18,8 @@ from qadence_protocols.types import MeasurementData
 class ShadowManager(ShadowManagerAbstract):
     """The class for managing randomized classical shadow."""
 
-    def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
-        self.measurement_data = measurement_data
+    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
+        self.data = data
         self.options = options
 
     def validate_options(self) -> dict:
@@ -86,10 +86,10 @@ class ShadowManager(ShadowManagerAbstract):
             Tensor: Snapshots for a input circuit model and state.
                 The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
-        if self.measurement_data is None:
+        if self.data is None:
             self.measure(model, list(), param_values, state)
 
-        unitaries_ids, bitstrings = self.measurement_data  # type: ignore[misc]
+        unitaries_ids, bitstrings = self.data  # type: ignore[misc]
         return compute_snapshots(bitstrings, unitaries_ids, local_shadow)
 
     def measure(
@@ -123,7 +123,7 @@ class ShadowManager(ShadowManagerAbstract):
                 observables=observables, accuracy=accuracy, confidence=confidence
             )[0]
 
-        self.measurement_data = shadow_samples(
+        self.data = shadow_samples(
             shadow_size=shadow_size,
             circuit=circuit,
             param_values=model.embedding_fn(model._params, param_values),
@@ -131,7 +131,7 @@ class ShadowManager(ShadowManagerAbstract):
             backend=model.backend,
             noise=model._noise,
         )
-        return self.measurement_data
+        return self.data
 
     def expectation(
         self,
@@ -155,8 +155,8 @@ class ShadowManager(ShadowManagerAbstract):
         confidence = self.options["confidence"]
         _, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
 
-        if self.measurement_data is None:
+        if self.data is None:
             self.measure(model, observables, param_values, state)
 
-        unitaries_ids, batch_shadow_samples = self.measurement_data  # type: ignore[misc]
+        unitaries_ids, batch_shadow_samples = self.data  # type: ignore[misc]
         return expectation_estimations(observables, unitaries_ids, batch_shadow_samples, K)

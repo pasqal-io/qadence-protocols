@@ -20,7 +20,7 @@ from qadence_protocols.types import MeasurementData
 class RobustShadowManager(ShadowManagerAbstract):
     """The class for managing randomized robust shadow."""
 
-    def __init__(self, measurement_data: MeasurementData = None, options: dict = dict()):
+    def __init__(self, measurement_data: MeasurementData | None = None, options: dict = dict()):
         self.measurement_data = measurement_data
         self.options = options
 

@@ -17,8 +17,8 @@ class MeasurementManager(ABC):
         options (dict, optional): Dictionary of options specific to protocol.
     """
 
-    def __init__(self, data: MeasurementData = None, options: dict = dict()):
-        self.measurement_data = data
+    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
+        self.data = data
         self.options = options
 
     @abstractmethod
@@ -77,7 +77,7 @@ class ShadowManagerAbstract(MeasurementManager, ABC):
         options (dict, optional): Dictionary of options specific to protocol.
     """
 
-    def __init__(self, data: MeasurementData = None, options: dict = dict()):
+    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
         super().__init__(data, options)
 
     @abstractmethod
