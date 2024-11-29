@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Iterable
+
 import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
@@ -12,6 +14,15 @@ from qadence_protocols.measurements.utils_tomography import (
     convert_samples_to_pauli_expectation,
     iterate_pauli_decomposition,
 )
+
+
+def flatten_recursive(lst: list[Any]) -> Iterable[Any]:
+    """Flatten a list using recursion."""
+    for item in lst:
+        if isinstance(item, list):
+            yield from flatten_recursive(item)
+        else:
+            yield item
 
 
 class Tomography(MeasurementManager):
@@ -62,10 +73,19 @@ class Tomography(MeasurementManager):
         if data.unitaries is not None:
             raise ValueError("Tomography data cannot have `unitaries` filled.")
 
-        if data.measurements is not None and len(data.measurements) != len(self.observables):
-            raise ValueError(
-                "Provide correctly data as a list of Counters matching the number of observables."
-            )
+        if data.measurements is not None:
+            if len(data.measurements) != len(self.observables):
+                raise ValueError(
+                    "Provide data as a list of Counters matching the number of observables."
+                )
+            n_shots = self.options["n_shots"]
+            for obs_measurements in data.measurements:
+                for iter_pauli_meas in obs_measurements:
+                    for counter in iter_pauli_meas:
+                        if sum(counter.values()) != n_shots:
+                            raise ValueError(
+                                f"The frequencies in each counter must sum up to {n_shots}"
+                            )
         return data
 
     def reconstruct_state(self) -> Tensor:
