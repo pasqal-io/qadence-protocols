@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from collections import Counter
+from dataclasses import dataclass
 from enum import Enum
-from typing import Union
 
 from torch import Tensor
-
-MeasurementData = Union[Tensor, dict[str, Tensor]]
 
 
 class StrEnum(str, Enum):
@@ -17,6 +16,14 @@ class StrEnum(str, Enum):
     @classmethod
     def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))  # type: ignore
+
+
+@dataclass
+class MeasurementData:
+    measurements: Tensor | list[Counter] | None = None
+    """Measurements data."""
+    unitaries: Tensor | None = None
+    """Random unitaries used in shadows."""
 
 
 class Protocols(StrEnum):

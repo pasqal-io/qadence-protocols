@@ -222,21 +222,22 @@ def test_tomography(
     observable = obs_composition(obs_base_op(0), obs_base_op(1))
     backend = BackendName.PYQTORCH
 
-    tomo_measurement = Measurements(
-        protocol=MeasurementProtocols.TOMOGRAPHY,
-        options={"n_shots": 10000},
-    )
-
     notomo_model = QuantumModel(circuit=circuit, observable=observable, backend=backend)
     expectation_analytical = notomo_model.expectation()
 
-    expectation_sampled = tomo_measurement(notomo_model)
+    tomo_measurement = Measurements(
+        protocol=MeasurementProtocols.TOMOGRAPHY,
+        model=notomo_model,
+        options={"n_shots": 10000},
+    )
+    expectation_sampled = tomo_measurement()
 
     tomo_measurement_more_shots = Measurements(
         protocol=MeasurementProtocols.TOMOGRAPHY,
+        model=notomo_model,
         options={"n_shots": 1000000},
     )
-    expectation_sampled_more_shots = tomo_measurement_more_shots(notomo_model)
+    expectation_sampled_more_shots = tomo_measurement_more_shots()
 
     assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-01)
     assert allclose(expectation_sampled_more_shots, expectation_analytical, atol=1.0e-02)
@@ -293,8 +294,13 @@ def test_basic_tomography_for_parametric_circuit_forward_pass(
         diff_mode=DiffMode.GPSR,
     )
     analytical_result = model.expectation(values)
-    tomo = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options={"n_shots": 100000})
-    estimated_values = tomo(model, values)
+    tomo = Measurements(
+        protocol=MeasurementProtocols.TOMOGRAPHY,
+        model=model,
+        param_values=values,
+        options={"n_shots": 100000},
+    )
+    estimated_values = tomo()
 
     assert allclose(estimated_values, analytical_result, atol=0.01)
 
@@ -309,5 +315,6 @@ def test_tomography_raise_errors() -> None:
     with pytest.raises(KeyError):
         tomo_measurement = Measurements(
             protocol=MeasurementProtocols.TOMOGRAPHY,
+            model=notomo_model,
             options={"nsamples": 10000},
         )

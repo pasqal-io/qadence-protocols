@@ -126,16 +126,12 @@ def test_estimations_comparison_exact(
     exact_exp = expectation(circuit, observable, values=values)
 
     measurement_data = shadow_samples(shadow_size=5000, circuit=circuit, param_values=param_values)
-    unitaries_ids, batch_shadow_samples = (
-        measurement_data["unitaries"],
-        measurement_data["measurements"],
-    )
     observables = [observable]
     K = number_of_samples(observables=observables, accuracy=0.1, confidence=0.1)[1]
     estimated_exp = expectation_estimations(
         observables=[observable],
-        unitaries_ids=unitaries_ids,
-        batch_shadow_samples=batch_shadow_samples,
+        unitaries_ids=measurement_data.unitaries,
+        batch_shadow_samples=measurement_data.measurements,
         K=K,
     )
 
@@ -197,32 +193,37 @@ def test_estimations_comparison_tomo_forward_pass(
     )
 
     options = {"n_shots": 100000}
-    tomo_measurements = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options=options)
-    estimated_exp_tomo = tomo_measurements(model, param_values=values)
+    tomo_measurements = Measurements(
+        protocol=MeasurementProtocols.TOMOGRAPHY, model=model, param_values=values, options=options
+    )
+    estimated_exp_tomo = tomo_measurements()
 
     new_options = {"accuracy": 0.1, "confidence": 0.1}
-    shadow_measurements = Measurements(protocol=MeasurementProtocols.SHADOW, options=new_options)
-    estimated_exp_shadow = shadow_measurements(model, param_values=values)
+    shadow_measurements = Measurements(
+        protocol=MeasurementProtocols.SHADOW, model=model, param_values=values, options=new_options
+    )
+    estimated_exp_shadow = shadow_measurements()
 
     N, K = number_of_samples([observable], **new_options)
     robust_options = {"shadow_size": N, "shadow_medians": K, "robust_correlations": None}
     robust_shadows = Measurements(
-        protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_options
+        protocol=MeasurementProtocols.ROBUST_SHADOW,
+        model=model,
+        param_values=values,
+        options=robust_options,
     )
 
     # set measurement same as classical shadows
-    robust_shadows.manager.data = shadow_measurements.manager.data
-    robust_estimated_exp_shadow = robust_shadows(model, param_values=values)
+    robust_shadows.data = shadow_measurements.data
+    robust_estimated_exp_shadow = robust_shadows()
 
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
     assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
 
     # test expectation from reconstructed state
-    shadow_manager = shadow_measurements.manager
-    robust_shadow_manager = robust_shadows.manager
-    state_snapshots_shadow = shadow_manager.reconstruct_state(model, param_values=values)  # type: ignore[attr-defined]
-    state_snapshots_rshadow = robust_shadow_manager.reconstruct_state(model, param_values=values)  # type: ignore[attr-defined]
+    state_snapshots_shadow = shadow_measurements.reconstruct_state()
+    state_snapshots_rshadow = robust_shadows.reconstruct_state()
 
     exp_snapshots_shadow = expectation_trace(state_snapshots_shadow, observable)
     exp_snapshots_rshadow = expectation_trace(state_snapshots_rshadow, observable)
@@ -242,6 +243,7 @@ def test_shadow_raise_errors() -> None:
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
             protocol=MeasurementProtocols.SHADOW,
+            model=model,
             options=options,
         )
 
@@ -249,5 +251,6 @@ def test_shadow_raise_errors() -> None:
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
             protocol=MeasurementProtocols.SHADOW,
+            model=model,
             options=options,
         )

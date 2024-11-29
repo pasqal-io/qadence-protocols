@@ -47,13 +47,13 @@ model = QuantumModel(
 
 # Define a measurement protocol by passing the shot budget as an option.
 tomo_options = {"n_shots": 100000}
-tomo_measurement = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options=tomo_options)
+tomo_measurement = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, model=model, options=tomo_options)
 
 # Get the exact expectation value.
 exact_values = model.expectation()
 
 # Run the tomography experiment.
-estimated_values_tomo = tomo_measurement(model, return_expectations=True)
+estimated_values_tomo = tomo_measurement()
 
 print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
@@ -61,12 +61,12 @@ print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-
 
 ## Getting measurements
 
-If we are interested in accessing the measurements for computing different quantities of interest other than the expectation values, we can access the measurement data via the `manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+If we are interested in accessing the measurements for computing different quantities of interest other than the expectation values, we can access the measurement data via `data` as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-measurements_tomo = tomo_measurement.manager.data
-print(measurements_tomo)
+measurements_tomo = tomo_measurement.data
+print(measurements_tomo) # markdown-exec: hide
 ```
 
 ## Classical shadows
@@ -95,10 +95,10 @@ from qadence_protocols.measurements.utils_shadow import number_of_samples
 
 shadow_options = {"accuracy": 0.1, "confidence": 0.1}
 N, K = number_of_samples(observable, **shadow_options)
-shadow_measurement = Measurements(protocol=MeasurementProtocols.SHADOW, options=shadow_options)
+shadow_measurement = Measurements(protocol=MeasurementProtocols.SHADOW, options=shadow_options, model=model)
 
 # Run the shadow experiment.
-estimated_values_shadow = shadow_measurement(model, return_expectations=True)
+estimated_values_shadow = shadow_measurement()
 
 print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markdown-exec: hide
 ```
@@ -109,10 +109,10 @@ If we are interested in accessing the measurement data from shadows, we can acce
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-measurements_shadows = shadow_measurement.manager.data
+measurements_shadows = shadow_measurement.data
 
-print("Sampled unitary indices shape: ", measurements_shadows["unitaries"].shape)
-print("Shape of batched measurements: ", measurements_shadows["measurements"].shape)
+print("Sampled unitary indices shape: ", measurements_shadows.unitaries.shape) # markdown-exec: hide
+print("Shape of batched measurements: ", measurements_shadows.measurements.shape) # markdown-exec: hide
 ```
 
 In the case of shadows, the measurement data is a tuple of two elements:
@@ -120,21 +120,17 @@ In the case of shadows, the measurement data is a tuple of two elements:
 - the second one are the bistrings obtained by measurements of the circuit rotated depending on the sampled Pauli basis.
 It as returned as a tensor of batched measurements with shape (batch_size, shadow_size, n_qubits).
 
-Such a measurement data can be used directly for computing different quantities of interest other than the expectation values. For instance, we can do state reconstruction as follows:
+Such a measurement data can be used directly for computing different quantities of interest other than the expectation values. For instance, we can do state reconstruction and use it to calculate another expectation value as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
-# obtaining snapshots
-snapshots = shadow_measurement.manager.get_snapshots(model)
-
 # reconstruct state from snapshots
-state = shadow_measurement.manager.reconstruct_state(snapshots)
-print("Reconstructed state shape", state.shape)
+state = shadow_measurement.reconstruct_state()
 
 # calculate expectations
 from qadence_protocols.utils_trace import expectation_trace
 exp_reconstructed_state = expectation_trace(state, observable)
-print(exp_reconstructed_state)
+print(exp_reconstructed_state) # markdown-exec: hide
 ```
 
 
@@ -156,14 +152,15 @@ model = QuantumModel(
     diff_mode=DiffMode.GPSR,
     noise=noise
 )
+exact_values = model.expectation()
 
 calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.backend, noise=noise)
 # This linear transformation should give us the probability error
-print(0.5 * (3.0 * calibration + 1))
+print(0.5 * (3.0 * calibration + 1)) # markdown-exec: hide
 
 Rshadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
-robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=Rshadow_options)
-estimated_values_robust_shadow = robust_shadow_measurement(model)
+robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=Rshadow_options, model=model)
+estimated_values_robust_shadow = robust_shadow_measurement()
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide
 ```

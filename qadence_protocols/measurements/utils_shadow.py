@@ -22,6 +22,7 @@ from qadence.utils import P0_MATRIX, P1_MATRIX
 from torch import Tensor
 
 from qadence_protocols.measurements.utils_tomography import get_qubit_indices_for_op
+from qadence_protocols.types import MeasurementData
 
 batch_kron = torch.func.vmap(lambda x: reduce(torch.kron, x))
 
@@ -132,7 +133,7 @@ def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Te
 
 
 def compute_snapshots(
-    bitstrings: list[Tensor], unitaries_ids: Tensor, local_shadow_caller: Callable
+    bitstrings: Tensor, unitaries_ids: Tensor, local_shadow_caller: Callable
 ) -> Tensor:
     snapshots: list = list()
     for batch_bitstrings in bitstrings:
@@ -206,7 +207,7 @@ def shadow_samples(
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: NoiseHandler | None = None,
     endianness: Endianness = Endianness.BIG,
-) -> dict[str, Tensor]:
+) -> MeasurementData:
     """Sample the circuit rotated according to locally sampled pauli unitaries.
 
     Args:
@@ -221,8 +222,8 @@ def shadow_samples(
             Defaults to Endianness.BIG.
 
     Returns:
-        MeasurementData: A dictionary containing
-            the pauli indices of local unitaries and sampled bitstrings.
+        MeasurementData: A MeasurementData containing
+            the pauli indices of local unitaries and measurements.
             0, 1, 2 correspond to X, Y, Z.
     """
 
@@ -273,7 +274,7 @@ def shadow_samples(
             for batch in bitstrings
         ]
     )
-    return {"unitaries": torch.tensor(unitary_ids), "measurements": bitstrings_torch}
+    return MeasurementData(measurements=bitstrings_torch, unitaries=torch.tensor(unitary_ids))
 
 
 def reconstruct_state(shadow: list) -> Tensor:

@@ -7,22 +7,40 @@ from qadence.blocks.utils import unroll_block_with_scaling
 from torch import Tensor
 
 from qadence_protocols.measurements.abstract import MeasurementManager
+from qadence_protocols.measurements.protocols import MeasurementData
 from qadence_protocols.measurements.utils_tomography import (
     convert_samples_to_pauli_expectation,
     iterate_pauli_decomposition,
 )
-from qadence_protocols.types import MeasurementData
 
 
 class Tomography(MeasurementManager):
     """The abstract class that defines the interface for the managing measurements."""
 
-    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
-        self.data = data
-        self.options = options
+    def __init__(
+        self,
+        options: dict,
+        model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+        data: MeasurementData = MeasurementData(),
+    ):
+        self.options = self.validate_options(options)
+        self.model = model
 
-    def validate_options(self) -> dict:
+        self.observables = (
+            observables if len(observables) > 0 else [obs.abstract for obs in model._observable]
+        )
+        self.param_values = param_values
+        self.state = state
+        self.data = self.validate_data(data)
+
+    def validate_options(self, options: dict) -> dict:
         """Verify options contain `n_shots`.
+
+        Args:
+            options (dict): Input options for tomography
 
         Raises:
             KeyError: If `n_shots` absent from options.
@@ -30,85 +48,77 @@ class Tomography(MeasurementManager):
         Returns:
             dict: Options if correct.
         """
-        n_shots = self.options.get("n_shots")
+        n_shots = options.get("n_shots")
         if n_shots is None:
             raise KeyError("Tomography protocol requires a 'n_shots' kwarg of type 'int').")
-        return self.options
+        return options
 
-    def reconstruct_state(self, snapshots: Tensor) -> Tensor:
-        raise NotImplementedError
+    def validate_data(self, data: MeasurementData) -> MeasurementData:
+        """Validate passed data.
 
-    def get_snapshots(
-        self,
-        model: QuantumModel,
-        param_values: dict[str, Tensor] = dict(),
-        state: Tensor | None = None,
-    ) -> Tensor:
+        Raises:
+            ValueError: If data passed does not correspond to the typical tomography data.
+        """
+        if data.unitaries is not None:
+            raise ValueError("Tomography data cannot have `unitaries` filled.")
+
+        if data.measurements is not None and len(data.measurements) != len(self.observables):
+            raise ValueError(
+                "Provide correctly data as a list of Counters matching the number of observables."
+            )
+        return data
+
+    def reconstruct_state(self) -> Tensor:
         raise NotImplementedError
 
     def measure(
         self,
-        model: QuantumModel,
-        observables: list[AbstractBlock] = list(),
-        param_values: dict[str, Tensor] = dict(),
-        state: Tensor | None = None,
     ) -> MeasurementData:
         """Obtain measurements by sampling via rotated circuits in Z-basis.
 
-        Args:
-            model (QuantumModel): Model to evaluate.
-            observables (list[AbstractBlock], optional): A list of observables
-                to estimate the expectation values from. Defaults to list().
-            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
-            state (Tensor | None, optional): Input state. Defaults to None.
+        Note that one needs the observable.
 
         Returns:
             MeasurementData: Measurements collected by tomography.
         """
         n_shots = self.options["n_shots"]
-        circuit = model._circuit.original
+        circuit = self.model._circuit.original
 
         samples = []
-        for observable in observables:
+        for observable in self.observables:
             pauli_decomposition = unroll_block_with_scaling(observable)
             samples.append(
                 iterate_pauli_decomposition(
                     circuit=circuit,
-                    param_values=model.embedding_fn(model._params, param_values),
+                    param_values=self.model.embedding_fn(self.model._params, self.param_values),
                     pauli_decomposition=pauli_decomposition,
                     n_shots=n_shots,
-                    state=state,
-                    backend=model.backend,
-                    noise=model._noise,
+                    state=self.state,
+                    backend=self.model.backend,
+                    noise=self.model._noise,
                 )
             )
-        self.data = samples
-        return samples
+        self.data = MeasurementData(samples)
+        return self.data
 
     def expectation(
         self,
-        model: QuantumModel,
         observables: list[AbstractBlock] = list(),
-        param_values: dict[str, Tensor] = dict(),
-        state: Tensor | None = None,
     ) -> Tensor:
-        """Compute expectation values from the model by sampling via rotated circuits in Z-basis.
+        """Set new observables and compute expectation values from the model .
 
-        Args:
-            model (QuantumModel): Model to evaluate.
-            observables (list[AbstractBlock], optional): A list of observables
-                to estimate the expectation values from. Defaults to list().
-            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
-            state (Tensor | None, optional): Input state. Defaults to None.
+        Sampling is performed via rotated circuits in Z-basis.
 
         Returns:
             Tensor: Expectation values
         """
-        if self.data is None:
-            self.measure(model, observables, param_values, state)
+        observables = observables if len(observables) > 0 else self.observables
+        if self.data.measurements is None:
+            self.observables = observables
+            self.measure()
 
         estimated_values = []
-        for samples, observable in zip(self.data, observables):  # type: ignore[arg-type]
+        for samples, observable in zip(self.data.measurements, observables):  # type: ignore[arg-type]
             estimated_values.append(
                 convert_samples_to_pauli_expectation(samples, unroll_block_with_scaling(observable))
             )

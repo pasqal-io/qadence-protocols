@@ -13,29 +13,62 @@ class MeasurementManager(ABC):
     """The abstract class that defines the interface for managing measurements.
 
     Attributes:
-        data (MeasurementData, optional): Measurement data if already obtained.
         options (dict, optional): Dictionary of options specific to protocol.
+        model (QuantumModel): Quantum model instance.
+        observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+        param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+        state (Tensor | None, optional): Input state. Defaults to None.
+        data (MeasurementData, optional): Measurement data if already obtained.
     """
 
-    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
-        self.data = data
-        self.options = options
-
-    @abstractmethod
-    def measure(
+    def __init__(
         self,
+        options: dict,
         model: QuantumModel,
         observables: list[AbstractBlock] = list(),
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
-    ) -> MeasurementData:
-        """Obtain measurement data from a quantum program for measurement protocol.
+        data: MeasurementData = MeasurementData(),
+    ):
+        self.options = options
+        self.model = model
+
+        self.observables = observables
+        self.param_values = param_values
+        self.state = state
+        self.data = data
+
+    @abstractmethod
+    def validate_data(self, data: MeasurementData) -> MeasurementData:
+        """Validate input data for a protocol.
 
         Args:
-            model (QuantumModel): Quantum model instance.
-            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
-            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
-            state (Tensor | None, optional): Input state. Defaults to None.
+            data (MeasurementData): Input data
+
+        Returns:
+            MeasurementData: Validated data
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def validate_options(self, options: dict) -> dict:
+        """Return a dict of validated options.
+
+        To be used in init.
+
+        Args:
+            options (dict): Input options.
+
+        Returns:
+            dict: Validated options.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def measure(
+        self,
+    ) -> MeasurementData:
+        """Obtain measurement data from a quantum program for measurement protocol.
 
         Returns:
             MeasurementData: Measurement data.
@@ -45,18 +78,13 @@ class MeasurementManager(ABC):
     @abstractmethod
     def expectation(
         self,
-        model: QuantumModel,
-        observables: list[AbstractBlock] = list(),
-        param_values: dict[str, Tensor] = dict(),
-        state: Tensor | None = None,
+        observables: list[AbstractBlock],
     ) -> Tensor:
         """Compute expectation values from protocol.
 
         Args:
-            model (QuantumModel): Quantum model instance.
             observables (list[AbstractBlock], optional): List of observables. Defaults to list().
-            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
-            state (Tensor | None, optional): Input state. Defaults to None.
+                Can be different from
 
         Returns:
             Tensor: Expectation values.
@@ -64,28 +92,8 @@ class MeasurementManager(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def validate_options(self) -> dict:
-        """Validate options passed to procotol and return a dict with default validated values."""
-        raise NotImplementedError
-
-
-class ShadowManagerAbstract(MeasurementManager, ABC):
-    """The abstract class that defines the interface for managing shadows.
-
-    Attributes:
-        data (MeasurementData, optional): Measurement data if already obtained.
-        options (dict, optional): Dictionary of options specific to protocol.
-    """
-
-    def __init__(self, data: MeasurementData | None = None, options: dict = dict()):
-        super().__init__(data, options)
-
-    @abstractmethod
     def reconstruct_state(
         self,
-        model: QuantumModel,
-        param_values: dict[str, Tensor] = dict(),
-        state: Tensor | None = None,
     ) -> Tensor:
         """Reconstruct the state from the snapshots.
 
@@ -96,25 +104,5 @@ class ShadowManagerAbstract(MeasurementManager, ABC):
 
         Returns:
             Tensor: Reconstructed state.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_snapshots(
-        self,
-        model: QuantumModel,
-        param_values: dict[str, Tensor] = dict(),
-        state: Tensor | None = None,
-    ) -> Tensor:
-        """Obtain snapshots from the measurement data (only for shadows).
-
-        Args:
-            model (QuantumModel): Quantum model instance.
-            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
-            state (Tensor | None, optional): Input state. Defaults to None.
-
-        Returns:
-            Tensor: Snapshots for a input circuit model and state.
-                The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
         raise NotImplementedError
