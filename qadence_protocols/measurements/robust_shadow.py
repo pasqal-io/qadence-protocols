@@ -86,7 +86,7 @@ class RobustShadowManager(ShadowManager):
         )
         return self.data
 
-    def get_snapshots(
+    def snapshots(
         self,
     ) -> Tensor:
         """Obtain snapshots from the measurement data.

@@ -109,12 +109,12 @@ class ShadowManager(MeasurementManager):
         Returns:
             Tensor: Reconstructed state.
         """
-        snapshots = self.get_snapshots()
+        snapshots = self.snapshots()
 
         N = snapshots.shape[1]
         return snapshots.sum(axis=1) / N
 
-    def get_snapshots(
+    def snapshots(
         self,
     ) -> Tensor:
         """Obtain snapshots from the measurement data.
