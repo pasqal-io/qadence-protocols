@@ -74,7 +74,7 @@ class ShadowManager(MeasurementManager):
         Raises:
             ValueError: If data passed does not correspond to the typical shadow data.
         """
-        if not data.samples:
+        if len(data.samples) == 0:
             # making sure data.samples is a Tensor
             data.samples = torch.empty(0)
             return data
