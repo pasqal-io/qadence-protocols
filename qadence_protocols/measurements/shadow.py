@@ -131,7 +131,7 @@ class ShadowManager(MeasurementManager):
             Tensor: Snapshots for a input circuit model and state.
                 The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
-        if self.data.samples is None:
+        if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
 
         return compute_snapshots(self.data.samples, self.data.unitaries, local_shadow)
@@ -192,7 +192,7 @@ class ShadowManager(MeasurementManager):
         )
         _, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
 
-        if self.data.samples is None:
+        if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
 
         return expectation_estimations(observables, self.data.unitaries, self.data.samples, K)

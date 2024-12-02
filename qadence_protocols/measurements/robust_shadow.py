@@ -125,7 +125,7 @@ class RobustShadowManager(ShadowManager):
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * self.model._circuit.original.n_qubits)
 
-        if self.data.samples is None:
+        if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
 
         observables = (

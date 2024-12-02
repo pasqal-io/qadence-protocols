@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from enum import Enum
 
 import torch
@@ -21,7 +22,7 @@ class StrEnum(str, Enum):
 
 @dataclass
 class MeasurementData:
-    samples: Tensor | list[Counter] = list()
+    samples: Tensor | list[Counter] = dataclass_field(default_factory=list)
     """Samples from protocol."""
     unitaries: Tensor = torch.empty(0)
     """Random unitaries used in shadows."""
