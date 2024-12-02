@@ -95,7 +95,7 @@ class RobustShadowManager(ShadowManager):
             list[Tensor]: Snapshots for a input circuit model and state.
                 The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
-        if self.data.measurements is None:
+        if self.data.samples is None:
             self.measure()
 
         calibration = self.options["calibration"]
@@ -104,7 +104,7 @@ class RobustShadowManager(ShadowManager):
 
         caller = partial(robust_local_shadow, calibration=calibration)
 
-        return compute_snapshots(self.data.measurements, self.data.unitaries, caller)
+        return compute_snapshots(self.data.samples, self.data.unitaries, caller)
 
     def expectation(
         self,
@@ -125,7 +125,7 @@ class RobustShadowManager(ShadowManager):
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * self.model._circuit.original.n_qubits)
 
-        if self.data.measurements is None:
+        if self.data.samples is None:
             self.measure()
 
         observables = (
@@ -136,7 +136,7 @@ class RobustShadowManager(ShadowManager):
         return expectation_estimations(
             observables,
             self.data.unitaries,
-            self.data.measurements,
+            self.data.samples,
             K,
             calibration=calibration,
         )

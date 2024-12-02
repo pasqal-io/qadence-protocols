@@ -20,7 +20,7 @@ class StrEnum(str, Enum):
 
 @dataclass
 class MeasurementData:
-    measurements: Tensor | list[Counter] | None = None
+    samples: Tensor | list[Counter] | None = None
     """Measurements data."""
     unitaries: Tensor | None = None
     """Random unitaries used in shadows."""

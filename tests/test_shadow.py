@@ -131,7 +131,7 @@ def test_estimations_comparison_exact(
     estimated_exp = expectation_estimations(
         observables=[observable],
         unitaries_ids=measurement_data.unitaries,
-        batch_shadow_samples=measurement_data.measurements,
+        batch_shadow_samples=measurement_data.samples,
         K=K,
     )
 

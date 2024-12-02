@@ -274,7 +274,7 @@ def shadow_samples(
             for batch in bitstrings
         ]
     )
-    return MeasurementData(measurements=bitstrings_torch, unitaries=torch.tensor(unitary_ids))
+    return MeasurementData(samples=bitstrings_torch, unitaries=torch.tensor(unitary_ids))
 
 
 def reconstruct_state(shadow: list) -> Tensor:

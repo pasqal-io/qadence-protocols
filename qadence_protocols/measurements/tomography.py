@@ -73,13 +73,13 @@ class Tomography(MeasurementManager):
         if data.unitaries is not None:
             raise ValueError("Tomography data cannot have `unitaries` filled.")
 
-        if data.measurements is not None:
-            if len(data.measurements) != len(self.observables):
+        if data.samples is not None:
+            if len(data.samples) != len(self.observables):
                 raise ValueError(
                     "Provide data as a list of Counters matching the number of observables."
                 )
             n_shots = self.options["n_shots"]
-            for obs_measurements in data.measurements:
+            for obs_measurements in data.samples:
                 for iter_pauli_meas in obs_measurements:
                     for counter in iter_pauli_meas:
                         if sum(counter.values()) != n_shots:
@@ -134,12 +134,12 @@ class Tomography(MeasurementManager):
             Tensor: Expectation values
         """
         observables = observables if len(observables) > 0 else self.observables
-        if self.data.measurements is None:
+        if self.data.samples is None:
             self.observables = observables
             self.measure()
 
         estimated_values = []
-        for samples, observable in zip(self.data.measurements, observables):  # type: ignore[arg-type]
+        for samples, observable in zip(self.data.samples, observables):  # type: ignore[arg-type]
             estimated_values.append(
                 convert_samples_to_pauli_expectation(samples, unroll_block_with_scaling(observable))
             )

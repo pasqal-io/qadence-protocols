@@ -73,29 +73,29 @@ class ShadowManager(MeasurementManager):
         Raises:
             ValueError: If data passed does not correspond to the typical shadow data.
         """
-        if data.measurements is None:
+        if data.samples is None:
             return data
 
         if data.unitaries is None:
             raise ValueError("Shadow data must have `unitaries` filled.")
 
-        if not isinstance(data.measurements, Tensor):
+        if not isinstance(data.samples, Tensor):
             raise ValueError("`measurements` must be a Tensor.")
 
         if len(data.unitaries.size()) != 2:
             raise ValueError("Provide correctly the unitaries as a 2D Tensor.")
 
-        if len(data.measurements.size()) != 3:
+        if len(data.samples.size()) != 3:
             raise ValueError("Provide correctly the measurements as a 3D Tensor.")
 
         shadow_size = self.options["shadow_size"]
-        if not (data.unitaries.shape[0] == data.measurements.shape[1] == shadow_size):
+        if not (data.unitaries.shape[0] == data.samples.shape[1] == shadow_size):
             raise ValueError(
                 f"Provide correctly data as Tensors with {shadow_size} `shadow_size` elements."
             )
 
         n_qubits = self.model._circuit.original.n_qubits
-        if not (data.unitaries.shape[1] == data.measurements.shape[2] == n_qubits):
+        if not (data.unitaries.shape[1] == data.samples.shape[2] == n_qubits):
             raise ValueError(
                 f"Provide correctly data as Tensors with {n_qubits} `qubits` in the last dimension."
             )
@@ -128,10 +128,10 @@ class ShadowManager(MeasurementManager):
             Tensor: Snapshots for a input circuit model and state.
                 The shape is (batch_size, shadow_size, 2**n, 2**n).
         """
-        if self.data.measurements is None:
+        if self.data.samples is None:
             self.measure()
 
-        return compute_snapshots(self.data.measurements, self.data.unitaries, local_shadow)
+        return compute_snapshots(self.data.samples, self.data.unitaries, local_shadow)
 
     def measure(
         self,
@@ -189,7 +189,7 @@ class ShadowManager(MeasurementManager):
         )
         _, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
 
-        if self.data.measurements is None:
+        if self.data.samples is None:
             self.measure()
 
-        return expectation_estimations(observables, self.data.unitaries, self.data.measurements, K)
+        return expectation_estimations(observables, self.data.unitaries, self.data.samples, K)
