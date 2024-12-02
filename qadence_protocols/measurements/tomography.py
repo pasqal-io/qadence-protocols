@@ -73,7 +73,7 @@ class Tomography(MeasurementManager):
         if data.unitaries.numel() > 0:
             raise ValueError("Tomography data cannot have `unitaries` filled.")
 
-        if data.samples:
+        if len(data.samples) > 0:
             if len(data.samples) != len(self.observables):
                 raise ValueError(
                     "Provide data as a list of Counters matching the number of observables."
@@ -134,7 +134,7 @@ class Tomography(MeasurementManager):
             Tensor: Expectation values
         """
         observables = observables if len(observables) > 0 else self.observables
-        if not self.data.samples:
+        if len(self.data.samples) == 0:
             self.observables = observables
             self.measure()
 
@@ -143,5 +143,4 @@ class Tomography(MeasurementManager):
             estimated_values.append(
                 convert_samples_to_pauli_expectation(samples, unroll_block_with_scaling(observable))
             )
-        print(self.data.samples)
         return torch.transpose(torch.vstack(estimated_values), 1, 0)
