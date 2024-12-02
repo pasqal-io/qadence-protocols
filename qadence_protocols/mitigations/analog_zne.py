@@ -167,7 +167,7 @@ def mitigate(
         if model._noise is None or model._noise.protocol[-1] not in supported_noise_models:
             raise ValueError(
                 "A NoiseProtocol.ANALOG noise model must be provided"
-                + " either to .mitigate() or through the <class QuantumModel>."
+                " either to .mitigate() or through the <class QuantumModel>."
             )
         noise = model._noise
 

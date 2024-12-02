@@ -105,7 +105,7 @@ print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markd
 
 ## Getting shadows
 
-If we are interested in accessing the measurement data from shadows, we can access the measurement data via the `manager` attribute or simply pass `return_expectations=False` (a new round of measurements is performed and returned directly instead of computing expectation values) as follows:
+If we are interested in accessing the measurement data from shadows, we can access the measurement data via the `manager` attribute as follows:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 
@@ -115,9 +115,9 @@ print("Sampled unitary indices shape: ", measurements_shadows.unitaries.shape) #
 print("Shape of batched measurements: ", measurements_shadows.measurements.shape) # markdown-exec: hide
 ```
 
-In the case of shadows, the measurement data is a tuple of two elements:
-- the first one is the indices corresponding to the randomly sampled Pauli unitaries $U$. It is returned as a tensor of shape (shadow_size, n_qubits). Its elements are integer values 0, 1, 2 corresponding respectively to X, Y, Z.
-- the second one are the bistrings obtained by measurements of the circuit rotated depending on the sampled Pauli basis.
+In the case of shadows, the measurement data is composed of two elements:
+- `unitaries` refers to the indices corresponding to the randomly sampled Pauli unitaries $U$. It is returned as a tensor of shape (shadow_size, n_qubits). Its elements are integer values 0, 1, 2 corresponding respectively to X, Y, Z.
+- the second one, `measurements`, refers to the bistrings obtained by measurements of the circuit rotated depending on the sampled Pauli basis.
 It as returned as a tensor of batched measurements with shape (batch_size, shadow_size, n_qubits).
 
 Such a measurement data can be used directly for computing different quantities of interest other than the expectation values. For instance, we can do state reconstruction and use it to calculate another expectation value as follows:
@@ -158,8 +158,8 @@ calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.b
 # This linear transformation should give us the probability error
 print(0.5 * (3.0 * calibration + 1)) # markdown-exec: hide
 
-Rshadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
-robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=Rshadow_options, model=model)
+robust_shadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
+robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_shadow_options, model=model)
 estimated_values_robust_shadow = robust_shadow_measurement()
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide

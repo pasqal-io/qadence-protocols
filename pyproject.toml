@@ -30,7 +30,7 @@ classifiers=[
 ]
 dependencies = [
     "torch",
-    "qadence[pulser, horqrux]",
+    "qadence[pulser]",
     "mlflow",
 ]
 

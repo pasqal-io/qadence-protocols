@@ -55,8 +55,8 @@ class Measurements(Protocol):
         return self._manager.data
 
     @data.setter
-    def data(self, newdata: MeasurementData) -> None:
-        self._manager.data = self._manager.validate_data(newdata)
+    def data(self, new_data: MeasurementData) -> None:
+        self._manager.data = self._manager.validate_data(new_data)
 
     def expectation(
         self,

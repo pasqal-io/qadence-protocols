@@ -89,6 +89,7 @@ class Tomography(MeasurementManager):
         return data
 
     def reconstruct_state(self) -> Tensor:
+        # TODO: Implement state reconstruction for tomography
         raise NotImplementedError
 
     def measure(
