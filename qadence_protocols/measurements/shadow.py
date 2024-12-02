@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
@@ -73,20 +74,22 @@ class ShadowManager(MeasurementManager):
         Raises:
             ValueError: If data passed does not correspond to the typical shadow data.
         """
-        if data.samples is None:
+        if not data.samples:
+            # making sure data.samples is a Tensor
+            data.samples = torch.empty(0)
             return data
 
-        if data.unitaries is None:
-            raise ValueError("Shadow data must have `unitaries` filled.")
-
         if not isinstance(data.samples, Tensor):
-            raise ValueError("`measurements` must be a Tensor.")
+            raise ValueError("`samples` must be a Tensor.")
+
+        if data.unitaries.numel() == 0:
+            raise ValueError("Shadow data must have `unitaries` filled.")
 
         if len(data.unitaries.size()) != 2:
             raise ValueError("Provide correctly the unitaries as a 2D Tensor.")
 
         if len(data.samples.size()) != 3:
-            raise ValueError("Provide correctly the measurements as a 3D Tensor.")
+            raise ValueError("Provide correctly the samples as a 3D Tensor.")
 
         shadow_size = self.options["shadow_size"]
         if not (data.unitaries.shape[0] == data.samples.shape[1] == shadow_size):

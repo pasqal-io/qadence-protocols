@@ -70,10 +70,10 @@ class Tomography(MeasurementManager):
         Raises:
             ValueError: If data passed does not correspond to the typical tomography data.
         """
-        if data.unitaries is not None:
+        if data.unitaries.numel() == 0:
             raise ValueError("Tomography data cannot have `unitaries` filled.")
 
-        if data.samples is not None:
+        if not data.samples:
             if len(data.samples) != len(self.observables):
                 raise ValueError(
                     "Provide data as a list of Counters matching the number of observables."

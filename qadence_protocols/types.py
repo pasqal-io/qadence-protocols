@@ -4,6 +4,7 @@ from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
 
+import torch
 from torch import Tensor
 
 
@@ -20,9 +21,9 @@ class StrEnum(str, Enum):
 
 @dataclass
 class MeasurementData:
-    samples: Tensor | list[Counter] | None = None
-    """Measurements data."""
-    unitaries: Tensor | None = None
+    samples: Tensor | list[Counter] = list()
+    """Samples from protocol."""
+    unitaries: Tensor = torch.empty(0)
     """Random unitaries used in shadows."""
 
 
