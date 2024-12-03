@@ -26,6 +26,7 @@ from qadence_protocols.measurements.utils_tomography import (
     get_qubit_indices_for_op,
     rotate,
 )
+from qadence_protocols.types import MeasurementProtocol
 
 
 @pytest.mark.parametrize(
@@ -76,8 +77,8 @@ def test_get_qubit_indices_for_op(
             QuantumCircuit(2, kron(X(0), X(1))),
             kron(X(0), Z(2)) + 1.5 * kron(Y(1), Z(2)),
             [
-                QuantumCircuit(2, chain(kron(X(0), X(1)), I(0) * H(0))),
-                QuantumCircuit(2, chain(kron(X(0), X(1)), SDagger(1) * H(1))),
+                QuantumCircuit(2, chain(kron(X(0), X(1)), I(0), H(0))),
+                QuantumCircuit(2, chain(kron(X(0), X(1)), SDagger(1), H(1))),
             ],
         ),
         (
@@ -92,26 +93,34 @@ def test_get_qubit_indices_for_op(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        I(0) * H(0),
-                        I(2) * H(2),
-                        SDagger(1) * H(1),
-                        SDagger(3) * H(3),
+                        I(0),
+                        H(0),
+                        I(2),
+                        H(2),
+                        SDagger(1),
+                        H(1),
+                        SDagger(3),
+                        H(3),
                     ),
                 ),
                 QuantumCircuit(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        SDagger(0) * H(0),
-                        SDagger(2) * H(2),
+                        SDagger(0),
+                        H(0),
+                        SDagger(2),
+                        H(2),
                     ),
                 ),
                 QuantumCircuit(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        I(1) * H(1),
-                        I(3) * H(3),
+                        I(1),
+                        H(1),
+                        I(3),
+                        H(3),
                     ),
                 ),
             ],
@@ -221,21 +230,20 @@ def test_tomography(
     observable = obs_composition(obs_base_op(0), obs_base_op(1))
     backend = BackendName.PYQTORCH
 
+    model = QuantumModel(circuit=circuit, observable=observable, backend=backend)
+    expectation_analytical = model.expectation()
+
     tomo_measurement = Measurements(
-        protocol=Measurements.TOMOGRAPHY,
+        protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 10000},
     )
-
-    notomo_model = QuantumModel(circuit=circuit, observable=observable, backend=backend)
-    expectation_analytical = notomo_model.expectation()
-
-    expectation_sampled = tomo_measurement(notomo_model)
+    expectation_sampled = tomo_measurement(model)
 
     tomo_measurement_more_shots = Measurements(
-        protocol=Measurements.TOMOGRAPHY,
+        protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 1000000},
     )
-    expectation_sampled_more_shots = tomo_measurement_more_shots(notomo_model)
+    expectation_sampled_more_shots = tomo_measurement_more_shots(model)
 
     assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-01)
     assert allclose(expectation_sampled_more_shots, expectation_analytical, atol=1.0e-02)
@@ -284,7 +292,7 @@ values2 = {
 def test_basic_tomography_for_parametric_circuit_forward_pass(
     circuit: QuantumCircuit, values: dict, base_op: PrimitiveBlock, do_kron: bool
 ) -> None:
-    observable = base_op(0) ^ circuit.n_qubits if do_kron else base_op(1)  # type: ignore[operator]
+    observable = base_op(0) ^ circuit.n_qubits if do_kron else base_op(min(1, circuit.n_qubits - 1))  # type: ignore[operator]
     model = QuantumModel(
         circuit=circuit,
         observable=observable,
@@ -292,21 +300,20 @@ def test_basic_tomography_for_parametric_circuit_forward_pass(
         diff_mode=DiffMode.GPSR,
     )
     analytical_result = model.expectation(values)
-    tomo = Measurements(protocol=Measurements.TOMOGRAPHY, options={"n_shots": 100000})
-    estimated_values = tomo(model, values)
-
+    tomo = Measurements(
+        protocol=MeasurementProtocol.TOMOGRAPHY,
+        options={"n_shots": 100000},
+    )
+    estimated_values = tomo(
+        model=model,
+        param_values=values,
+    )
     assert allclose(estimated_values, analytical_result, atol=0.01)
 
 
 def test_tomography_raise_errors() -> None:
-    backend = BackendName.PYQTORCH
-    observable = None
-    notomo_model = QuantumModel(
-        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=observable, backend=backend
-    )
-
     with pytest.raises(KeyError):
         tomo_measurement = Measurements(
-            protocol=Measurements.TOMOGRAPHY,
+            protocol=MeasurementProtocol.TOMOGRAPHY,
             options={"nsamples": 10000},
         )

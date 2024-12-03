@@ -24,7 +24,7 @@ $$
 
 ```python exec="on" source="material-block" session="mitigation" result="json"
 from qadence import QuantumModel, QuantumCircuit, hamiltonian_factory, kron, H, Z, I
-from qadence.noise import Noise
+from qadence import NoiseProtocol, NoiseHandler
 
 
 # Simple circuit and observable construction.
@@ -35,7 +35,7 @@ n_shots = 10000
 # Construct a quantum model and noise
 model = QuantumModel(circuit=circuit)
 error_probability = 0.2
-noise = Noise(protocol=Noise.READOUT,options={"error_probability": error_probability})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT,options={"error_probability": error_probability})
 
 noiseless_samples = model.sample(n_shots=n_shots)
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)
@@ -155,7 +155,7 @@ Mitigation protocol to be used only when the circuit output has a single expecte
 
 ```python exec="on" source="material-block" session="mv" result="json"
 from qadence import QuantumModel, QuantumCircuit,kron, H, Z, I
-from qadence.noise import Noise
+from qadence import NoiseHandler, NoiseProtocol
 from qadence_protocols.mitigations.readout import majority_vote
 import numpy as np
 
@@ -170,7 +170,7 @@ model = QuantumModel(circuit=circuit)
 
 # Sampling the noisy solution
 error_p = 0.2
-noise = Noise(protocol=Noise.READOUT,options={"error_probability": error_p})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT,options={"error_probability": error_p})
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)[0]
 
 # Removing samples that correspond to actual solution
@@ -200,8 +200,8 @@ print(f"mitigated solution index: {result_index}" ) # markdown-exec: hide
 This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
+from qadence import NoiseHandler, NoiseProtocol
 from qadence.measurements import Measurements
-from qadence.noise.protocols import Noise
 from qadence.operations import CNOT, RX, Z
 from qadence_protocols import Mitigations
 
@@ -219,7 +219,7 @@ block= chain(kron(RX(0, torch.pi / 3), RX(1, torch.pi / 6)), CNOT(0, 1))
 observable=[3 * kron(Z(0), Z(1)) + 2 * Z(0)]
 
 circuit = QuantumCircuit(block.n_qubits, block)
-noise = Noise(protocol=Noise.READOUT, options={"error_probability": error_probability})
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability})
 tomo_measurement = Measurements(
     protocol=Measurements.TOMOGRAPHY,
     options={"n_shots": n_shots},

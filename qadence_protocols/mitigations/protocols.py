@@ -4,7 +4,7 @@ import importlib
 from collections import Counter
 from dataclasses import dataclass
 
-from qadence import Noise, QuantumModel
+from qadence import NoiseHandler, QuantumModel
 from torch import Tensor
 
 from qadence_protocols.protocols import Protocol
@@ -28,7 +28,7 @@ class Mitigations(Protocol):
     def __call__(
         self,
         model: QuantumModel,
-        noise: Noise | None = None,
+        noise: NoiseHandler | None = None,
         param_values: dict[str, Tensor] = dict(),
     ) -> list[Counter]:
         try:

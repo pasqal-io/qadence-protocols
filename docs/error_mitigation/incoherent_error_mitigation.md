@@ -20,11 +20,11 @@ print(f"noiseless_expectation = {model_noiseless.expectation()}") # markdown-exe
 
 ```python exec="on" source="material-block" session="zne" result="json"
 
-from qadence.noise import Noise
+from qadence import NoiseProtocol, NoiseHandler
 from qadence_protocols import Mitigations
 import torch
 
-noise = Noise(protocol=Noise.DEPOLARIZING, options={"noise_probs": [0.2]})
+noise = NoiseHandler(protocol=NoiseProtocol.ANALOG.DEPOLARIZING, options={"noise_probs": [0.2]})
 model = QuantumModel(
     circuit=circuit, observable=observable, backend=BackendName.PULSER, diff_mode=DiffMode.GPSR
 )

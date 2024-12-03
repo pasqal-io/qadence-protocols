@@ -1,115 +1,158 @@
 from __future__ import annotations
 
 import importlib
-from dataclasses import dataclass
-from functools import partial
 
 from qadence import QuantumModel
+from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
+from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.protocols import Protocol
+from qadence_protocols.types import MeasurementData
 
 PROTOCOL_TO_MODULE = {
-    "tomography": "qadence_protocols.measurements.tomography",
-    "shadow": "qadence_protocols.measurements.shadow",
-    "robust_shadow": "qadence_protocols.measurements.robust_shadow",
+    "tomography": ("qadence_protocols.measurements.tomography", "Tomography"),
+    "shadow": ("qadence_protocols.measurements.shadow", "ShadowManager"),
+    "robust_shadow": ("qadence_protocols.measurements.robust_shadow", "RobustShadowManager"),
 }
 
 
-@dataclass
-class MeasurementOptions:
-    def __init__(self, protocol: str, options: dict = dict()) -> None:
-        self.protocol = protocol
-        self.options = options
-
-        self.OPTIONS_TO_VERIFY = {
-            "shadow": self.verify_classical_shadow,
-            "robust_shadow": self.verify_robust_shadow,
-            "tomography": self.verify_tomography,
-        }
-
-    def verify_options(self) -> dict:
-        return self.OPTIONS_TO_VERIFY[self.protocol]()
-
-    def verify_classical_shadow(self) -> dict:
-        """Extract shadow_size, accuracy and confidence from options."""
-
-        shadow_size = self.options.get("shadow_size", None)
-        accuracy = self.options.get("accuracy", None)
-        if shadow_size is None and accuracy is None:
-            raise KeyError(
-                "Shadow protocol requires either an option"
-                " 'shadow_size' of type 'int' or 'accuracy' of type 'float'."
-            )
-        confidence = self.options.get("confidence", None)
-        if confidence is None:
-            raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
-
-        return {"shadow_size": shadow_size, "accuracy": accuracy, "confidence": confidence}
-
-    def verify_tomography(self) -> dict:
-        n_shots = self.options.get("n_shots")
-        if n_shots is None:
-            raise KeyError("Tomography protocol requires a 'n_shots' kwarg of type 'int').")
-
-        return {"n_shots": n_shots}
-
-    def verify_robust_shadow(self) -> dict:
-        """Extract shadow_size, accuracy and confidence from options."""
-
-        shadow_size = self.options.get("shadow_size", None)
-        if shadow_size is None:
-            raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
-        shadow_groups = self.options.get("shadow_groups", None)
-        if shadow_groups is None:
-            raise KeyError("Shadow protocol requires an option 'shadow_groups' of type 'int'.")
-
-        calibration = self.options.get("calibration", None)
-
-        return {
-            "shadow_size": shadow_size,
-            "shadow_groups": shadow_groups,
-            "calibration": calibration,
-        }
-
-
-@dataclass
 class Measurements(Protocol):
-    TOMOGRAPHY = "tomography"
-    SHADOW = "shadow"
-    ROBUST_SHADOW = "robust_shadow"
+    """Define a measurement protocol.
 
-    def __init__(self, protocol: str, options: dict = dict()) -> None:
-        verified_options = MeasurementOptions(protocol, options).verify_options()
-        super().__init__(protocol, verified_options)
+    Possible options are available via the `MeasurementProtocols` type.
+    Note if you already have experimental data, this can be passed in the options with a `data` key.
+
+    Attributes:
+        protocol (str): Protocol name.
+        options (dict, optional): Options to run protocol.
+    """
+
+    def __init__(
+        self,
+        protocol: str,
+        options: dict = dict(),
+    ) -> None:
+        try:
+            module = importlib.import_module(PROTOCOL_TO_MODULE[protocol][0])
+            proto_class = getattr(module, PROTOCOL_TO_MODULE[protocol][1])
+        except (KeyError, ModuleNotFoundError, ImportError) as e:
+            raise type(e)(f"Failed to import Measurements due to {e}.")
+
+        super().__init__(protocol, options)
+
+        # Note that options and data are validated inside the manager
+        self._manager: MeasurementManager = proto_class(
+            options, data=options.get("data", MeasurementData())
+        )
+
+    @property
+    def data(self) -> MeasurementData:
+        return self._manager.data
+
+    @data.setter
+    def data(self, new_data: MeasurementData) -> None:
+        self._manager.data = self._manager.validate_data(new_data)
+
+    def _reset_manager(
+        self,
+        model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> None:
+        """Reset attributes of manager for a given model, observables, param_values and state.
+
+        Note we do not reset the data.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+        """
+
+        # assume the data is already obtained or default MeasurementData
+        self._manager.__init__(  # type: ignore[misc]
+            self.options, model, observables, param_values, state, self._manager.data
+        )
+
+    def expectation(
+        self,
+        model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> Tensor:
+        """Compute expectation values from the model by sampling.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+
+        Returns:
+            Tensor: Expectation values
+        """
+
+        self._reset_manager(model, observables, param_values, state)
+        return self._manager.expectation(observables)
+
+    def reconstruct_state(
+        self,
+    ) -> Tensor:
+        """Reconstruct the state from the data.
+
+        Used only in shadow protocols.
+
+        Args:
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
+            param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
+
+        Returns:
+            Tensor: Reconstructed state.
+        """
+        if self._manager.model is None:
+            raise ValueError(
+                "Cannot call `reconstruct_state` without "
+                "defining a model in `__call__` or `measure`."
+            )
+        return self._manager.reconstruct_state()
+
+    def measure(
+        self,
+        model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
+        param_values: dict[str, Tensor] = dict(),
+        state: Tensor | None = None,
+    ) -> MeasurementData:
+        """Obtain measurements by sampling using the protocol.
+
+        Returns:
+            MeasurementData: Measurements collected by protocol.
+        """
+        self._reset_manager(model, observables, param_values, state)
+        return self._manager.measure()
 
     def __call__(
         self,
         model: QuantumModel,
+        observables: list[AbstractBlock] = list(),
         param_values: dict[str, Tensor] = dict(),
-        return_expectations: bool = True,
+        state: Tensor | None = None,
     ) -> Tensor:
-        """Compute expectation values via measurements.
+        """Shortcut for obtaining expectation values.
 
         Args:
-            model (QuantumModel): Model to evaluate.
+            model (QuantumModel): Quantum model instance.
+            observables (list[AbstractBlock], optional): List of observables. Defaults to list().
             param_values (dict[str, Tensor], optional): Parameter values. Defaults to dict().
+            state (Tensor | None, optional): Input state. Defaults to None.
 
         Returns:
             Tensor: Expectation values.
         """
-        try:
-            module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
-        except (KeyError, ModuleNotFoundError, ImportError) as e:
-            raise type(e)(f"Failed to import Mitigations due to {e}.")
-
-        conv_observables = model._observable
-        observables = [obs.abstract for obs in conv_observables]
-
-        # Partially pass the options and observable.
-        compute_fn = "compute_expectation" if return_expectations else "compute_measurements"
-        output_fn = partial(
-            getattr(module, compute_fn), observables=observables, options=self.options
-        )
-
-        return output_fn(model, param_values=param_values)
+        return self.expectation(model, observables, param_values, state)

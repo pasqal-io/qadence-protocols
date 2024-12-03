@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from collections import Counter
-
 import pytest
 import torch
 from qadence.backends.api import backend_factory
 from qadence.blocks.abstract import AbstractBlock
-from qadence.blocks.block_to_tensor import IMAT
 from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
@@ -22,12 +19,16 @@ from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils_shadow import (
     UNITARY_TENSOR,
     _max_observable_weight,
-    classical_shadow,
-    estimations,
-    estimators,
+    expectation_estimations,
     local_shadow,
     number_of_samples,
+    robust_local_shadow,
+    shadow_samples,
 )
+from qadence_protocols.types import MeasurementProtocol
+from qadence_protocols.utils_trace import expectation_trace
+
+idmat = torch.eye(2, dtype=torch.complex128)
 
 
 @pytest.mark.parametrize(
@@ -62,80 +63,41 @@ def test_number_of_samples(
     "sample, unitary_ids, exp_shadow",
     [
         (
-            Counter({"10": 1}),
-            [0, 2],
-            torch.kron(
-                3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - IMAT,
-                3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
+            torch.tensor([1, 0]),
+            torch.tensor([0, 2]),
+            torch.stack(
+                [
+                    3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - idmat,
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                ]
             ),
         ),
         (
-            Counter({"0111": 1}),
-            [2, 0, 2, 2],
-            torch.kron(
-                torch.kron(
-                    3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
-                    3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - IMAT,
-                ),
-                torch.kron(
-                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
-                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - IMAT,
-                ),
+            torch.tensor([0, 1, 1, 1]),
+            torch.tensor([2, 0, 2, 2]),
+            torch.stack(
+                [
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P0_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                    3 * (UNITARY_TENSOR[0].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[0]) - idmat,
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                    3 * (UNITARY_TENSOR[2].adjoint() @ P1_MATRIX @ UNITARY_TENSOR[2]) - idmat,
+                ]
             ),
         ),
     ],
 )
-def test_local_shadow(sample: Counter, unitary_ids: list, exp_shadow: Tensor) -> None:
-    shadow = local_shadow(sample=sample, unitary_ids=unitary_ids)
+def test_local_shadow(sample: Tensor, unitary_ids: list, exp_shadow: Tensor) -> None:
+    shadow = local_shadow(bitstrings=sample, unitary_ids=unitary_ids)
+    rshadow = robust_local_shadow(
+        bitstrings=sample,
+        unitary_ids=unitary_ids,
+        calibration=torch.tensor([1.0 / 3.0] * len(sample)),
+    )
     assert torch.allclose(shadow, exp_shadow)
+    assert torch.allclose(rshadow, shadow)
 
 
 theta = Parameter("theta")
-
-
-@pytest.mark.skip(reason="Can't fix the seed for deterministic outputs.")
-@pytest.mark.parametrize(
-    "layer, param_values, exp_shadows",
-    [
-        (X(0) @ X(2), {}, [])
-        # (kron(RX(0, theta), X(1)), {"theta": torch.tensor([0.5, 1.0, 1.5])}, [])
-    ],
-)
-def test_classical_shadow(layer: AbstractBlock, param_values: dict, exp_shadows: list) -> None:
-    circuit = QuantumCircuit(2, layer)
-    shadows = classical_shadow(
-        shadow_size=2,
-        circuit=circuit,
-        param_values=param_values,
-    )
-    for shadow, exp_shadow in zip(shadows, exp_shadows):
-        for batch, exp_batch in zip(shadow, exp_shadow):
-            assert torch.allclose(batch, exp_batch, atol=1.0e-2)
-
-
-@pytest.mark.parametrize(
-    "N, K, circuit, param_values, observable, exp_traces",
-    [
-        (2, 1, QuantumCircuit(2, kron(X(0), Z(1))), {}, X(1), torch.tensor([0.0])),
-    ],
-)
-def test_estimators(
-    N: int,
-    K: int,
-    circuit: QuantumCircuit,
-    param_values: dict,
-    observable: AbstractBlock,
-    exp_traces: Tensor,
-) -> None:
-    shadows = classical_shadow(shadow_size=N, circuit=circuit, param_values=param_values)
-    estimated_traces = estimators(
-        qubit_support=circuit.block.qubit_support,
-        N=N,
-        K=K,
-        shadow=shadows[0],
-        observable=observable,
-    )
-    assert torch.allclose(estimated_traces, exp_traces)
 
 
 @pytest.mark.flaky(max_runs=5)
@@ -161,14 +123,18 @@ def test_estimations_comparison_exact(
     backend = backend_factory(backend=BackendName.PYQTORCH, diff_mode=DiffMode.GPSR)
     (conv_circ, _, embed, params) = backend.convert(circuit=circuit, observable=observable)
     param_values = embed(params, values)
-
-    estimated_exp = estimations(
-        circuit=conv_circ.abstract,
-        observables=[observable],
-        param_values=param_values,
-        shadow_size=5000,
-    )
     exact_exp = expectation(circuit, observable, values=values)
+
+    measurement_data = shadow_samples(shadow_size=5000, circuit=circuit, param_values=param_values)
+    observables = [observable]
+    K = number_of_samples(observables=observables, accuracy=0.1, confidence=0.1)[1]
+    estimated_exp = expectation_estimations(
+        observables=[observable],
+        unitaries_ids=measurement_data.unitaries,
+        batch_shadow_samples=measurement_data.samples,
+        K=K,
+    )
+
     assert torch.allclose(estimated_exp, exact_exp, atol=0.2)
 
 
@@ -206,10 +172,14 @@ values2 = {
         (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
     ],
 )
+@pytest.mark.parametrize("do_kron", [True, False])
 def test_estimations_comparison_tomo_forward_pass(
-    circuit: QuantumCircuit, values: dict, diff_mode: DiffMode
+    circuit: QuantumCircuit,
+    values: dict,
+    diff_mode: DiffMode,
+    do_kron: bool,
 ) -> None:
-    observable = Z(0) ^ circuit.n_qubits
+    observable = Z(0) ^ circuit.n_qubits if do_kron else X(1)  # type: ignore[operator]
 
     pyq_backend = backend_factory(BackendName.PYQTORCH, diff_mode=diff_mode)
     (conv_circ, conv_obs, embed, params) = pyq_backend.convert(circuit, observable)
@@ -223,41 +193,54 @@ def test_estimations_comparison_tomo_forward_pass(
     )
 
     options = {"n_shots": 100000}
-    tomo_measurements = Measurements(protocol=Measurements.TOMOGRAPHY, options=options)
-    estimated_exp_tomo = tomo_measurements(model, param_values=values)
+    tomo_measurements = Measurements(protocol=MeasurementProtocol.TOMOGRAPHY, options=options)
+    estimated_exp_tomo = tomo_measurements(model=model, param_values=values)
 
     new_options = {"accuracy": 0.1, "confidence": 0.1}
-    shadow_measurements = Measurements(protocol=Measurements.SHADOW, options=new_options)
-    # N = 54400.
-    estimated_exp_shadow = shadow_measurements(model, param_values=values)
+    shadow_measurements = Measurements(protocol=MeasurementProtocol.SHADOW, options=new_options)
+    estimated_exp_shadow = shadow_measurements(model=model, param_values=values)
 
-    robust_options = {"shadow_size": 54400, "shadow_groups": 6, "robust_correlations": None}
-    robust_shadows = Measurements(protocol=Measurements.ROBUST_SHADOW, options=robust_options)
-    robust_estimated_exp_shadow = robust_shadows(model, param_values=values)
+    N, K = number_of_samples([observable], **new_options)
+    robust_options = {"shadow_size": N, "shadow_medians": K, "robust_correlations": None}
+    robust_shadows = Measurements(
+        protocol=MeasurementProtocol.ROBUST_SHADOW,
+        options=robust_options,
+    )
+
+    # set measurement same as classical shadows
+    robust_shadows.data = shadow_measurements.data
+    robust_estimated_exp_shadow = robust_shadows(
+        model=model,
+        param_values=values,
+    )
 
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
-    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
-    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=0.1)
-    assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=0.1)
+    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
+    assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
+
+    # test expectation from reconstructed state
+    state_snapshots_shadow = shadow_measurements.reconstruct_state()
+    state_snapshots_rshadow = robust_shadows.reconstruct_state()
+
+    exp_snapshots_shadow = expectation_trace(state_snapshots_shadow, observable)
+    exp_snapshots_rshadow = expectation_trace(state_snapshots_rshadow, observable)
+
+    assert torch.allclose(exp_snapshots_shadow, pyq_exp_exact, atol=new_options["accuracy"])
+    assert torch.allclose(exp_snapshots_rshadow, pyq_exp_exact, atol=new_options["accuracy"])
 
 
 def test_shadow_raise_errors() -> None:
-    backend = BackendName.PYQTORCH
-    model = QuantumModel(
-        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=None, backend=backend
-    )
-
     # Bad input keys
     options = {"accuracy": 0.1, "conf": 0.1}
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
-            protocol=Measurements.SHADOW,
+            protocol=MeasurementProtocol.SHADOW,
             options=options,
         )
 
     options = {"accuracies": 0.1, "confidence": 0.1}
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
-            protocol=Measurements.SHADOW,
+            protocol=MeasurementProtocol.SHADOW,
             options=options,
         )

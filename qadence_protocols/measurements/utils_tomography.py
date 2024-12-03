@@ -10,7 +10,7 @@ from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.blocks import AbstractBlock, PrimitiveBlock, chain
 from qadence.circuit import QuantumCircuit
 from qadence.engines.differentiable_backend import DifferentiableBackend
-from qadence.noise import Noise
+from qadence.noise import NoiseHandler
 from qadence.operations import H, I, SDagger, X, Y
 from qadence.parameters import evaluate
 from qadence.utils import Endianness
@@ -88,7 +88,7 @@ def rotate(circuit: QuantumCircuit, pauli_term: tuple[AbstractBlock, Basic]) -> 
     for op, gate in [(X, I), (Y, SDagger)]:
         qubit_indices = get_qubit_indices_for_op(pauli_term, op=op)
         for index in qubit_indices:
-            rotations.append(gate(index) * H(index))
+            rotations += [gate(index), H(index)]
     rotated_block = chain(circuit.block, *rotations)
     return QuantumCircuit(circuit.register, rotated_block)
 
@@ -100,7 +100,7 @@ def iterate_pauli_decomposition(
     n_shots: int,
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
-    noise: Noise | None = None,
+    noise: NoiseHandler | None = None,
     endianness: Endianness = Endianness.BIG,
 ) -> list:
     """Sample circuits given all Pauli terms.
