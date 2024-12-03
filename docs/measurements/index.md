@@ -47,13 +47,13 @@ model = QuantumModel(
 
 # Define a measurement protocol by passing the shot budget as an option.
 tomo_options = {"n_shots": 100000}
-tomo_measurement = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, model=model, options=tomo_options)
+tomo_measurement = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options=tomo_options)
 
 # Get the exact expectation value.
 exact_values = model.expectation()
 
 # Run the tomography experiment.
-estimated_values_tomo = tomo_measurement()
+estimated_values_tomo = tomo_measurement(model=model)
 
 print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
