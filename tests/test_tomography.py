@@ -77,8 +77,8 @@ def test_get_qubit_indices_for_op(
             QuantumCircuit(2, kron(X(0), X(1))),
             kron(X(0), Z(2)) + 1.5 * kron(Y(1), Z(2)),
             [
-                QuantumCircuit(2, chain(kron(X(0), X(1)), I(0) * H(0))),
-                QuantumCircuit(2, chain(kron(X(0), X(1)), SDagger(1) * H(1))),
+                QuantumCircuit(2, chain(kron(X(0), X(1)), I(0), H(0))),
+                QuantumCircuit(2, chain(kron(X(0), X(1)), SDagger(1), H(1))),
             ],
         ),
         (
@@ -93,26 +93,34 @@ def test_get_qubit_indices_for_op(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        I(0) * H(0),
-                        I(2) * H(2),
-                        SDagger(1) * H(1),
-                        SDagger(3) * H(3),
+                        I(0),
+                        H(0),
+                        I(2),
+                        H(2),
+                        SDagger(1),
+                        H(1),
+                        SDagger(3),
+                        H(3),
                     ),
                 ),
                 QuantumCircuit(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        SDagger(0) * H(0),
-                        SDagger(2) * H(2),
+                        SDagger(0),
+                        H(0),
+                        SDagger(2),
+                        H(2),
                     ),
                 ),
                 QuantumCircuit(
                     4,
                     chain(
                         kron(X(0), X(1), X(2), X(3)),
-                        I(1) * H(1),
-                        I(3) * H(3),
+                        I(1),
+                        H(1),
+                        I(3),
+                        H(3),
                     ),
                 ),
             ],
@@ -300,7 +308,6 @@ def test_basic_tomography_for_parametric_circuit_forward_pass(
         model=model,
         param_values=values,
     )
-
     assert allclose(estimated_values, analytical_result, atol=0.01)
 
 

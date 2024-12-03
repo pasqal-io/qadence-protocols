@@ -88,7 +88,7 @@ def rotate(circuit: QuantumCircuit, pauli_term: tuple[AbstractBlock, Basic]) -> 
     for op, gate in [(X, I), (Y, SDagger)]:
         qubit_indices = get_qubit_indices_for_op(pauli_term, op=op)
         for index in qubit_indices:
-            rotations.append(gate(index) * H(index))
+            rotations += [gate(index), H(index)]
     rotated_block = chain(circuit.block, *rotations)
     return QuantumCircuit(circuit.register, rotated_block)
 
