@@ -26,7 +26,7 @@ In Qadence, running a tomographical experiment is made simple by defining a `Mea
 from torch import tensor
 from qadence import hamiltonian_factory, BackendName, DiffMode, NoiseHandler
 from qadence import chain, kron, X, Z, QuantumCircuit, QuantumModel
-from qadence_protocols import Measurements, MeasurementProtocols
+from qadence_protocols import Measurements, MeasurementProtocol
 
 blocks = chain(
     kron(X(0), X(1)),
@@ -47,7 +47,7 @@ model = QuantumModel(
 
 # Define a measurement protocol by passing the shot budget as an option.
 tomo_options = {"n_shots": 100000}
-tomo_measurement = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options=tomo_options)
+tomo_measurement = Measurements(protocol=MeasurementProtocol.TOMOGRAPHY, options=tomo_options)
 
 # Get the exact expectation value.
 exact_values = model.expectation()
@@ -95,7 +95,7 @@ from qadence_protocols.measurements.utils_shadow import number_of_samples
 
 shadow_options = {"accuracy": 0.1, "confidence": 0.1}
 N, K = number_of_samples(observable, **shadow_options)
-shadow_measurement = Measurements(protocol=MeasurementProtocols.SHADOW, options=shadow_options)
+shadow_measurement = Measurements(protocol=MeasurementProtocol.SHADOW, options=shadow_options)
 
 # Run the shadow experiment.
 estimated_values_shadow = shadow_measurement(model=model)
@@ -159,7 +159,7 @@ calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.b
 print(0.5 * (3.0 * calibration + 1)) # markdown-exec: hide
 
 robust_shadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
-robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_shadow_options)
+robust_shadow_measurement = Measurements(protocol=MeasurementProtocol.ROBUST_SHADOW, options=robust_shadow_options)
 estimated_values_robust_shadow = robust_shadow_measurement(model=model)
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide

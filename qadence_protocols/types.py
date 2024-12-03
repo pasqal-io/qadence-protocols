@@ -51,7 +51,7 @@ class ReadOutOptimization(StrEnum):
     MAJ_VOTE = "majority_vote"
 
 
-class MeasurementProtocols(StrEnum):
+class MeasurementProtocol(StrEnum):
     TOMOGRAPHY = "tomography"
     """Tomography of a quantum state."""
     SHADOW = "shadow"

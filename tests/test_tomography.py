@@ -26,7 +26,7 @@ from qadence_protocols.measurements.utils_tomography import (
     get_qubit_indices_for_op,
     rotate,
 )
-from qadence_protocols.types import MeasurementProtocols
+from qadence_protocols.types import MeasurementProtocol
 
 
 @pytest.mark.parametrize(
@@ -234,13 +234,13 @@ def test_tomography(
     expectation_analytical = model.expectation()
 
     tomo_measurement = Measurements(
-        protocol=MeasurementProtocols.TOMOGRAPHY,
+        protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 10000},
     )
     expectation_sampled = tomo_measurement(model)
 
     tomo_measurement_more_shots = Measurements(
-        protocol=MeasurementProtocols.TOMOGRAPHY,
+        protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 1000000},
     )
     expectation_sampled_more_shots = tomo_measurement_more_shots(model)
@@ -301,7 +301,7 @@ def test_basic_tomography_for_parametric_circuit_forward_pass(
     )
     analytical_result = model.expectation(values)
     tomo = Measurements(
-        protocol=MeasurementProtocols.TOMOGRAPHY,
+        protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 100000},
     )
     estimated_values = tomo(
@@ -314,6 +314,6 @@ def test_basic_tomography_for_parametric_circuit_forward_pass(
 def test_tomography_raise_errors() -> None:
     with pytest.raises(KeyError):
         tomo_measurement = Measurements(
-            protocol=MeasurementProtocols.TOMOGRAPHY,
+            protocol=MeasurementProtocol.TOMOGRAPHY,
             options={"nsamples": 10000},
         )

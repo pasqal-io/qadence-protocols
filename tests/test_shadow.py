@@ -25,7 +25,7 @@ from qadence_protocols.measurements.utils_shadow import (
     robust_local_shadow,
     shadow_samples,
 )
-from qadence_protocols.types import MeasurementProtocols
+from qadence_protocols.types import MeasurementProtocol
 from qadence_protocols.utils_trace import expectation_trace
 
 idmat = torch.eye(2, dtype=torch.complex128)
@@ -193,17 +193,17 @@ def test_estimations_comparison_tomo_forward_pass(
     )
 
     options = {"n_shots": 100000}
-    tomo_measurements = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options=options)
+    tomo_measurements = Measurements(protocol=MeasurementProtocol.TOMOGRAPHY, options=options)
     estimated_exp_tomo = tomo_measurements(model=model, param_values=values)
 
     new_options = {"accuracy": 0.1, "confidence": 0.1}
-    shadow_measurements = Measurements(protocol=MeasurementProtocols.SHADOW, options=new_options)
+    shadow_measurements = Measurements(protocol=MeasurementProtocol.SHADOW, options=new_options)
     estimated_exp_shadow = shadow_measurements(model=model, param_values=values)
 
     N, K = number_of_samples([observable], **new_options)
     robust_options = {"shadow_size": N, "shadow_medians": K, "robust_correlations": None}
     robust_shadows = Measurements(
-        protocol=MeasurementProtocols.ROBUST_SHADOW,
+        protocol=MeasurementProtocol.ROBUST_SHADOW,
         options=robust_options,
     )
 
@@ -234,13 +234,13 @@ def test_shadow_raise_errors() -> None:
     options = {"accuracy": 0.1, "conf": 0.1}
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
-            protocol=MeasurementProtocols.SHADOW,
+            protocol=MeasurementProtocol.SHADOW,
             options=options,
         )
 
     options = {"accuracies": 0.1, "confidence": 0.1}
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
-            protocol=MeasurementProtocols.SHADOW,
+            protocol=MeasurementProtocol.SHADOW,
             options=options,
         )
