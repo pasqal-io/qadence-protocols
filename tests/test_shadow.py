@@ -193,29 +193,26 @@ def test_estimations_comparison_tomo_forward_pass(
     )
 
     options = {"n_shots": 100000}
-    tomo_measurements = Measurements(
-        protocol=MeasurementProtocols.TOMOGRAPHY, model=model, param_values=values, options=options
-    )
-    estimated_exp_tomo = tomo_measurements()
+    tomo_measurements = Measurements(protocol=MeasurementProtocols.TOMOGRAPHY, options=options)
+    estimated_exp_tomo = tomo_measurements(model=model, param_values=values)
 
     new_options = {"accuracy": 0.1, "confidence": 0.1}
-    shadow_measurements = Measurements(
-        protocol=MeasurementProtocols.SHADOW, model=model, param_values=values, options=new_options
-    )
-    estimated_exp_shadow = shadow_measurements()
+    shadow_measurements = Measurements(protocol=MeasurementProtocols.SHADOW, options=new_options)
+    estimated_exp_shadow = shadow_measurements(model=model, param_values=values)
 
     N, K = number_of_samples([observable], **new_options)
     robust_options = {"shadow_size": N, "shadow_medians": K, "robust_correlations": None}
     robust_shadows = Measurements(
         protocol=MeasurementProtocols.ROBUST_SHADOW,
-        model=model,
-        param_values=values,
         options=robust_options,
     )
 
     # set measurement same as classical shadows
     robust_shadows.data = shadow_measurements.data
-    robust_estimated_exp_shadow = robust_shadows()
+    robust_estimated_exp_shadow = robust_shadows(
+        model=model,
+        param_values=values,
+    )
 
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
     assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
@@ -233,17 +230,11 @@ def test_estimations_comparison_tomo_forward_pass(
 
 
 def test_shadow_raise_errors() -> None:
-    backend = BackendName.PYQTORCH
-    model = QuantumModel(
-        circuit=QuantumCircuit(2, kron(X(0), X(1))), observable=None, backend=backend
-    )
-
     # Bad input keys
     options = {"accuracy": 0.1, "conf": 0.1}
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
             protocol=MeasurementProtocols.SHADOW,
-            model=model,
             options=options,
         )
 
@@ -251,6 +242,5 @@ def test_shadow_raise_errors() -> None:
     with pytest.raises(KeyError):
         shadow_measurement = Measurements(
             protocol=MeasurementProtocols.SHADOW,
-            model=model,
             options=options,
         )

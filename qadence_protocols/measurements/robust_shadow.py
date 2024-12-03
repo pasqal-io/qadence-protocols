@@ -23,7 +23,7 @@ class RobustShadowManager(ShadowManager):
     def __init__(
         self,
         options: dict,
-        model: QuantumModel,
+        model: QuantumModel | None = None,
         observables: list[AbstractBlock] = list(),
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
@@ -72,6 +72,8 @@ class RobustShadowManager(ShadowManager):
                 samples from the circuit
                 rotated according to the locally sampled pauli unitaries.
         """
+        if self.model is None:
+            raise ValueError("Please provide a model to run protocol.")
 
         circuit = self.model._circuit.original
         shadow_size = self.options["shadow_size"]
@@ -100,7 +102,7 @@ class RobustShadowManager(ShadowManager):
 
         calibration = self.options["calibration"]
         if calibration is None:
-            calibration = torch.tensor([1.0 / 3.0] * self.model._circuit.original.n_qubits)
+            calibration = torch.tensor([1.0 / 3.0] * self.data.unitaries.shape[1])
 
         caller = partial(robust_local_shadow, calibration=calibration)
 
@@ -120,6 +122,9 @@ class RobustShadowManager(ShadowManager):
         Returns:
             Tensor: Expectation values.
         """
+        if self.model is None:
+            raise ValueError("Please provide a model to run protocol.")
+
         K = int(self.options["shadow_medians"])
         calibration = self.options["calibration"]
         if calibration is None:

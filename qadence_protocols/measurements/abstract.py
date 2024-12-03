@@ -24,7 +24,7 @@ class MeasurementManager(ABC):
     def __init__(
         self,
         options: dict,
-        model: QuantumModel,
+        model: QuantumModel | None = None,
         observables: list[AbstractBlock] = list(),
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,

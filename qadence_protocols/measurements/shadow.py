@@ -22,7 +22,7 @@ class ShadowManager(MeasurementManager):
     def __init__(
         self,
         options: dict,
-        model: QuantumModel,
+        model: QuantumModel | None = None,
         observables: list[AbstractBlock] = list(),
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
@@ -31,9 +31,14 @@ class ShadowManager(MeasurementManager):
         self.options = self.validate_options(options)
         self.model = model
 
-        self.observables = (
-            observables if len(observables) > 0 else [obs.abstract for obs in model._observable]
-        )
+        if model is None:
+            self.observables = observables
+        else:
+            self.observables = (
+                observables
+                if (len(observables) > 0)
+                else [obs.abstract for obs in model._observable]
+            )
         self.param_values = param_values
         self.state = state
         self.data = self.validate_data(data)
@@ -97,11 +102,13 @@ class ShadowManager(MeasurementManager):
                 f"Provide correctly data as Tensors with {shadow_size} `shadow_size` elements."
             )
 
-        n_qubits = self.model._circuit.original.n_qubits
-        if not (data.unitaries.shape[1] == data.samples.shape[2] == n_qubits):
-            raise ValueError(
-                f"Provide correctly data as Tensors with {n_qubits} `qubits` in the last dimension."
-            )
+        if self.model is not None:
+            n_qubits = self.model._circuit.original.n_qubits
+            if not (data.unitaries.shape[1] == data.samples.shape[2] == n_qubits):
+                raise ValueError(
+                    f"Provide correctly data as Tensors with {n_qubits}"
+                    "`qubits` in the last dimension."
+                )
         return data
 
     def reconstruct_state(
@@ -148,7 +155,8 @@ class ShadowManager(MeasurementManager):
                 samples from the circuit
                 rotated according to the locally sampled pauli unitaries.
         """
-
+        if self.model is None:
+            raise ValueError("Please provide a model to run protocol.")
         circuit = self.model._circuit.original
         shadow_size = self.options["shadow_size"]
         accuracy = self.options["accuracy"]
@@ -183,6 +191,9 @@ class ShadowManager(MeasurementManager):
         Returns:
             Tensor: Expectation values.
         """
+
+        if self.model is None:
+            raise ValueError("Please provide a model to run protocol.")
         accuracy = self.options["accuracy"]
         confidence = self.options["confidence"]
         observables = (

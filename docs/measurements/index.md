@@ -95,10 +95,10 @@ from qadence_protocols.measurements.utils_shadow import number_of_samples
 
 shadow_options = {"accuracy": 0.1, "confidence": 0.1}
 N, K = number_of_samples(observable, **shadow_options)
-shadow_measurement = Measurements(protocol=MeasurementProtocols.SHADOW, options=shadow_options, model=model)
+shadow_measurement = Measurements(protocol=MeasurementProtocols.SHADOW, options=shadow_options)
 
 # Run the shadow experiment.
-estimated_values_shadow = shadow_measurement()
+estimated_values_shadow = shadow_measurement(model=model)
 
 print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markdown-exec: hide
 ```
@@ -159,8 +159,8 @@ calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.b
 print(0.5 * (3.0 * calibration + 1)) # markdown-exec: hide
 
 robust_shadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
-robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_shadow_options, model=model)
-estimated_values_robust_shadow = robust_shadow_measurement()
+robust_shadow_measurement = Measurements(protocol=MeasurementProtocols.ROBUST_SHADOW, options=robust_shadow_options)
+estimated_values_robust_shadow = robust_shadow_measurement(model=model)
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide
 ```

@@ -31,7 +31,7 @@ class Tomography(MeasurementManager):
     def __init__(
         self,
         options: dict,
-        model: QuantumModel,
+        model: QuantumModel | None = None,
         observables: list[AbstractBlock] = list(),
         param_values: dict[str, Tensor] = dict(),
         state: Tensor | None = None,
@@ -39,12 +39,17 @@ class Tomography(MeasurementManager):
     ):
         self.options = self.validate_options(options)
         self.model = model
-
-        self.observables = (
-            observables if len(observables) > 0 else [obs.abstract for obs in model._observable]
-        )
         self.param_values = param_values
         self.state = state
+
+        if model is None:
+            self.observables = observables
+        else:
+            self.observables = (
+                observables
+                if (len(observables) > 0)
+                else [obs.abstract for obs in model._observable]
+            )
         self.data = self.validate_data(data)
 
     def validate_options(self, options: dict) -> dict:
@@ -102,6 +107,10 @@ class Tomography(MeasurementManager):
         Returns:
             MeasurementData: Measurements collected by tomography.
         """
+
+        if self.model is None:
+            raise ValueError("Please provide a model to run protocol.")
+
         n_shots = self.options["n_shots"]
         circuit = self.model._circuit.original
 
