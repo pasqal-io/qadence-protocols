@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from functools import reduce
 from typing import Callable
 
@@ -199,6 +200,15 @@ def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
     return operations
 
 
+def counter_to_freq_vector(counter: Counter) -> Tensor:
+    vector_length = 2 ** len(list(counter.keys())[0])
+    freq_vector = torch.zeros(vector_length, dtype=torch.float32)
+    # Populate frequency vector
+    for bitstring, count in counter.items():
+        freq_vector[int("".join(reversed(bitstring)), 2)] = count
+    return freq_vector
+
+
 def shadow_samples(
     shadow_size: int,
     circuit: QuantumCircuit,
@@ -206,6 +216,7 @@ def shadow_samples(
     state: Tensor | None = None,
     backend: Backend | DifferentiableBackend = PyQBackend(),
     noise: NoiseHandler | None = None,
+    n_shots: int = 1,
     endianness: Endianness = Endianness.BIG,
 ) -> MeasurementData:
     """Sample the circuit rotated according to locally sampled pauli unitaries.
@@ -218,6 +229,7 @@ def shadow_samples(
         backend (Backend | DifferentiableBackend, optional): Backend to run program.
             Defaults to PyQBackend().
         noise (NoiseHandler | None, optional): Noise description. Defaults to None.
+        n_shots (int, optional): number of shots per circuit. Defaults to 1.
         endianness (Endianness, optional): Endianness use within program.
             Defaults to Endianness.BIG.
 
@@ -257,7 +269,7 @@ def shadow_samples(
         batch_samples = backend.sample(
             circuit=conv_circ,
             param_values=param_values,
-            n_shots=1,
+            n_shots=n_shots,
             state=circ_output,
             noise=noise,
             endianness=endianness,
@@ -266,14 +278,21 @@ def shadow_samples(
 
     bitstrings = list()
     batchsize = len(batch_samples)
-    for b in range(batchsize):
-        bitstrings.append([list(batch[b].keys())[0] for batch in shadow])
-    bitstrings_torch = torch.stack(
-        [
-            torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
-            for batch in bitstrings
-        ]
-    )
+
+    if n_shots == 1:
+        for b in range(batchsize):
+            bitstrings.append([list(batch[b].keys())[0] for batch in shadow])
+        bitstrings_torch = torch.stack(
+            [
+                torch.stack([torch.tensor([int(b_i) for b_i in sample]) for sample in batch])
+                for batch in bitstrings
+            ]
+        )
+    else:
+        # work with frequencies
+        for b in range(batchsize):
+            bitstrings.append([counter_to_freq_vector(batch[0]) for batch in shadow])
+        bitstrings_torch = torch.stack([torch.stack(batch) for batch in bitstrings]) / n_shots
     return MeasurementData(samples=bitstrings_torch, unitaries=torch.tensor(unitary_ids))
 
 

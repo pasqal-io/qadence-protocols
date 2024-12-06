@@ -47,6 +47,8 @@ class RobustShadowManager(ShadowManager):
         shadow_size = options.get("shadow_size", None)
         if shadow_size is None:
             raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
+        n_shots = options.get("n_shots", 1)
+
         shadow_medians = options.get("shadow_medians", None)
         if shadow_medians is None:
             raise KeyError("Shadow protocol requires an option 'shadow_medians' of type 'int'.")
@@ -55,6 +57,7 @@ class RobustShadowManager(ShadowManager):
 
         validated_options = {
             "shadow_size": shadow_size,
+            "n_shots": n_shots,
             "shadow_medians": shadow_medians,
             "calibration": calibration,
         }
@@ -85,6 +88,7 @@ class RobustShadowManager(ShadowManager):
             state=self.state,
             backend=self.model.backend,
             noise=self.model._noise,
+            n_shots=self.options["n_shots"],
         )
         return self.data
 
