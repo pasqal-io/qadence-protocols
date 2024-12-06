@@ -31,7 +31,6 @@ classifiers=[
 dependencies = [
     "torch",
     "qadence[pulser]",
-    "mlflow",
 ]
 
 [tool.hatch.metadata]
