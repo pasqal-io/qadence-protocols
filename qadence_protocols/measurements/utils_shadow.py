@@ -43,6 +43,7 @@ UNITARY_TENSOR_adjoint = [unit.adjoint() for unit in UNITARY_TENSOR]
 
 idmat = UNITARY_TENSOR[-1]
 
+HammingMatrix = torch.tensor([[1.0, -0.5],[-0.5,1.0]], dtype=torch.double)
 
 def _max_observable_weight(observable: AbstractBlock) -> int:
     """
@@ -131,6 +132,17 @@ def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Te
         nested_unitaries_adjoint @ projmat @ nested_unitaries
     ) - idmatcal
     return local_densities
+
+def robust_local_shadow_Hamming(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
+    """Compute robust local shadow by inverting the quantum channel for each projector state."""
+
+    nested_unitaries = rotations_unitary_map(unitary_ids)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    alpha  = 3 / (2 * calibration - 1)
+    beta  = (calibration - 2) / (2 * calibration - 1)
+    HammingMatrix = torch.tensor([[alpha + beta, beta],[beta, alpha + beta]], dtype=torch.double) / 2.0
+    return local_densities
+
 
 
 def compute_snapshots(
@@ -289,7 +301,7 @@ def shadow_samples(
             ]
         )
     else:
-        # work with frequencies
+        # return probabilities as data
         for b in range(batchsize):
             bitstrings.append([counter_to_freq_vector(batch[0]) for batch in shadow])
         bitstrings_torch = torch.stack([torch.stack(batch) for batch in bitstrings]) / n_shots
