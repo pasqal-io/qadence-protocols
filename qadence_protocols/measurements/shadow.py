@@ -66,8 +66,11 @@ class ShadowManager(MeasurementManager):
         confidence = options.get("confidence", None)
         if confidence is None:
             raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
+
+        n_shots = options.get("n_shots", 1)
         validated_options = {
             "shadow_size": shadow_size,
+            "n_shots": n_shots,
             "accuracy": accuracy,
             "confidence": confidence,
         }
@@ -174,6 +177,7 @@ class ShadowManager(MeasurementManager):
             state=self.state,
             backend=self.model.backend,
             noise=self.model._noise,
+            n_shots=self.options["n_shots"],
         )
         return self.data
 

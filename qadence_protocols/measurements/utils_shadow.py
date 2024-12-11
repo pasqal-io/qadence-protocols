@@ -43,7 +43,11 @@ UNITARY_TENSOR_adjoint = [unit.adjoint() for unit in UNITARY_TENSOR]
 
 idmat = UNITARY_TENSOR[-1]
 
-HammingMatrix = torch.tensor([[1.0, -0.5],[-0.5,1.0]], dtype=torch.double)
+HammingMatrix = torch.tensor([[1.0, -0.5], [-0.5, 1.0]], dtype=torch.double)
+
+einsum_alphabet = "abcdefghijklmnopqsrtuvwxyz"
+einsum_alphabet_cap = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 
 def _max_observable_weight(observable: AbstractBlock) -> int:
     """
@@ -120,7 +124,6 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
 
 def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
     """Compute robust local shadow by inverting the quantum channel for each projector state."""
-
     nested_unitaries = rotations_unitary_map(unitary_ids)
     nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
     projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
@@ -133,16 +136,70 @@ def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Te
     ) - idmatcal
     return local_densities
 
-def robust_local_shadow_Hamming(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
-    """Compute robust local shadow by inverting the quantum channel for each projector state."""
 
-    nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
-    alpha  = 3 / (2 * calibration - 1)
-    beta  = (calibration - 2) / (2 * calibration - 1)
-    HammingMatrix = torch.tensor([[alpha + beta, beta],[beta, alpha + beta]], dtype=torch.double) / 2.0
-    return local_densities
+def global_shadow_Hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
+    """Compute global shadow using a Hamming matrix."""
 
+    nested_unitaries = batch_kron(rotations_unitary_map(unitary_ids))
+    nested_unitaries_adjoint = batch_kron(
+        rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    )
+
+    N = unitary_ids.shape[1]
+    Hamming_mat = [HammingMatrix for i in range(N)]
+    d = 2**N
+    probas = probas.reshape((probas.shape[0],) + (2,) * N)
+
+    ein_command = einsum_alphabet[: N + 1]
+    for i in range(1, N + 1):
+        ein_command += "," + einsum_alphabet[i] + einsum_alphabet_cap[i]
+    ein_command += "->" + einsum_alphabet[0] + einsum_alphabet_cap[1 : N + 1]
+    probprime = d * torch.einsum(ein_command, *([probas] + Hamming_mat)).to(
+        dtype=nested_unitaries.dtype
+    )
+    probprime = probprime.reshape((-1, d))
+    densities = torch.einsum(
+        "ijk, ij, ijk -> ij", nested_unitaries_adjoint, probprime, nested_unitaries
+    )
+    return densities
+
+
+def global_robust_shadow_Hamming(
+    probas: Tensor, unitary_ids: Tensor, calibration: Tensor
+) -> Tensor:
+    """Compute robust global shadow using a Hamming matrix."""
+
+    nested_unitaries = batch_kron(rotations_unitary_map(unitary_ids))
+    nested_unitaries_adjoint = batch_kron(
+        rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    )
+    div = 2.0 * calibration - 1.0
+    alpha = 3.0 / div
+    beta = (calibration - 2.0) / div
+
+    N = len(calibration)
+    # shape (N, 2, 2)
+    Hamming_mat = (
+        torch.stack((torch.stack((alpha + beta, beta)), torch.stack((beta, alpha + beta))))
+        .permute((-1, 0, 1))
+        .to(dtype=probas.dtype)
+    )
+    Hamming_mat = [Hamming_mat[i, ...] for i in range(N)]
+    d = 2**N
+    probas = probas.reshape((probas.shape[0],) + (2,) * N)
+
+    ein_command = einsum_alphabet[: N + 1]
+    for i in range(1, N + 1):
+        ein_command += "," + einsum_alphabet[i] + einsum_alphabet_cap[i]
+    ein_command += "->" + einsum_alphabet[0] + einsum_alphabet_cap[1 : N + 1]
+    probprime = d * torch.einsum(ein_command, *([probas] + Hamming_mat)).to(
+        dtype=nested_unitaries.dtype
+    )
+    probprime = probprime.reshape((-1, d))
+    densities = torch.einsum(
+        "ijk, ij, ijk -> ij", nested_unitaries_adjoint, probprime, nested_unitaries
+    )
+    return densities
 
 
 def compute_snapshots(
