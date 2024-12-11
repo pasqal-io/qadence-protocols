@@ -110,7 +110,12 @@ class RobustShadowManager(ShadowManager):
 
         caller = partial(robust_local_shadow, calibration=calibration)
 
-        return compute_snapshots(self.data.samples, self.data.unitaries, caller)
+        return compute_snapshots(
+            self.data.samples,
+            self.data.unitaries,
+            caller,
+            local_shadows=(self.options["n_shots"] == 1),
+        )
 
     def expectation(
         self,

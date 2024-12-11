@@ -143,8 +143,12 @@ class ShadowManager(MeasurementManager):
         """
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
-
-        return compute_snapshots(self.data.samples, self.data.unitaries, local_shadow)
+        return compute_snapshots(
+            self.data.samples,
+            self.data.unitaries,
+            local_shadow,
+            local_shadows=(self.options["n_shots"] == 1),
+        )
 
     def measure(
         self,

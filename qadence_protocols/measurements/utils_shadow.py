@@ -203,13 +203,22 @@ def global_robust_shadow_Hamming(
 
 
 def compute_snapshots(
-    bitstrings: Tensor, unitaries_ids: Tensor, local_shadow_caller: Callable
+    bitstrings: Tensor, unitaries_ids: Tensor, shadow_caller: Callable, local_shadows: bool = True
 ) -> Tensor:
     snapshots: list = list()
+
+    if local_shadows and unitaries_ids.shape[1] > 1:
+
+        def obtain_global_shadow(bits: Tensor, unit_ids: Tensor) -> Tensor:
+            return batch_kron(shadow_caller(bits, unit_ids))
+
+    else:
+
+        def obtain_global_shadow(bits: Tensor, unit_ids: Tensor) -> Tensor:
+            return shadow_caller(bits, unit_ids)
+
     for batch_bitstrings in bitstrings:
-        snapshots.append(local_shadow_caller(batch_bitstrings, unitaries_ids))
-        if snapshots[-1].shape[1] > 1:
-            snapshots[-1] = batch_kron(snapshots[-1])
+        snapshots.append(obtain_global_shadow(batch_bitstrings, unitaries_ids))
     return torch.stack(snapshots)
 
 
