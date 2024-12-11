@@ -220,4 +220,6 @@ class ShadowManager(MeasurementManager):
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
 
-        return expectation_estimations(observables, self.data.unitaries, self.data.samples, K)
+        return expectation_estimations(
+            observables, self.data.unitaries, self.data.samples, K, n_shots=self.options["n_shots"]
+        )

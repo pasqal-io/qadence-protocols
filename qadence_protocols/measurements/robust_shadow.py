@@ -158,4 +158,5 @@ class RobustShadowManager(ShadowManager):
             self.data.samples,
             K,
             calibration=calibration,
+            n_shots=self.options["n_shots"],
         )
