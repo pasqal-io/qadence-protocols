@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from functools import reduce
+from functools import partial, reduce
 from typing import Callable
 
 import numpy as np
@@ -24,6 +24,7 @@ from torch import Tensor
 
 from qadence_protocols.measurements.utils_tomography import get_qubit_indices_for_op
 from qadence_protocols.types import MeasurementData
+from qadence_protocols.utils_trace import expectation_trace
 
 batch_kron = torch.func.vmap(lambda x: reduce(torch.kron, x))
 
@@ -379,7 +380,7 @@ def reconstruct_state(shadow: list) -> Tensor:
     return reduce(torch.add, shadow) / len(shadow)
 
 
-def estimators(
+def estimators_from_bitstrings(
     N: int,
     K: int,
     unitary_shadow_ids: Tensor,
@@ -392,6 +393,8 @@ def estimators(
 
     See https://arxiv.org/pdf/2002.08953.pdf
     Algorithm 1.
+
+    Note that this is for the case where the number of shots per unitary is 1.
     """
 
     obs_qubit_support = list(observable.qubit_support)
@@ -425,15 +428,72 @@ def estimators(
                 :, obs_qubit_support
             ]
             matching_bits = 1.0 - 2.0 * matching_bits
+
+            # recalibrate for robust shadow mainly
             if calibration is not None:
                 matching_bits *= 3.0 * calibration_match
 
-            # recalibrate for robust shadow mainly
             trace = torch.prod(
                 matching_bits,
                 axis=-1,
             )
             trace = trace.sum() / indices_match.sum()
+            traces.append(trace)
+        else:
+            traces.append(torch.tensor(0.0))
+    return torch.tensor(traces, dtype=torch.get_default_dtype())
+
+
+def estimators_from_probas(
+    N: int,
+    K: int,
+    unitary_shadow_ids: Tensor,
+    shadow_samples: Tensor,
+    observable: AbstractBlock,
+    calibration: Tensor | None = None,
+) -> Tensor:
+    """
+    Return trace estimators from the samples for K equally-sized shadow partitions.
+
+    See https://arxiv.org/pdf/2002.08953.pdf
+    Algorithm 1.
+
+    Note that this is for the case where the number of shots per unitary is more than 1.
+    """
+
+    obs_qubit_support = list(observable.qubit_support)
+    if isinstance(observable, PrimitiveBlock):
+        if isinstance(observable, I):
+            return torch.tensor(1.0, dtype=torch.get_default_dtype())
+        obs_to_pauli_index = [pauli_gates.index(type(observable))]
+
+    elif isinstance(observable, CompositeBlock):
+        obs_to_pauli_index = [
+            pauli_gates.index(type(p)) for p in observable.blocks if not isinstance(p, I)  # type: ignore[arg-type]
+        ]
+        ind_I = set(get_qubit_indices_for_op((observable, 1.0), I(0)))
+        obs_qubit_support = [ind for ind in observable.qubit_support if ind not in ind_I]
+
+    floor = int(np.floor(N / K))
+    traces = []
+
+    shadow_caller: Callable = global_shadow_Hamming
+    if calibration is None:
+        shadow_caller = partial(global_robust_shadow_Hamming, calibration=calibration)
+
+    obs_to_pauli_index = torch.tensor(obs_to_pauli_index)
+    for k in range(K):
+        indices_match = torch.all(
+            unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support]
+            == obs_to_pauli_index,
+            axis=1,
+        )
+        if indices_match.sum() > 0:
+            matching_probas = shadow_samples[k * floor : (k + 1) * floor][indices_match]
+            snapshots = shadow_caller(matching_probas, unitary_shadow_ids[indices_match])
+            reconstructed_state = snapshots.sum(axis=0) / snapshots.shape[0]
+
+            trace = expectation_trace(reconstructed_state, [observable])[0]
             traces.append(trace)
         else:
             traces.append(torch.tensor(0.0))
@@ -446,9 +506,12 @@ def expectation_estimations(
     batch_shadow_samples: Tensor,
     K: int,
     calibration: Tensor | None = None,
+    n_shots: int = 1,
 ) -> Tensor:
     estimations = []
     N = unitaries_ids.shape[0]
+
+    estimator_fct = estimators_from_bitstrings if n_shots == 1 else estimators_from_probas
 
     for observable in observables:
         pauli_decomposition = unroll_block_with_scaling(observable)
@@ -458,7 +521,7 @@ def expectation_estimations(
             for pauli_term in pauli_decomposition:
                 # Get the estimators for the current Pauli term.
                 # This is a tensor<float> of size K.
-                estimation = estimators(
+                estimation = estimator_fct(
                     N=N,
                     K=K,
                     unitary_shadow_ids=unitaries_ids,
