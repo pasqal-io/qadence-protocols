@@ -158,11 +158,8 @@ def global_shadow_Hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
     probprime = d * torch.einsum(ein_command, *([probas] + Hamming_mat)).to(
         dtype=nested_unitaries.dtype
     )
-    probprime = probprime.reshape((-1, d))
-    print(nested_unitaries_adjoint.shape, probprime.shape, nested_unitaries.shape)
-    densities = torch.einsum(
-        "ijk, ij, ijk -> ijk", nested_unitaries_adjoint, probprime, nested_unitaries
-    )
+    probprime = torch.diag_embed(probprime.reshape((-1, d)))
+    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries
     return densities
 
 
@@ -200,10 +197,8 @@ def global_robust_shadow_Hamming(
     probprime = d * torch.einsum(ein_command, *([probas] + Hamming_mat)).to(
         dtype=nested_unitaries.dtype
     )
-    probprime = probprime.reshape((-1, d))
-    densities = torch.einsum(
-        "ijk, ij, ijk -> ijk", nested_unitaries_adjoint, probprime, nested_unitaries
-    )
+    probprime = torch.diag_embed(probprime.reshape((-1, d)))
+    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries
     return densities
 
 
