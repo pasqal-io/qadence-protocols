@@ -11,6 +11,7 @@ from qadence_protocols.measurements.shadow import ShadowManager
 from qadence_protocols.measurements.utils_shadow import (
     compute_snapshots,
     expectation_estimations,
+    global_robust_shadow_Hamming,
     robust_local_shadow,
     shadow_samples,
 )
@@ -108,13 +109,17 @@ class RobustShadowManager(ShadowManager):
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * self.data.unitaries.shape[1])
 
-        caller = partial(robust_local_shadow, calibration=calibration)
+        caller, local_shadows = (
+            (partial(robust_local_shadow, calibration=calibration), True)
+            if self.options["n_shots"] == 1
+            else (partial(global_robust_shadow_Hamming, calibration=calibration), False)
+        )
 
         return compute_snapshots(
             self.data.samples,
             self.data.unitaries,
             caller,
-            local_shadows=(self.options["n_shots"] == 1),
+            local_shadows=local_shadows,
         )
 
     def expectation(

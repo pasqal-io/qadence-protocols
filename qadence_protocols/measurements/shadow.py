@@ -9,6 +9,7 @@ from qadence_protocols.measurements.abstract import MeasurementManager
 from qadence_protocols.measurements.utils_shadow import (
     compute_snapshots,
     expectation_estimations,
+    global_shadow_Hamming,
     local_shadow,
     number_of_samples,
     shadow_samples,
@@ -143,11 +144,16 @@ class ShadowManager(MeasurementManager):
         """
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
+
+        caller, local_shadows = (
+            (local_shadow, True) if self.options["n_shots"] == 1 else (global_shadow_Hamming, False)
+        )
+
         return compute_snapshots(
             self.data.samples,
             self.data.unitaries,
-            local_shadow,
-            local_shadows=(self.options["n_shots"] == 1),
+            caller,
+            local_shadows=local_shadows,
         )
 
     def measure(
