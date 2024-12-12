@@ -191,7 +191,7 @@ def global_shadow_Hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
         prob_mat[range(d), range(d)] = prob_prime.flatten()
         prob_mat = prob_mat.to(u.dtype)
         
-        densities[ind_shadow] = torch.einsum('ab,bc,cd -> ad', *(udag,prob_mat,u))/nu_batch
+        densities[ind_shadow] = torch.einsum('ab,bc,cd -> ad', *(udag,prob_mat,u))
     return densities
 
 def global_robust_shadow_Hamming(
