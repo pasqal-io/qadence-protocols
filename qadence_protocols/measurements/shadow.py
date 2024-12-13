@@ -217,7 +217,9 @@ class ShadowManager(MeasurementManager):
             if len(observables) > 0
             else [obs.abstract for obs in self.model._observable]
         )
-        _, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
+        _, K = number_of_samples(
+            observables=observables, accuracy=accuracy or 0.0, confidence=confidence or 0
+        )
 
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()

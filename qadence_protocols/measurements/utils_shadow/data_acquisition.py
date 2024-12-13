@@ -5,8 +5,6 @@ from functools import reduce
 
 import numpy as np
 import torch
-from torch import Tensor
-
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.blocks import AbstractBlock, KronBlock, kron
@@ -18,13 +16,13 @@ from qadence.noise import NoiseHandler
 from qadence.operations import X, Y, Z
 from qadence.transpile.noise import set_noise
 from qadence.types import Endianness, NoiseProtocol
+from torch import Tensor
 
-
-
-from qadence_protocols.types import MeasurementData
 from qadence_protocols.measurements.utils_shadow.unitaries import UNITARY_TENSOR, pauli_rotations
+from qadence_protocols.types import MeasurementData
 
 batch_kron = torch.func.vmap(lambda x: reduce(torch.kron, x))
+
 
 def _max_observable_weight(observable: AbstractBlock) -> int:
     """
@@ -62,7 +60,7 @@ def maximal_weight(observables: list[AbstractBlock]) -> int:
 
 
 def number_of_samples(
-    observables: list[AbstractBlock], accuracy: float, confidence: float
+    observables: list[AbstractBlock], accuracy: float = 0.0, confidence: float = 0.0
 ) -> tuple[int, ...]:
     """
     Estimate an optimal shot budget and a shadow partition size.
@@ -72,11 +70,19 @@ def number_of_samples(
 
     See https://arxiv.org/pdf/2002.08953.pdf
     Supplementary Material 1 and Eqs. (S23)-(S24).
+
+    If accuracy equals 0, we return the shot budget 0.
+    If confidence equals 0, we return the shadow partition size 1.
     """
     max_k = maximal_weight(observables=observables)
-    N = round(3**max_k * 34.0 / accuracy**2)
-    K = round(2.0 * np.log(2.0 * len(observables) / confidence))
+    N = 0
+    K = 1
+    if accuracy > 0:
+        N = round(3**max_k * 34.0 / accuracy**2)
+    if confidence > 0:
+        K = round(2.0 * np.log(2.0 * len(observables) / confidence))
     return N, K
+
 
 def nested_operator_indexing(
     idx_array: np.ndarray,
@@ -117,6 +123,7 @@ def kron_if_non_empty(list_operations: list) -> KronBlock | None:
     """Apply kron to a list of operations."""
     filtered_op: list = list(filter(None, list_operations))
     return kron(*filtered_op) if len(filtered_op) > 0 else None
+
 
 def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
     """Sample `shadow_size` rotations of `n_qubits`.

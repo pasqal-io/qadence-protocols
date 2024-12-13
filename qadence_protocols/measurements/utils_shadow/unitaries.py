@@ -1,8 +1,8 @@
 from __future__ import annotations
-import torch
-from qadence.operations import H, I, SDagger, X, Y, Z
-from qadence.blocks.block_to_tensor import HMAT, IMAT, SDAGMAT
 
+import torch
+from qadence.blocks.block_to_tensor import HMAT, IMAT, SDAGMAT
+from qadence.operations import H, SDagger, X, Y, Z
 
 pauli_gates = [X, Y, Z]
 pauli_rotations = [

@@ -1,28 +1,34 @@
 from __future__ import annotations
 
+from functools import partial, reduce
 from typing import Callable
 
 import numpy as np
 import torch
-from torch import Tensor
-from functools import reduce, partial
-
+from qadence.blocks import AbstractBlock
+from qadence.blocks.composite import CompositeBlock
+from qadence.blocks.primitive import PrimitiveBlock
+from qadence.blocks.utils import unroll_block_with_scaling
 from qadence.operations import I
 from qadence.utils import P0_MATRIX, P1_MATRIX
-from qadence.blocks import AbstractBlock
-from qadence.blocks.primitive import PrimitiveBlock
-from qadence.blocks.composite import CompositeBlock
-from qadence.blocks.utils import unroll_block_with_scaling
+from torch import Tensor
 
+from qadence_protocols.measurements.utils_shadow.data_acquisition import (
+    batch_kron,
+    rotations_unitary_map,
+)
+from qadence_protocols.measurements.utils_shadow.unitaries import (
+    HammingMatrix,
+    UNITARY_TENSOR_adjoint,
+    idmat,
+    pauli_gates,
+)
 from qadence_protocols.measurements.utils_tomography import get_qubit_indices_for_op
 from qadence_protocols.utils_trace import expectation_trace
-from qadence_protocols.measurements.utils_shadow.unitaries import UNITARY_TENSOR_adjoint, idmat, HammingMatrix, pauli_gates
-from qadence_protocols.measurements.utils_shadow.data_acquisition import rotations_unitary_map, batch_kron
-
-
 
 einsum_alphabet = "abcdefghijklmnopqsrtuvwxyz"
 einsum_alphabet_cap = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 
 def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
     """
@@ -142,10 +148,6 @@ def compute_snapshots(
     for batch_bitstrings in bitstrings:
         snapshots.append(obtain_global_shadow(batch_bitstrings, unitaries_ids))
     return torch.stack(snapshots)
-
-
-
-
 
 
 def reconstruct_state(shadow: list) -> Tensor:
