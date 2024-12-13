@@ -91,7 +91,7 @@ Along the same lines as the example before, estimating the expectation value usi
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 # Classical shadows are defined up to some accuracy and confidence.
-from qadence_protocols.measurements.utils_shadow import number_of_samples
+from qadence_protocols.measurements.utils_shadow.data_acquisition import number_of_samples
 
 shadow_options = {"accuracy": 0.1, "confidence": 0.1}
 N, K = number_of_samples(observable, **shadow_options)

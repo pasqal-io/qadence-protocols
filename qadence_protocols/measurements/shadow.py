@@ -6,13 +6,15 @@ from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
 from qadence_protocols.measurements.abstract import MeasurementManager
-from qadence_protocols.measurements.utils_shadow import (
+from qadence_protocols.measurements.utils_shadow.data_acquisition import (
+    number_of_samples,
+    shadow_samples,
+)
+from qadence_protocols.measurements.utils_shadow.post_processing import (
     compute_snapshots,
     expectation_estimations,
     global_shadow_Hamming,
     local_shadow,
-    number_of_samples,
-    shadow_samples,
 )
 from qadence_protocols.types import MeasurementData
 

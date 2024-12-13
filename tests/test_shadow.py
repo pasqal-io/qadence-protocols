@@ -16,15 +16,17 @@ from qadence.utils import P0_MATRIX, P1_MATRIX
 from torch import Tensor
 
 from qadence_protocols import Measurements
-from qadence_protocols.measurements.utils_shadow import (
-    UNITARY_TENSOR,
+from qadence_protocols.measurements.utils_shadow.data_acquisition import (
     _max_observable_weight,
-    expectation_estimations,
-    local_shadow,
     number_of_samples,
-    robust_local_shadow,
     shadow_samples,
 )
+from qadence_protocols.measurements.utils_shadow.post_processing import (
+    expectation_estimations,
+    local_shadow,
+    robust_local_shadow,
+)
+from qadence_protocols.measurements.utils_shadow.unitaries import UNITARY_TENSOR
 from qadence_protocols.types import MeasurementProtocol
 from qadence_protocols.utils_trace import expectation_trace
 
