@@ -87,7 +87,7 @@ def global_shadow_Hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
         dtype=nested_unitaries.dtype
     )
     probprime = torch.diag_embed(probprime.reshape((-1, d)))
-    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries / unitary_ids.shape[0]
+    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries
     return densities
 
 
@@ -126,7 +126,7 @@ def global_robust_shadow_Hamming(
         dtype=nested_unitaries.dtype
     )
     probprime = torch.diag_embed(probprime.reshape((-1, d)))
-    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries / unitary_ids.shape[0]
+    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries
     return densities
 
 
@@ -236,42 +236,22 @@ def estimators_from_probas(
     Note that this is for the case where the number of shots per unitary is more than 1.
     """
 
-    obs_qubit_support = list(observable.qubit_support)
-    if isinstance(observable, PrimitiveBlock):
-        if isinstance(observable, I):
-            return torch.tensor(1.0, dtype=torch.get_default_dtype())
-        obs_to_pauli_index = [pauli_gates.index(type(observable))]
-
-    elif isinstance(observable, CompositeBlock):
-        obs_to_pauli_index = [
-            pauli_gates.index(type(p)) for p in observable.blocks if not isinstance(p, I)  # type: ignore[arg-type]
-        ]
-        ind_I = set(get_qubit_indices_for_op((observable, 1.0), I(0)))
-        obs_qubit_support = [ind for ind in observable.qubit_support if ind not in ind_I]
-
     floor = int(np.floor(N / K))
     traces = []
 
     shadow_caller: Callable = global_shadow_Hamming
-    if calibration is None:
+    if calibration is not None:
         shadow_caller = partial(global_robust_shadow_Hamming, calibration=calibration)
 
-    obs_to_pauli_index = torch.tensor(obs_to_pauli_index)
     for k in range(K):
-        indices_match = torch.all(
-            unitary_shadow_ids[k * floor : (k + 1) * floor, obs_qubit_support]
-            == obs_to_pauli_index,
-            axis=1,
+        snapshots = shadow_caller(
+            shadow_samples[k * floor : (k + 1) * floor],
+            unitary_shadow_ids[k * floor : (k + 1) * floor],
         )
-        if indices_match.sum() > 0:
-            matching_probas = shadow_samples[k * floor : (k + 1) * floor][indices_match]
-            snapshots = shadow_caller(matching_probas, unitary_shadow_ids[indices_match])
-            reconstructed_state = snapshots.sum(axis=0) / snapshots.shape[0]
+        reconstructed_state = snapshots.sum(axis=0) / snapshots.shape[0]
 
-            trace = expectation_trace(reconstructed_state, [observable])[0]
-            traces.append(trace)
-        else:
-            traces.append(torch.tensor(0.0))
+        trace = expectation_trace(reconstructed_state.unsqueeze(0), [observable])[0]
+        traces.append(trace)
     return torch.tensor(traces, dtype=torch.get_default_dtype())
 
 

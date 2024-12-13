@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from math import log
+
 import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
@@ -110,11 +112,17 @@ class ShadowManager(MeasurementManager):
 
         if self.model is not None:
             n_qubits = self.model._circuit.original.n_qubits
-            if not (data.unitaries.shape[1] == data.samples.shape[2] == n_qubits):
+            n_qubits_data = (
+                int(log(data.samples.shape[2], 2))
+                if self.options["n_shots"] > 1
+                else data.samples.shape[2]
+            )
+            if not (data.unitaries.shape[1] == n_qubits_data == n_qubits):
                 raise ValueError(
                     f"Provide correctly data as Tensors with {n_qubits}"
                     "`qubits` in the last dimension."
                 )
+
         return data
 
     def reconstruct_state(
