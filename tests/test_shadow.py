@@ -171,10 +171,10 @@ values2 = {
     "circuit, values, diff_mode",
     [
         (QuantumCircuit(2, blocks), values, DiffMode.AD),
-        # (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
+        (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
     ],
 )
-@pytest.mark.parametrize("do_kron", [True])
+@pytest.mark.parametrize("do_kron", [True, False])
 def test_estimations_comparison_tomo_forward_pass(
     circuit: QuantumCircuit,
     values: dict,
