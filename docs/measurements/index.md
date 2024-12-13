@@ -94,7 +94,7 @@ Along the same lines as the example before, estimating the expectation value usi
 from qadence_protocols.measurements.utils_shadow.data_acquisition import number_of_samples
 
 shadow_options = {"accuracy": 0.1, "confidence": 0.1, "n_shots": 1}
-N, K = number_of_samples(observable, **shadow_options)
+N, K = number_of_samples(observable, shadow_options["accuracy"], shadow_options["confidence"])
 shadow_measurement = Measurements(protocol=MeasurementProtocol.SHADOW, options=shadow_options)
 
 # Run the shadow experiment.
