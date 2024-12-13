@@ -104,12 +104,13 @@ def global_robust_shadow_Hamming(
         nested_unitaries = batch_kron(nested_unitaries)
         nested_unitaries_adjoint = batch_kron(nested_unitaries_adjoint)
 
+    calibration = 3.0 * calibration
     div = 2.0 * calibration - 1.0
     alpha = 3.0 / div
     beta = (calibration - 2.0) / div
 
     # shape (N, 2, 2)
-    Hamming_mat = (
+    Hamming_mat = 0.5 * (
         torch.stack((torch.stack((alpha + beta, beta)), torch.stack((beta, alpha + beta))))
         .permute((-1, 0, 1))
         .to(dtype=probas.dtype)

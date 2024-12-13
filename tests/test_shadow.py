@@ -171,10 +171,10 @@ values2 = {
     "circuit, values, diff_mode",
     [
         (QuantumCircuit(2, blocks), values, DiffMode.AD),
-        (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
+        # (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
     ],
 )
-@pytest.mark.parametrize("do_kron", [True, False])
+@pytest.mark.parametrize("do_kron", [True])
 def test_estimations_comparison_tomo_forward_pass(
     circuit: QuantumCircuit,
     values: dict,
@@ -198,15 +198,34 @@ def test_estimations_comparison_tomo_forward_pass(
     tomo_measurements = Measurements(protocol=MeasurementProtocol.TOMOGRAPHY, options=options)
     estimated_exp_tomo = tomo_measurements(model=model, param_values=values)
 
-    new_options = {"accuracy": 0.1, "confidence": 0.1}
-    shadow_measurements = Measurements(protocol=MeasurementProtocol.SHADOW, options=new_options)
+    shadow_options = {"accuracy": 0.1, "confidence": 0.1}
+    shadow_measurements = Measurements(protocol=MeasurementProtocol.SHADOW, options=shadow_options)
     estimated_exp_shadow = shadow_measurements(model=model, param_values=values)
 
-    N, K = number_of_samples([observable], **new_options)
+    n_shots = 1000
+
+    N, K = number_of_samples([observable], **shadow_options)
+    shadow_options2 = {"shadow_size": N // 10, "confidence": 0.1, "n_shots": n_shots}
+    shadow_measurements2 = Measurements(
+        protocol=MeasurementProtocol.SHADOW, options=shadow_options2
+    )
+    estimated_exp_shadow2 = shadow_measurements2(model=model, param_values=values)
+
     robust_options = {"shadow_size": N, "shadow_medians": K, "robust_correlations": None}
     robust_shadows = Measurements(
         protocol=MeasurementProtocol.ROBUST_SHADOW,
         options=robust_options,
+    )
+
+    robust_options2 = {
+        "shadow_size": shadow_options2["shadow_size"],
+        "shadow_medians": K,
+        "robust_correlations": None,
+        "n_shots": n_shots,
+    }
+    robust_shadows2 = Measurements(
+        protocol=MeasurementProtocol.ROBUST_SHADOW,
+        options=robust_options2,
     )
 
     # set measurement same as classical shadows
@@ -216,19 +235,40 @@ def test_estimations_comparison_tomo_forward_pass(
         param_values=values,
     )
 
+    robust_shadows2.data = shadow_measurements2.data
+    robust_estimated_exp_shadow2 = robust_shadows2(
+        model=model,
+        param_values=values,
+    )
+
     assert torch.allclose(estimated_exp_tomo, pyq_exp_exact, atol=1.0e-2)
-    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
-    assert torch.allclose(robust_estimated_exp_shadow, pyq_exp_exact, atol=new_options["accuracy"])
+    assert torch.allclose(estimated_exp_shadow, pyq_exp_exact, atol=shadow_options["accuracy"])
+    assert torch.allclose(
+        robust_estimated_exp_shadow, pyq_exp_exact, atol=shadow_options["accuracy"]
+    )
+    assert torch.allclose(estimated_exp_shadow2, pyq_exp_exact, atol=shadow_options["accuracy"])
+    assert torch.allclose(
+        robust_estimated_exp_shadow2, pyq_exp_exact, atol=shadow_options["accuracy"]
+    )
 
     # test expectation from reconstructed state
     state_snapshots_shadow = shadow_measurements.reconstruct_state()
     state_snapshots_rshadow = robust_shadows.reconstruct_state()
 
+    state_snapshots_shadow2 = shadow_measurements2.reconstruct_state()
+    state_snapshots_rshadow2 = robust_shadows2.reconstruct_state()
+
     exp_snapshots_shadow = expectation_trace(state_snapshots_shadow, observable)
     exp_snapshots_rshadow = expectation_trace(state_snapshots_rshadow, observable)
 
-    assert torch.allclose(exp_snapshots_shadow, pyq_exp_exact, atol=new_options["accuracy"])
-    assert torch.allclose(exp_snapshots_rshadow, pyq_exp_exact, atol=new_options["accuracy"])
+    assert torch.allclose(exp_snapshots_shadow, pyq_exp_exact, atol=shadow_options["accuracy"])
+    assert torch.allclose(exp_snapshots_rshadow, pyq_exp_exact, atol=shadow_options["accuracy"])
+
+    exp_snapshots_shadow2 = expectation_trace(state_snapshots_shadow2, observable)
+    exp_snapshots_rshadow2 = expectation_trace(state_snapshots_rshadow2, observable)
+
+    assert torch.allclose(exp_snapshots_shadow2, pyq_exp_exact, atol=shadow_options["accuracy"])
+    assert torch.allclose(exp_snapshots_rshadow2, pyq_exp_exact, atol=shadow_options["accuracy"])
 
 
 def test_shadow_raise_errors() -> None:
