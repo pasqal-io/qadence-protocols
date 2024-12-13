@@ -238,6 +238,6 @@ def shadow_samples(
     else:
         # return probabilities as data
         for b in range(batchsize):
-            bitstrings.append([counter_to_freq_vector(batch[0], endianness) for batch in shadow])
+            bitstrings.append([counter_to_freq_vector(batch[b], endianness) for batch in shadow])
         bitstrings_torch = torch.stack([torch.stack(batch) for batch in bitstrings]) / n_shots
     return MeasurementData(samples=bitstrings_torch, unitaries=torch.tensor(unitary_ids))
