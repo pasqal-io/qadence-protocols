@@ -17,7 +17,7 @@ authors = [
 requires-python = ">=3.9,<3.12"
 license = {text = "Apache 2.0"}
 keywords = ["quantum"]
-version = "0.2.0"
+version = "0.2.1"
 classifiers=[
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python",
@@ -31,7 +31,6 @@ classifiers=[
 dependencies = [
     "torch",
     "qadence[pulser]",
-    "mlflow",
 ]
 
 [tool.hatch.metadata]

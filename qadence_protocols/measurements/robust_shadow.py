@@ -8,11 +8,12 @@ from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
 from qadence_protocols.measurements.shadow import ShadowManager
-from qadence_protocols.measurements.utils_shadow import (
+from qadence_protocols.measurements.utils_shadow.data_acquisition import shadow_samples
+from qadence_protocols.measurements.utils_shadow.post_processing import (
     compute_snapshots,
     expectation_estimations,
+    global_robust_shadow_hamming,
     robust_local_shadow,
-    shadow_samples,
 )
 from qadence_protocols.types import MeasurementData
 
@@ -47,6 +48,8 @@ class RobustShadowManager(ShadowManager):
         shadow_size = options.get("shadow_size", None)
         if shadow_size is None:
             raise KeyError("Robust Shadow protocol requires an option 'shadow_size' of type 'int'.")
+        n_shots = options.get("n_shots", 1)
+
         shadow_medians = options.get("shadow_medians", None)
         if shadow_medians is None:
             raise KeyError("Shadow protocol requires an option 'shadow_medians' of type 'int'.")
@@ -55,6 +58,7 @@ class RobustShadowManager(ShadowManager):
 
         validated_options = {
             "shadow_size": shadow_size,
+            "n_shots": n_shots,
             "shadow_medians": shadow_medians,
             "calibration": calibration,
         }
@@ -85,6 +89,7 @@ class RobustShadowManager(ShadowManager):
             state=self.state,
             backend=self.model.backend,
             noise=self.model._noise,
+            n_shots=self.options["n_shots"],
         )
         return self.data
 
@@ -104,9 +109,18 @@ class RobustShadowManager(ShadowManager):
         if calibration is None:
             calibration = torch.tensor([1.0 / 3.0] * self.data.unitaries.shape[1])
 
-        caller = partial(robust_local_shadow, calibration=calibration)
+        caller, local_shadows = (
+            (partial(robust_local_shadow, calibration=calibration), True)
+            if self.options["n_shots"] == 1
+            else (partial(global_robust_shadow_hamming, calibration=calibration), False)
+        )
 
-        return compute_snapshots(self.data.samples, self.data.unitaries, caller)
+        return compute_snapshots(
+            self.data.samples,
+            self.data.unitaries,
+            caller,
+            local_shadows=local_shadows,
+        )
 
     def expectation(
         self,
@@ -144,4 +158,5 @@ class RobustShadowManager(ShadowManager):
             self.data.samples,
             K,
             calibration=calibration,
+            n_shots=self.options["n_shots"],
         )
