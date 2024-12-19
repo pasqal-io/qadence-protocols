@@ -15,7 +15,7 @@ from qadence_protocols.measurements.utils_shadow.data_acquisition import (
 from qadence_protocols.measurements.utils_shadow.post_processing import (
     compute_snapshots,
     expectation_estimations,
-    global_shadow_Hamming,
+    global_shadow_hamming,
     local_shadow,
 )
 from qadence_protocols.types import MeasurementData
@@ -156,7 +156,7 @@ class ShadowManager(MeasurementManager):
             self.measure()
 
         caller, local_shadows = (
-            (local_shadow, True) if self.options["n_shots"] == 1 else (global_shadow_Hamming, False)
+            (local_shadow, True) if self.options["n_shots"] == 1 else (global_shadow_hamming, False)
         )
 
         return compute_snapshots(
@@ -218,15 +218,15 @@ class ShadowManager(MeasurementManager):
 
         if self.model is None:
             raise ValueError("Please provide a model to run protocol.")
-        accuracy = self.options["accuracy"]
-        confidence = self.options["confidence"]
         observables = (
             observables
             if len(observables) > 0
             else [obs.abstract for obs in self.model._observable]
         )
         _, K = number_of_samples(
-            observables=observables, accuracy=accuracy or 0.0, confidence=confidence or 0
+            observables=observables,
+            accuracy=self.options.get("accuracy", 0.0),
+            confidence=self.options.get("confidence", 0.0),
         )
 
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]

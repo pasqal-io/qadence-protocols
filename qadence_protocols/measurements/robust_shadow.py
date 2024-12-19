@@ -12,7 +12,7 @@ from qadence_protocols.measurements.utils_shadow.data_acquisition import shadow_
 from qadence_protocols.measurements.utils_shadow.post_processing import (
     compute_snapshots,
     expectation_estimations,
-    global_robust_shadow_Hamming,
+    global_robust_shadow_hamming,
     robust_local_shadow,
 )
 from qadence_protocols.types import MeasurementData
@@ -112,7 +112,7 @@ class RobustShadowManager(ShadowManager):
         caller, local_shadows = (
             (partial(robust_local_shadow, calibration=calibration), True)
             if self.options["n_shots"] == 1
-            else (partial(global_robust_shadow_Hamming, calibration=calibration), False)
+            else (partial(global_robust_shadow_hamming, calibration=calibration), False)
         )
 
         return compute_snapshots(

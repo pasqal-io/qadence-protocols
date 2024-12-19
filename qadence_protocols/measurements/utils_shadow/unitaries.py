@@ -16,7 +16,7 @@ UNITARY_TENSOR = [
     (HMAT @ SDAGMAT).squeeze(dim=0),
     IMAT.squeeze(dim=0),
 ]
-UNITARY_TENSOR_adjoint = [unit.adjoint() for unit in UNITARY_TENSOR]
+UNITARY_TENSOR_ADJOINT = [unit.adjoint() for unit in UNITARY_TENSOR]
 
 idmat = UNITARY_TENSOR[-1]
 

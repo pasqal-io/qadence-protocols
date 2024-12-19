@@ -18,8 +18,8 @@ from qadence_protocols.measurements.utils_shadow.data_acquisition import (
     rotations_unitary_map,
 )
 from qadence_protocols.measurements.utils_shadow.unitaries import (
+    UNITARY_TENSOR_ADJOINT,
     HammingMatrix,
-    UNITARY_TENSOR_adjoint,
     idmat,
     pauli_gates,
 )
@@ -41,7 +41,7 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
     """
 
     nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
     projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
     projmat[..., :, :] = torch.where(
         bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
@@ -53,7 +53,7 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
 def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
     """Compute robust local shadow by inverting the quantum channel for each projector state."""
     nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
     projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
     projmat[..., :, :] = torch.where(
         bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
@@ -65,11 +65,11 @@ def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Te
     return local_densities
 
 
-def global_shadow_Hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
+def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
     """Compute global shadow using a Hamming matrix."""
 
     nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
 
     N = unitary_ids.shape[1]
     if N > 1:
@@ -91,13 +91,13 @@ def global_shadow_Hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
     return densities
 
 
-def global_robust_shadow_Hamming(
+def global_robust_shadow_hamming(
     probas: Tensor, unitary_ids: Tensor, calibration: Tensor
 ) -> Tensor:
     """Compute robust global shadow using a Hamming matrix."""
 
     nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_adjoint)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
 
     N = unitary_ids.shape[1]
     if N > 1:
@@ -240,9 +240,9 @@ def estimators_from_probas(
     floor = int(np.floor(N / K))
     traces = []
 
-    shadow_caller: Callable = global_shadow_Hamming
+    shadow_caller: Callable = global_shadow_hamming
     if calibration is not None:
-        shadow_caller = partial(global_robust_shadow_Hamming, calibration=calibration)
+        shadow_caller = partial(global_robust_shadow_hamming, calibration=calibration)
 
     for k in range(K):
         snapshots = shadow_caller(
