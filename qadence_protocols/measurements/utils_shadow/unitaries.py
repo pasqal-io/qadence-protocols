@@ -20,4 +20,4 @@ UNITARY_TENSOR_ADJOINT = [unit.adjoint() for unit in UNITARY_TENSOR]
 
 idmat = UNITARY_TENSOR[-1]
 
-HammingMatrix = torch.tensor([[1.0, -0.5], [-0.5, 1.0]], dtype=torch.double)
+hamming_one_qubit = torch.tensor([[1.0, -0.5], [-0.5, 1.0]], dtype=torch.double)

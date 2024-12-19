@@ -19,7 +19,7 @@ from qadence_protocols.measurements.utils_shadow.data_acquisition import (
 )
 from qadence_protocols.measurements.utils_shadow.unitaries import (
     UNITARY_TENSOR_ADJOINT,
-    HammingMatrix,
+    hamming_one_qubit,
     idmat,
     pauli_gates,
 )
@@ -75,7 +75,7 @@ def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
     if N > 1:
         nested_unitaries = batch_kron(nested_unitaries)
         nested_unitaries_adjoint = batch_kron(nested_unitaries_adjoint)
-    hamming_mat = [HammingMatrix.to(dtype=probas.dtype) for i in range(N)]
+    hamming_mat = [hamming_one_qubit.to(dtype=probas.dtype) for i in range(N)]
     d = 2**N
     probas = probas.reshape((probas.shape[0],) + (2,) * N)
 
