@@ -30,6 +30,17 @@ einsum_alphabet = "abcdefghijklmnopqsrtuvwxyz"
 einsum_alphabet_cap = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
+def get_unitaries_and_projectors(bitstrings: Tensor, unitary_ids: Tensor) -> tuple:
+    """Obtain unitaries, projector matrices and adjoint unitaries for shadow computations."""
+    nested_unitaries = rotations_unitary_map(unitary_ids)
+    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
+    projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
+    projmat[..., :, :] = torch.where(
+        bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
+    )
+    return (nested_unitaries, projmat, nested_unitaries_adjoint)
+
+
 def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
     """
     Compute local shadow by inverting the quantum channel for each projector state.
@@ -40,11 +51,8 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
     Expects a sample bitstring in ILO.
     """
 
-    nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
-    projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
-    projmat[..., :, :] = torch.where(
-        bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
+    nested_unitaries, projmat, nested_unitaries_adjoint = get_unitaries_and_projectors(
+        bitstrings, unitary_ids
     )
     local_densities = 3.0 * (nested_unitaries_adjoint @ projmat @ nested_unitaries) - idmat
     return local_densities
@@ -52,11 +60,8 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
 
 def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
     """Compute robust local shadow by inverting the quantum channel for each projector state."""
-    nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
-    projmat = torch.empty(nested_unitaries.shape, dtype=nested_unitaries.dtype)
-    projmat[..., :, :] = torch.where(
-        bitstrings.bool().unsqueeze(-1).unsqueeze(-1), P1_MATRIX, P0_MATRIX
+    nested_unitaries, projmat, nested_unitaries_adjoint = get_unitaries_and_projectors(
+        bitstrings, unitary_ids
     )
     idmatcal = torch.stack([idmat * 0.5 * (1.0 / corr_coeff - 1.0) for corr_coeff in calibration])
     local_densities = (1.0 / calibration.unsqueeze(-1).unsqueeze(-1)) * (
