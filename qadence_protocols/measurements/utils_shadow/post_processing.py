@@ -75,7 +75,7 @@ def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
     if N > 1:
         nested_unitaries = batch_kron(nested_unitaries)
         nested_unitaries_adjoint = batch_kron(nested_unitaries_adjoint)
-    Hamming_mat = [HammingMatrix.to(dtype=probas.dtype) for i in range(N)]
+    hamming_mat = [HammingMatrix.to(dtype=probas.dtype) for i in range(N)]
     d = 2**N
     probas = probas.reshape((probas.shape[0],) + (2,) * N)
 
@@ -83,7 +83,7 @@ def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
     for i in range(1, N + 1):
         ein_command += "," + einsum_alphabet[i] + einsum_alphabet_cap[i]
     ein_command += "->" + einsum_alphabet[0] + einsum_alphabet_cap[1 : N + 1]
-    probprime = d * torch.einsum(ein_command, *([probas] + Hamming_mat)).to(
+    probprime = d * torch.einsum(ein_command, *([probas] + hamming_mat)).to(
         dtype=nested_unitaries.dtype
     )
     probprime = torch.diag_embed(probprime.reshape((-1, d)))
@@ -110,12 +110,12 @@ def global_robust_shadow_hamming(
     beta = (calibration - 2.0) / div
 
     # shape (N, 2, 2)
-    Hamming_mat = 0.5 * (
+    hamming_mat = 0.5 * (
         torch.stack((torch.stack((alpha + beta, beta)), torch.stack((beta, alpha + beta))))
         .permute((-1, 0, 1))
         .to(dtype=probas.dtype)
     )
-    Hamming_mat = [Hamming_mat[i, ...] for i in range(N)]
+    hamming_mat = [hamming_mat[i, ...] for i in range(N)]
     d = 2**N
     probas = probas.reshape((probas.shape[0],) + (2,) * N)
 
@@ -123,7 +123,7 @@ def global_robust_shadow_hamming(
     for i in range(1, N + 1):
         ein_command += "," + einsum_alphabet[i] + einsum_alphabet_cap[i]
     ein_command += "->" + einsum_alphabet[0] + einsum_alphabet_cap[1 : N + 1]
-    probprime = d * torch.einsum(ein_command, *([probas] + Hamming_mat)).to(
+    probprime = d * torch.einsum(ein_command, *([probas] + hamming_mat)).to(
         dtype=nested_unitaries.dtype
     )
     probprime = torch.diag_embed(probprime.reshape((-1, d)))
