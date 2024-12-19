@@ -70,16 +70,21 @@ def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Te
     return local_densities
 
 
-def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
-    """Compute global shadow using a Hamming matrix."""
-
+def get_global_unitaries(unitary_ids: Tensor) -> tuple[Tensor, Tensor]:
     nested_unitaries = rotations_unitary_map(unitary_ids)
     nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
 
-    N = unitary_ids.shape[1]
-    if N > 1:
+    if unitary_ids.shape[1] > 1:
         nested_unitaries = batch_kron(nested_unitaries)
         nested_unitaries_adjoint = batch_kron(nested_unitaries_adjoint)
+    return (nested_unitaries, nested_unitaries_adjoint)
+
+
+def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
+    """Compute global shadow using a Hamming matrix."""
+
+    nested_unitaries, nested_unitaries_adjoint = get_global_unitaries(unitary_ids)
+    N = unitary_ids.shape[1]
     hamming_mat = [hamming_one_qubit.to(dtype=probas.dtype) for i in range(N)]
     d = 2**N
     probas = probas.reshape((probas.shape[0],) + (2,) * N)
