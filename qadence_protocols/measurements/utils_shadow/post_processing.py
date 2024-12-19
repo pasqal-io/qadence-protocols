@@ -30,7 +30,9 @@ einsum_alphabet = "abcdefghijklmnopqsrtuvwxyz"
 einsum_alphabet_cap = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-def get_unitaries_and_projectors(bitstrings: Tensor, unitary_ids: Tensor) -> tuple:
+def get_local_shadow_components(
+    bitstrings: Tensor, unitary_ids: Tensor
+) -> tuple[Tensor, Tensor, Tensor]:
     """Obtain unitaries, projector matrices and adjoint unitaries for shadow computations."""
     nested_unitaries = rotations_unitary_map(unitary_ids)
     nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
@@ -51,7 +53,7 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
     Expects a sample bitstring in ILO.
     """
 
-    nested_unitaries, projmat, nested_unitaries_adjoint = get_unitaries_and_projectors(
+    nested_unitaries, projmat, nested_unitaries_adjoint = get_local_shadow_components(
         bitstrings, unitary_ids
     )
     local_densities = 3.0 * (nested_unitaries_adjoint @ projmat @ nested_unitaries) - idmat
@@ -60,7 +62,7 @@ def local_shadow(bitstrings: Tensor, unitary_ids: Tensor) -> Tensor:
 
 def robust_local_shadow(bitstrings: Tensor, unitary_ids: Tensor, calibration: Tensor) -> Tensor:
     """Compute robust local shadow by inverting the quantum channel for each projector state."""
-    nested_unitaries, projmat, nested_unitaries_adjoint = get_unitaries_and_projectors(
+    nested_unitaries, projmat, nested_unitaries_adjoint = get_local_shadow_components(
         bitstrings, unitary_ids
     )
     idmatcal = torch.stack([idmat * 0.5 * (1.0 / corr_coeff - 1.0) for corr_coeff in calibration])
@@ -80,25 +82,44 @@ def get_global_unitaries(unitary_ids: Tensor) -> tuple[Tensor, Tensor]:
     return (nested_unitaries, nested_unitaries_adjoint)
 
 
-def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
-    """Compute global shadow using a Hamming matrix."""
-
-    nested_unitaries, nested_unitaries_adjoint = get_global_unitaries(unitary_ids)
-    N = unitary_ids.shape[1]
-    hamming_mat = [hamming_one_qubit.to(dtype=probas.dtype) for i in range(N)]
-    d = 2**N
-    probas = probas.reshape((probas.shape[0],) + (2,) * N)
-
+def get_ein_command_shadows(N: int) -> str:
     ein_command = einsum_alphabet[: N + 1]
     for i in range(1, N + 1):
         ein_command += "," + einsum_alphabet[i] + einsum_alphabet_cap[i]
     ein_command += "->" + einsum_alphabet[0] + einsum_alphabet_cap[1 : N + 1]
+    return ein_command
+
+
+def hamming_to_shadows(hamming_mat: list[Tensor], probas: Tensor, unitary_ids: Tensor) -> Tensor:
+    """Obtain shadows using Hamming matrices.
+
+    Args:
+        hamming_mat (list[Tensor]): List of Hamming matrices.
+        probas (Tensor): Probability matrix from measurements.
+        unitary_ids (Tensor): Samples ids of unitaries.
+
+    Returns:
+        Tensor: Shadows.
+    """
+    nested_unitaries, nested_unitaries_adjoint = get_global_unitaries(unitary_ids)
+    N = len(hamming_mat)
+    d = 2**N
+    ein_command = get_ein_command_shadows(N)
+    probas = probas.reshape((probas.shape[0],) + (2,) * N)
     probprime = d * torch.einsum(ein_command, *([probas] + hamming_mat)).to(
         dtype=nested_unitaries.dtype
     )
     probprime = torch.diag_embed(probprime.reshape((-1, d)))
     densities = nested_unitaries_adjoint @ probprime @ nested_unitaries
     return densities
+
+
+def global_shadow_hamming(probas: Tensor, unitary_ids: Tensor) -> Tensor:
+    """Compute global shadow using a Hamming matrix."""
+
+    N = unitary_ids.shape[1]
+    hamming_mat = [hamming_one_qubit.to(dtype=probas.dtype) for _ in range(N)]
+    return hamming_to_shadows(hamming_mat, probas, unitary_ids)
 
 
 def global_robust_shadow_hamming(
@@ -106,39 +127,20 @@ def global_robust_shadow_hamming(
 ) -> Tensor:
     """Compute robust global shadow using a Hamming matrix."""
 
-    nested_unitaries = rotations_unitary_map(unitary_ids)
-    nested_unitaries_adjoint = rotations_unitary_map(unitary_ids, UNITARY_TENSOR_ADJOINT)
-
-    N = unitary_ids.shape[1]
-    if N > 1:
-        nested_unitaries = batch_kron(nested_unitaries)
-        nested_unitaries_adjoint = batch_kron(nested_unitaries_adjoint)
-
     calibration = 3.0 * calibration
     div = 2.0 * calibration - 1.0
     alpha = 3.0 / div
     beta = (calibration - 2.0) / div
 
     # shape (N, 2, 2)
+    N = unitary_ids.shape[1]
     hamming_mat = 0.5 * (
         torch.stack((torch.stack((alpha + beta, beta)), torch.stack((beta, alpha + beta))))
         .permute((-1, 0, 1))
         .to(dtype=probas.dtype)
     )
     hamming_mat = [hamming_mat[i, ...] for i in range(N)]
-    d = 2**N
-    probas = probas.reshape((probas.shape[0],) + (2,) * N)
-
-    ein_command = einsum_alphabet[: N + 1]
-    for i in range(1, N + 1):
-        ein_command += "," + einsum_alphabet[i] + einsum_alphabet_cap[i]
-    ein_command += "->" + einsum_alphabet[0] + einsum_alphabet_cap[1 : N + 1]
-    probprime = d * torch.einsum(ein_command, *([probas] + hamming_mat)).to(
-        dtype=nested_unitaries.dtype
-    )
-    probprime = torch.diag_embed(probprime.reshape((-1, d)))
-    densities = nested_unitaries_adjoint @ probprime @ nested_unitaries
-    return densities
+    return hamming_to_shadows(hamming_mat, probas, unitary_ids)
 
 
 def compute_snapshots(
