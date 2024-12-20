@@ -60,7 +60,7 @@ def maximal_weight(observables: list[AbstractBlock]) -> int:
 
 
 def number_of_samples(
-    observables: list[AbstractBlock], accuracy: float = 0.0, confidence: float = 0.0
+    observables: list[AbstractBlock], accuracy: float | None = None, confidence: float | None = None
 ) -> tuple[int, ...]:
     """
     Estimate an optimal shot budget and a shadow partition size.
@@ -71,15 +71,15 @@ def number_of_samples(
     See https://arxiv.org/pdf/2002.08953.pdf
     Supplementary Material 1 and Eqs. (S23)-(S24).
 
-    If accuracy equals 0, we return the shot budget 0.
-    If confidence equals 0, we return the shadow partition size 1.
+    If accuracy is None, we return the shot budget 0.
+    If confidence is None, we return the shadow partition size 1.
     """
     max_k = maximal_weight(observables=observables)
     N = 0
     K = 1
-    if accuracy > 0:
+    if accuracy and accuracy > 0:
         N = round(3**max_k * 34.0 / accuracy**2)
-    if confidence > 0:
+    if confidence and confidence > 0:
         K = round(2.0 * np.log(2.0 * len(observables) / confidence))
     return N, K
 

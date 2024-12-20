@@ -62,14 +62,14 @@ class ShadowManager(MeasurementManager):
         """
 
         shadow_size = options.get("shadow_size", None)
-        accuracy = options.get("accuracy", 0)
-        if shadow_size is None and accuracy == 0:
+        accuracy = options.get("accuracy", None)
+        if shadow_size is None and accuracy is None:
             raise KeyError(
                 "Shadow protocol requires either an option"
                 " 'shadow_size' of type 'int' or 'accuracy' of type 'float'."
             )
-        confidence = options.get("confidence", 0)
-        if confidence == 0:
+        confidence = options.get("confidence", None)
+        if confidence is None:
             raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
 
         n_shots = options.get("n_shots", 1)
@@ -79,6 +79,7 @@ class ShadowManager(MeasurementManager):
             "accuracy": accuracy,
             "confidence": confidence,
         }
+
         return validated_options
 
     def validate_data(self, data: MeasurementData) -> MeasurementData:
@@ -225,8 +226,8 @@ class ShadowManager(MeasurementManager):
         )
         _, K = number_of_samples(
             observables=observables,
-            accuracy=self.options.get("accuracy", 0),
-            confidence=self.options.get("confidence", 0),
+            accuracy=self.options["accuracy"],
+            confidence=self.options["confidence"],
         )
 
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
