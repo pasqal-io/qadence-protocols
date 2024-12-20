@@ -93,7 +93,7 @@ Along the same lines as the example before, estimating the expectation value usi
 # Classical shadows are defined up to some accuracy and confidence.
 from qadence_protocols.measurements.utils_shadow.data_acquisition import number_of_samples
 
-shadow_options = {"accuracy": 0.1, "confidence": 0.1, "n_shots": 1}
+shadow_options = {"accuracy": 0.1, "confidence": 0.1}
 N, K = number_of_samples(observable, shadow_options["accuracy"], shadow_options["confidence"])
 shadow_measurement = Measurements(protocol=MeasurementProtocol.SHADOW, options=shadow_options)
 
@@ -103,7 +103,7 @@ estimated_values_shadow = shadow_measurement(model=model)
 print(f"Estimated expectation value shadow = {estimated_values_shadow}") # markdown-exec: hide
 ```
 
-Note that the optional `n_shots` is by default 1, which means for one unitary, we sample only once. If we specify a higher
+Note that the option `n_shots` is by default 1, which means for one unitary, we sample only once. If we specify a higher
 number of shots, more samples are realized per unitary accordingly, and a different formula is used involving the Hamming distance denoted $D$ (see Eq. 2.42 of Ref[^3]):
 $$\hat{\rho}^{(r)} = 2^N \bigotimes_{i=1}^N \sum_{b_i} (-2)^{-D[b_i, b_i^{(r)}]} (U^\dagger |\hat{b_i}\rangle\langle \hat{b_i}|U)$$
 
