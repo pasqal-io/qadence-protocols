@@ -12,8 +12,7 @@ from qadence.noise import NoiseHandler
 from qadence.operations import X, Y, Z
 from qadence.types import Endianness
 
-pauli_gates = [X, Y, Z]
-pauli_tensors = [XMAT[0], YMAT[0], ZMAT[0]]
+from qadence_protocols.measurements.utils_shadow import extract_operators
 
 
 def zero_state_calibration(
@@ -48,6 +47,13 @@ def zero_state_calibration(
 
     calibrations = torch.zeros(n_qubits, dtype=torch.float64)
     divider = 3.0 * n_shots * n_unitaries
+
+    all_rotations = extract_operators(unitary_ids, n_qubits)
+    all_rotations = [
+        QuantumCircuit(n_qubits, rots) if rots else QuantumCircuit(n_qubits)
+        for rots in all_rotations
+    ]
+
     for i in range(n_unitaries):
         random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
 
