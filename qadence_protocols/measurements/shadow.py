@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+from math import log
+
 import torch
 from qadence import QuantumModel
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor
 
 from qadence_protocols.measurements.abstract import MeasurementManager
-from qadence_protocols.measurements.utils_shadow import (
-    compute_snapshots,
-    expectation_estimations,
-    local_shadow,
+from qadence_protocols.measurements.utils_shadow.data_acquisition import (
     number_of_samples,
     shadow_samples,
+)
+from qadence_protocols.measurements.utils_shadow.post_processing import (
+    compute_snapshots,
+    expectation_estimations,
+    global_shadow_hamming,
+    local_shadow,
 )
 from qadence_protocols.types import MeasurementData
 
@@ -66,11 +71,15 @@ class ShadowManager(MeasurementManager):
         confidence = options.get("confidence", None)
         if confidence is None:
             raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
+
+        n_shots = options.get("n_shots", 1)
         validated_options = {
             "shadow_size": shadow_size,
+            "n_shots": n_shots,
             "accuracy": accuracy,
             "confidence": confidence,
         }
+
         return validated_options
 
     def validate_data(self, data: MeasurementData) -> MeasurementData:
@@ -104,11 +113,17 @@ class ShadowManager(MeasurementManager):
 
         if self.model is not None:
             n_qubits = self.model._circuit.original.n_qubits
-            if not (data.unitaries.shape[1] == data.samples.shape[2] == n_qubits):
+            n_qubits_data = (
+                int(log(data.samples.shape[2], 2))
+                if self.options["n_shots"] > 1
+                else data.samples.shape[2]
+            )
+            if not (data.unitaries.shape[1] == n_qubits_data == n_qubits):
                 raise ValueError(
                     f"Provide correctly data as Tensors with {n_qubits}"
                     "`qubits` in the last dimension."
                 )
+
         return data
 
     def reconstruct_state(
@@ -141,7 +156,16 @@ class ShadowManager(MeasurementManager):
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
 
-        return compute_snapshots(self.data.samples, self.data.unitaries, local_shadow)
+        caller, local_shadows = (
+            (local_shadow, True) if self.options["n_shots"] == 1 else (global_shadow_hamming, False)
+        )
+
+        return compute_snapshots(
+            self.data.samples,
+            self.data.unitaries,
+            caller,
+            local_shadows=local_shadows,
+        )
 
     def measure(
         self,
@@ -174,6 +198,7 @@ class ShadowManager(MeasurementManager):
             state=self.state,
             backend=self.model.backend,
             noise=self.model._noise,
+            n_shots=self.options["n_shots"],
         )
         return self.data
 
@@ -194,16 +219,20 @@ class ShadowManager(MeasurementManager):
 
         if self.model is None:
             raise ValueError("Please provide a model to run protocol.")
-        accuracy = self.options["accuracy"]
-        confidence = self.options["confidence"]
         observables = (
             observables
             if len(observables) > 0
             else [obs.abstract for obs in self.model._observable]
         )
-        _, K = number_of_samples(observables=observables, accuracy=accuracy, confidence=confidence)
+        _, K = number_of_samples(
+            observables=observables,
+            accuracy=self.options["accuracy"],
+            confidence=self.options["confidence"],
+        )
 
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
 
-        return expectation_estimations(observables, self.data.unitaries, self.data.samples, K)
+        return expectation_estimations(
+            observables, self.data.unitaries, self.data.samples, K, n_shots=self.options["n_shots"]
+        )
