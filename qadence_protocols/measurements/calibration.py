@@ -76,7 +76,7 @@ def zero_state_calibration(
             param_values=param_values,
             n_shots=n_shots,
             state=None,
-            noise=noise,
+            noise=None,
             endianness=endianness,
         )[0]
 
