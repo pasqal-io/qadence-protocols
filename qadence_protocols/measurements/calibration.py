@@ -13,7 +13,6 @@ from qadence.types import Endianness
 from qadence_protocols.measurements.utils_shadow.data_acquisition import extract_operators
 from qadence_protocols.measurements.utils_shadow.unitaries import (
     UNITARY_TENSOR,
-    UNITARY_TENSOR_ADJOINT,
 )
 
 
@@ -48,16 +47,16 @@ def zero_state_calibration(
     param_values: dict = dict()
 
     calibrations = torch.zeros(n_qubits, dtype=torch.float64)
-    divider = 3.0 * n_shots * n_unitaries
+    divider = n_shots * n_unitaries
     # get measurement rotations
     all_rotations = extract_operators(unitary_ids, n_qubits)
 
     # set an input state depending on digital noise with target options
     noisy_zero_circ = QuantumCircuit(n_qubits)
-    noisy_identities = list()
     if noise is not None:
         digital_part = noise.filter(NoiseProtocol.DIGITAL)
         if digital_part is not None:
+            noisy_identities = list()
             for proto, options in zip(digital_part.protocol, digital_part.options):
                 target = options.get("target", None)
                 if target is not None:
@@ -81,22 +80,23 @@ def zero_state_calibration(
         )[0]
 
         for bitstring, freq in samples.items():
-            calibrations += (
-                freq
-                * torch.tensor(
-                    [
+            for qubit in range(n_qubits):
+                kj = (
+                    int(bitstring[qubit], 2)
+                    if endianness == Endianness.BIG
+                    else int(bitstring[::-1][qubit], 2)
+                )
+                calibrations[qubit] += (
+                    (
                         2.0
                         * torch.real(
-                            UNITARY_TENSOR[unitary_ids[i][qubit]][int(bitstring[qubit]), 0]
-                            * UNITARY_TENSOR_ADJOINT[unitary_ids[i][qubit]][
-                                int(bitstring[qubit]), 0
-                            ]
+                            UNITARY_TENSOR[unitary_ids[i][qubit]][kj, 0]
+                            * UNITARY_TENSOR[unitary_ids[i][qubit]][kj, 0].conj()
                         )
-                        - 1
-                        for qubit in range(n_qubits)
-                    ]
+                        - 1.0
+                    )
+                    * freq
+                    / divider
                 )
-                / divider
-            )
 
     return calibrations
