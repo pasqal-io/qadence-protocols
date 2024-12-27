@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 import torch
+from qadence import NoiseHandler, NoiseProtocol
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
 from qadence.circuit import QuantumCircuit
 from qadence.engines.differentiable_backend import DifferentiableBackend
-from qadence.noise import NoiseHandler, NoiseProtocol
 from qadence.operations import I
 from qadence.types import Endianness
 
@@ -49,25 +49,25 @@ def zero_state_calibration(
 
     calibrations = torch.zeros(n_qubits, dtype=torch.float64)
     divider = 3.0 * n_shots * n_unitaries
-
+    # get measurement rotations
     all_rotations = extract_operators(unitary_ids, n_qubits)
-    all_rotations = [
-        QuantumCircuit(n_qubits, rots) if rots else QuantumCircuit(n_qubits)
-        for rots in all_rotations
-    ]
 
     # set an input state depending on digital noise with target options
-    state = None
+    noisy_zero_circ = QuantumCircuit(n_qubits)
+    noisy_identities = list()
     if noise is not None:
         digital_part = noise.filter(NoiseProtocol.DIGITAL)
         if digital_part is not None:
-            noisy_identities = list()
-            for proto, options in zip(digital_part.protocols, digital_part.options):
+            for proto, options in zip(digital_part.protocol, digital_part.options):
                 target = options.get("target", None)
-                if target:
-                    noisy_identities.append(I(target, noise=NoiseProtocol(proto, options)))
+                if target is not None:
+                    noisy_identities.append(I(target=target, noise=NoiseHandler(proto, options)))
+            noisy_zero_circ = QuantumCircuit(n_qubits, *noisy_identities)
 
-            state = QuantumCircuit(n_qubits, noisy_identities)
+    all_rotations = [
+        QuantumCircuit(n_qubits, noisy_zero_circ.block, rots) if rots else noisy_zero_circ
+        for rots in all_rotations
+    ]
 
     for i in range(n_unitaries):
         conv_circ = backend.circuit(all_rotations[i])
@@ -75,7 +75,7 @@ def zero_state_calibration(
             circuit=conv_circ,
             param_values=param_values,
             n_shots=n_shots,
-            state=state,
+            state=None,
             noise=noise,
             endianness=endianness,
         )[0]
