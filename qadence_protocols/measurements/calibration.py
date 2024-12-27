@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import numpy as np
 import torch
-from qadence import kron
 from qadence.backend import Backend
 from qadence.backends.pyqtorch import Backend as PyQBackend
-from qadence.blocks.block_to_tensor import XMAT, YMAT, ZMAT
 from qadence.circuit import QuantumCircuit
 from qadence.engines.differentiable_backend import DifferentiableBackend
-from qadence.noise import NoiseHandler
-from qadence.operations import X, Y, Z
+from qadence.noise import NoiseHandler, NoiseProtocol
+from qadence.operations import I
 from qadence.types import Endianness
 
-from qadence_protocols.measurements.utils_shadow import extract_operators
+from qadence_protocols.measurements.utils_shadow.data_acquisition import extract_operators
+from qadence_protocols.measurements.utils_shadow.unitaries import (
+    UNITARY_TENSOR,
+    UNITARY_TENSOR_ADJOINT,
+)
 
 
 def zero_state_calibration(
@@ -54,24 +56,26 @@ def zero_state_calibration(
         for rots in all_rotations
     ]
 
+    # set an input state depending on digital noise with target options
+    state = None
+    if noise is not None:
+        digital_part = noise.filter(NoiseProtocol.DIGITAL)
+        if digital_part is not None:
+            noisy_identities = list()
+            for proto, options in zip(digital_part.protocols, digital_part.options):
+                target = options.get("target", None)
+                if target:
+                    noisy_identities.append(I(target, noise=NoiseProtocol(proto, options)))
+
+            state = QuantumCircuit(n_qubits, noisy_identities)
+
     for i in range(n_unitaries):
-        random_unitary = [pauli_gates[unitary_ids[i][qubit]](qubit) for qubit in range(n_qubits)]
-
-        if len(random_unitary) == 1:
-            random_unitary_block = random_unitary[0]
-        else:
-            random_unitary_block = kron(*random_unitary)
-
-        random_circuit = QuantumCircuit(
-            n_qubits,
-            random_unitary_block,
-        )
-        conv_circ = backend.circuit(random_circuit)
+        conv_circ = backend.circuit(all_rotations[i])
         samples = backend.sample(
             circuit=conv_circ,
             param_values=param_values,
             n_shots=n_shots,
-            state=None,
+            state=state,
             noise=noise,
             endianness=endianness,
         )[0]
@@ -83,8 +87,10 @@ def zero_state_calibration(
                     [
                         2.0
                         * torch.real(
-                            pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0]
-                            * pauli_tensors[unitary_ids[i][qubit]][int(bitstring[qubit]), 0].conj()
+                            UNITARY_TENSOR[unitary_ids[i][qubit]][int(bitstring[qubit]), 0]
+                            * UNITARY_TENSOR_ADJOINT[unitary_ids[i][qubit]][
+                                int(bitstring[qubit]), 0
+                            ]
                         )
                         - 1
                         for qubit in range(n_qubits)
