@@ -201,7 +201,6 @@ def shadow_samples(
         digital_part = noise.filter(NoiseProtocol.DIGITAL)
         if digital_part is not None:
             all_rotations = [set_noise(rots, digital_part) for rots in all_rotations]
-            set_noise(circuit, digital_part)
 
     for i in range(shadow_size):
         # Reverse endianness to get sample bitstrings in ILO.
