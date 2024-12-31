@@ -190,7 +190,9 @@ def shadow_samples(
     shadow: list = list()
     all_rotations = extract_operators(unitary_ids, circuit.n_qubits)
     all_rotations = [
-        QuantumCircuit(circuit.n_qubits, rots) if rots else QuantumCircuit(circuit.n_qubits)
+        QuantumCircuit(circuit.n_qubits, circuit.block, rots)
+        if rots
+        else QuantumCircuit(circuit.n_qubits, circuit.block)
         for rots in all_rotations
     ]
 
@@ -201,15 +203,6 @@ def shadow_samples(
             all_rotations = [set_noise(rots, digital_part) for rots in all_rotations]
             set_noise(circuit, digital_part)
 
-    # run the initial circuit without rotations
-    conv_circ = backend.circuit(circuit)
-    circ_output = backend.run(
-        circuit=conv_circ,
-        param_values=param_values,
-        state=state,
-        endianness=endianness,
-    )
-
     for i in range(shadow_size):
         # Reverse endianness to get sample bitstrings in ILO.
         conv_circ = backend.circuit(all_rotations[i])
@@ -217,7 +210,7 @@ def shadow_samples(
             circuit=conv_circ,
             param_values=param_values,
             n_shots=n_shots,
-            state=circ_output,
+            state=None,
             noise=noise,
             endianness=endianness,
         )
