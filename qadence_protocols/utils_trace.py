@@ -6,6 +6,7 @@ from string import ascii_letters as ABC
 import torch
 from numpy import argsort, array
 from numpy.typing import NDArray
+from pyqtorch.utils import dm_partial_trace
 from qadence import block_to_tensor
 from qadence.blocks.abstract import AbstractBlock
 from torch import Tensor, einsum
@@ -99,3 +100,32 @@ def expectation_trace(state: Tensor, observables: list[AbstractBlock]) -> Tensor
     vmap_trace = torch.vmap(torch.trace)
     tr_obs_rho = [vmap_trace(res_dm_obs).real for res_dm_obs in tr_obs_rho]
     return torch.stack(tr_obs_rho, axis=1)
+
+
+def apply_partial_trace(rho: Tensor, keep_indices: list[int]) -> Tensor:
+    """
+    Computes the partial trace of a density matrix for a system of several qubits with batch size.
+
+    This function also permutes the qubits according to the order specified in keep_indices.
+
+    Args:
+        rho (Tensor) : Density matrix of shape [batch_size, 2**n_qubits, 2**n_qubits].
+        keep_indices (list[int]): Index of the qubit subsystems to keep.
+
+    Returns:
+        Tensor: Reduced density matrix after the partial trace,
+        of shape [batch_size, 2**n_keep, 2**n_keep].
+    """
+    return dm_partial_trace(rho.permute((1, 2, 0)), keep_indices).permute((0, 1, 2))
+
+
+def compute_purity(rho: Tensor) -> Tensor:
+    """Compute the purity of a density matrix.
+
+    Args:
+        rho (Tensor): Density matrix.
+
+    Returns:
+        Tensor: Tr[rho ** 2]
+    """
+    return torch.trace(rho**2).real
