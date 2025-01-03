@@ -22,7 +22,7 @@ def _get_noiseless_probas(
     rotations: list,
     backend: Backend | DifferentiableBackend = PyQBackend(),
     endianness: Endianness = Endianness.BIG,
-) -> list[list[Tensor]]:
+) -> Tensor:
     """Get noiseless probas for a zero circuit with rotations for the zero state calibration.
 
     Args:
@@ -33,21 +33,19 @@ def _get_noiseless_probas(
         endianness (Endianness, optional): Endianness of operations. Defaults to Endianness.BIG.
 
     Returns:
-        list[list[Tensor]]: The probabilities per qubit for each rotation.
+        Tensor: The probabilities per qubit for each rotation.
     """
     zero_circ = backend.circuit(QuantumCircuit(n_qubits))
-    noiseless_probas = list()
-    for rot in rotations:
+    noiseless_probas = torch.zeros((len(rotations), n_qubits, 2))
+    for r, rot in enumerate(rotations):
         wave_fct = backend.run(
             backend.circuit(QuantumCircuit(n_qubits, rot)) if rot else zero_circ,
             endianness=endianness,
         )
-        noiseless_probas.append(
-            [
-                torch.diagonal(apply_partial_trace(wave_fct, [i]), dim1=1, dim2=2).real.squeeze()
-                for i in range(n_qubits)
-            ]
-        )
+        for i in range(n_qubits):
+            noiseless_probas[r][i] = torch.diagonal(
+                apply_partial_trace(wave_fct, [i]), dim1=1, dim2=2
+            ).real.squeeze()
     return noiseless_probas
 
 
@@ -108,7 +106,6 @@ def zero_state_calibration(
     unitary_ids = np.random.randint(0, 3, size=(n_unitaries, n_qubits))
     param_values: dict = dict()
 
-    calibrations = torch.zeros(n_qubits, dtype=torch.float64)
     # get measurement rotations
     all_rotations = extract_operators(unitary_ids, n_qubits)
 
@@ -134,22 +131,29 @@ def zero_state_calibration(
         for rots in all_rotations
     ]
 
-    all_noiseless_probas = _get_noiseless_probas(n_qubits, all_rotations, backend)
+    noiseless_probas = _get_noiseless_probas(n_qubits, all_rotations, backend)
 
+    estimated_probas = list()
     for i in range(n_unitaries):
         conv_circ = backend.circuit(all_circuits[i])
-        all_samples = backend.sample(
+        samples = backend.sample(
             circuit=conv_circ,
             param_values=param_values,
             n_shots=n_shots,
             noise=noise.filter(NoiseProtocol.READOUT) if noise is not None else None,
             endianness=endianness,
         )
-        born_probas = _singlebit_freq_from_samples(n_qubits, all_samples[0], endianness) / n_shots
-        for j in range(n_qubits):
-            calibrations[j] += (
-                3.0 * (born_probas[j] - all_noiseless_probas[i][j]) @ all_noiseless_probas[i][j]
-                + 1.0
-            ) / n_unitaries
+        estimated_probas.append(
+            _singlebit_freq_from_samples(n_qubits, samples[0], endianness) / n_shots
+        )
+    estimated_probas = torch.stack(estimated_probas)
 
+    calibrations = torch.sum(
+        (
+            3.0 * torch.einsum("nij,nij->ni", estimated_probas - noiseless_probas, noiseless_probas)
+            + 1.0
+        )
+        / n_unitaries,
+        axis=0,
+    )
     return (calibrations + 1) / 6.0
