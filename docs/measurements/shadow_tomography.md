@@ -7,6 +7,53 @@ In this tutorial, we will estimate a physical property out of a quantum system, 
 
 First, we will set the noise model and a circuit from which we will estimate the purity.
 
+### Noiseless circuit and expected purities
+
+Let us set the expected purities by setting the circuit without noise and calculating the expected purities:
+
+```python exec="on" source="material-block" session="shadow_tomo" result="json"
+from qadence import *
+
+theta1 = Parameter("theta1", trainable=False)
+theta2 = Parameter("theta2", trainable=False)
+theta3 = Parameter("theta3", trainable=False)
+theta4 = Parameter("theta4", trainable=False)
+
+blocks = chain(
+    kron(RX(0, theta1), RY(1, theta2)),
+    kron(RX(0, theta3), RY(1, theta4,),),
+)
+
+circuit = QuantumCircuit(2, blocks)
+values = {
+    "theta1": torch.tensor([0.5]),
+    "theta2": torch.tensor([1.5]),
+    "theta3": torch.tensor([2.0]),
+    "theta4": torch.tensor([2.5]),
+}
+
+model = QuantumModel(
+    circuit=circuit,
+    observable=[], # no observable needed here
+)
+```
+
+For calculating purities, we can use the utility functions `apply_partial_trace` and `compute_purity`:
+
+```python exec="on" source="material-block" session="shadow_tomo" result="json"
+from qadence import run
+from qadence_protocols.utils_trace import apply_partial_trace, compute_purity
+
+def partial_purities(density_mat):
+    purities = []
+    for i in range(nqbits):
+        partial_trace_i = apply_partial_trace(density_mat, [i]).squeeze()
+        purities.append(compute_purity(partial_trace_i))
+
+    return torch.tensor(purities)
+print(f"Expected purities = {partial_purities(run(circuit, values))}") # markdown-exec: hide
+```
+
 ### Noise model
 We will use a depolarizing noise model with a different error probability per qubit.
 
@@ -36,49 +83,26 @@ theta2 = Parameter("theta2", trainable=False)
 theta3 = Parameter("theta3", trainable=False)
 theta4 = Parameter("theta4", trainable=False)
 
-blocks = chain(
+noisy_blocks = chain(
     kron(RX(0, theta1), RY(1, theta2)),
-    kron(RX(0, theta3, NoiseHandler(protocol=NoiseProtocol.DIGITAL.DEPOLARIZING, options={"error_probability": error_probs[0], "target": 0})), 
+    kron(RX(0, theta3, NoiseHandler(protocol=NoiseProtocol.DIGITAL.DEPOLARIZING, options={"error_probability": error_probs[0], "target": 0})),
         RY(1, theta4, NoiseHandler(protocol=NoiseProtocol.DIGITAL.DEPOLARIZING, options={"error_probability": error_probs[1], "target": 1})),
         ),
 )
 
-circuit = QuantumCircuit(2, blocks)
-values = {
-    "theta1": torch.tensor([0.5]),
-    "theta2": torch.tensor([1.5]),
-    "theta3": torch.tensor([2.0]),
-    "theta4": torch.tensor([2.5]),
-}
+noisy_circuit = QuantumCircuit(2, noisy_blocks)
 
 model = QuantumModel(
-    circuit=circuit,
+    circuit=noisy_circuit,
     observable=[], # no observable needed here
-    noise=noise,
 )
-```
-
-Let us obtain the expected purities:
-
-```python exec="on" source="material-block" session="shadow_tomo" result="json"
-from qadence import run
-from qadence_protocols.utils_trace import apply_partial_trace, compute_purity
-
-def partial_purities(density_mat):
-    purities = []
-    for i in range(nqbits):
-        partial_trace_i = apply_partial_trace(density_mat, [i]).squeeze()
-        purities.append(compute_purity(partial_trace_i))
-
-    return torch.tensor(purities)
-print(f"Expected purities = {partial_purities(run(circuit, values))}") # markdown-exec: hide
 ```
 
 ## Shadow estimations
 
 ### Vanilla classical shadows
 We will first run vanilla shadows to reconstruct the density matrix representation of the circuit, from which we can estimate the purities.
-As we can see below, the estimated purities diverge from the expected ones due to the presence of noise. Next, we will use robust shadows to mitigate the noise effect. 
+As we can see below, the estimated purities diverge from the expected ones due to the presence of noise. Next, we will use robust shadows to mitigate the noise effect.
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
 from qadence_protocols import Measurements, MeasurementProtocol
@@ -94,7 +118,7 @@ print(f"Purities with classical shadows = {partial_purities(shadow_measurements.
 
 We now use an efficient calibration method based on the experimental demonstration of classical shadows[^4]. A first set of measurements are used to determine calibration coefficients. The latter are used within robust shadows to mitigate measurement errors.
 
-#### Calibration 
+#### Calibration
 
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
@@ -103,14 +127,11 @@ from qadence_protocols.measurements.calibration import zero_state_calibration
 calibration = zero_state_calibration(n_unitaries=2000, n_qubits=circuit.n_qubits, n_shots=10000, noise=noise)
 ```
 
-#### Purity estimation 
+#### Purity estimation
 
 Using robust shadows, we witness the estimated purities being closer to the analytical ones.
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
-from qadence_protocols import Measurements, MeasurementProtocol
-from qadence_protocols.measurements.calibration import zero_state_calibration
-
 robust_options = {"shadow_size": 10200, "shadow_medians": 6, "n_shots":1000, "calibration": calibration}
 robust_shadow_measurements = Measurements(protocol=MeasurementProtocol.ROBUST_SHADOW, options=robust_options)
 robust_shadow_measurements.measure(model, param_values=values)

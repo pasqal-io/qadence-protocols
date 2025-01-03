@@ -109,13 +109,16 @@ def apply_partial_trace(rho: Tensor, keep_indices: list[int]) -> Tensor:
     This function also permutes the qubits according to the order specified in keep_indices.
 
     Args:
-        rho (Tensor) : Density matrix of shape [batch_size, 2**n_qubits, 2**n_qubits].
+        rho (Tensor) : Density matrix of shape [batch_size, 2**n_qubits, 2**n_qubits]
+            or tensor of shape [batch_size, 2**n_qubits].
         keep_indices (list[int]): Index of the qubit subsystems to keep.
 
     Returns:
         Tensor: Reduced density matrix after the partial trace,
         of shape [batch_size, 2**n_keep, 2**n_keep].
     """
+    if len(rho.shape) == 2:
+        rho = torch.einsum("bi,bj->bij", (rho, rho.conj()))
     return dm_partial_trace(rho.permute((1, 2, 0)), keep_indices).permute((0, 1, 2))
 
 

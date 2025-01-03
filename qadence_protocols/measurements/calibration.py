@@ -61,6 +61,11 @@ def zero_state_calibration(
                 target = options.get("target", None)
                 if target is not None:
                     noisy_identities.append(I(target=target, noise=NoiseHandler(proto, options)))
+                else:
+                    for target in range(n_qubits):
+                        noisy_identities.append(
+                            I(target=target, noise=NoiseHandler(proto, options))
+                        )
             noisy_zero_circ = QuantumCircuit(n_qubits, *noisy_identities)
 
     all_rotations = [
