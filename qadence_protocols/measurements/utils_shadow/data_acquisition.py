@@ -209,8 +209,8 @@ def shadow_samples(
             circuit=conv_circ,
             param_values=param_values,
             n_shots=n_shots,
-            state=None,
-            noise=noise,
+            state=state,
+            noise=noise.filter(NoiseProtocol.READOUT) if noise is not None else None,
             endianness=endianness,
         )
         shadow.append(batch_samples)
