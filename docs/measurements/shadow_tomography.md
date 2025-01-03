@@ -120,21 +120,12 @@ print(f"Purities with classical shadows = {vanilla_purities}") # markdown-exec: 
 ### Robust shadows
 
 We now use an efficient calibration method based on the experimental demonstration of classical shadows[^4]. A first set of measurements are used to determine calibration coefficients. The latter are used within robust shadows to mitigate measurement errors.
-
-#### Calibration
-
+Indeed, we witness below the estimated purities being closer to the analytical ones.
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
 from qadence_protocols.measurements.calibration import zero_state_calibration
 
 calibration = zero_state_calibration(n_unitaries=2000, n_qubits=circuit.n_qubits, n_shots=10000, noise=noise)
-```
-
-#### Purity estimation
-
-Using robust shadows, we witness the estimated purities being closer to the analytical ones.
-
-```python exec="on" source="material-block" session="shadow_tomo" result="json"
 robust_options = {"shadow_size": 10200, "shadow_medians": 6, "n_shots":1000, "calibration": calibration}
 robust_shadow_measurements = Measurements(protocol=MeasurementProtocol.ROBUST_SHADOW, options=robust_options)
 robust_shadow_measurements.measure(model, param_values=values)
