@@ -51,7 +51,9 @@ def partial_purities(density_mat):
         purities.append(compute_purity(partial_trace_i))
 
     return torch.tensor(purities)
-print(f"Expected purities = {partial_purities(run(circuit, values))}") # markdown-exec: hide
+
+expected_purities = partial_purities(model.run(values))
+print(f"Expected purities = {expected_purities}") # markdown-exec: hide
 ```
 
 ### Noise model
@@ -110,8 +112,9 @@ from qadence_protocols import Measurements, MeasurementProtocol
 shadow_options = {"shadow_size": 10200, "shadow_medians": 6, "n_shots":1000}
 shadow_measurements = Measurements(protocol=MeasurementProtocol.SHADOW, options=shadow_options)
 shadow_measurements.measure(model, param_values=values)
+vanilla_purities = partial_purities(shadow_measurements.reconstruct_state())
 
-print(f"Purities with classical shadows = {partial_purities(shadow_measurements.reconstruct_state())}") # markdown-exec: hide
+print(f"Purities with classical shadows = {vanilla_purities}") # markdown-exec: hide
 ```
 
 ### Robust shadows
@@ -135,8 +138,9 @@ Using robust shadows, we witness the estimated purities being closer to the anal
 robust_options = {"shadow_size": 10200, "shadow_medians": 6, "n_shots":1000, "calibration": calibration}
 robust_shadow_measurements = Measurements(protocol=MeasurementProtocol.ROBUST_SHADOW, options=robust_options)
 robust_shadow_measurements.measure(model, param_values=values)
+robust_purities = partial_purities(robust_shadow_measurements.reconstruct_state())
 
-print(f"Purities with robust shadows = {partial_purities(robust_shadow_measurements.reconstruct_state())}") # markdown-exec: hide
+print(f"Purities with robust shadows = {robust_purities}") # markdown-exec: hide
 ```
 
 
