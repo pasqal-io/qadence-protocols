@@ -146,7 +146,7 @@ print(exp_reconstructed_state) # markdown-exec: hide
 
 ## Robust shadows
 
-Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting the `calibration` coefficients to $\frac{1}{3}$ for each qubit, as shown below:
+Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. It involves an experimental simple calibration procedure based on the preparation of a all-zero state with very high fidelity. We then perform noisy randomized measurements to learn about the averaged, as known as ``twirled'', effect of the noise, obtaining calibration coefficients for shadows. One can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting the `calibration` coefficients to $\frac{1}{3}$ for each qubit, as shown below:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
 from qadence_protocols.measurements.calibration import zero_state_calibration
