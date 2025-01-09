@@ -131,7 +131,9 @@ robust_shadow_measurements = Measurements(protocol=MeasurementProtocol.ROBUST_SH
 robust_shadow_measurements.measure(model, param_values=values)
 robust_purities = partial_purities(robust_shadow_measurements.reconstruct_state())
 
+print(f"Expected purities = {expected_purities}") # markdown-exec: hide
 print(f"Purities with robust shadows = {robust_purities}") # markdown-exec: hide
+print(f"Purities with classical shadows = {vanilla_purities}") # markdown-exec: hide
 ```
 
 

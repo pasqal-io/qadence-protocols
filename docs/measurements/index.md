@@ -141,27 +141,12 @@ print(exp_reconstructed_state) # markdown-exec: hide
 
 ## Robust shadows
 
-Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting the `calibration` coefficients to $\frac{1}{3}$ for each qubit.
+Robust shadows [^4] were built upon the classical shadow scheme but have the particularity to be noise-resilient. Using an experimentally friendly calibration procedure, one can eﬃciently characterize and mitigate noises in the shadow estimation scheme, given only minimal assumptions on the experimental conditions. Such a procedure has been used in [^5] to estimate the Quantum Fisher information out of a quantum system. Note that robust shadows are equivalent to classical shadows in non-noisy settings by setting the `calibration` coefficients to $\frac{1}{3}$ for each qubit, as shown below:
 
 ```python exec="on" source="material-block" session="measurements" result="json"
-from qadence import NoiseProtocol, NoiseHandler
 from qadence_protocols.measurements.calibration import zero_state_calibration
-
-error_probability = 0.1
-noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability})
-
-model = QuantumModel(
-    circuit=circuit,
-    observable=observable,
-    backend=BackendName.PYQTORCH,
-    diff_mode=DiffMode.GPSR,
-    noise=noise
-)
-exact_values = model.expectation()
-
-calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.backend, noise=noise)
-# This linear transformation should give us the probability error
-print(0.5 * (3.0 * calibration + 1)) # markdown-exec: hide
+# Calibration coefficients are by default 1/3
+calibration = zero_state_calibration(N, n_qubits=2, n_shots=100, backend=model.backend, noise=None)
 
 robust_shadow_options = {"shadow_size": N, "shadow_medians": K, "calibration": calibration}
 robust_shadow_measurement = Measurements(protocol=MeasurementProtocol.ROBUST_SHADOW, options=robust_shadow_options)
@@ -169,6 +154,8 @@ estimated_values_robust_shadow = robust_shadow_measurement(model=model)
 
 print(f"Estimated expectation value shadow = {estimated_values_robust_shadow}") # markdown-exec: hide
 ```
+
+For an example of comparing robust shadows and classical shadows in noisy settings, please refer to the [Robust shadow tomography tutorial](shadow_tomography.md).
 
 ## References
 
