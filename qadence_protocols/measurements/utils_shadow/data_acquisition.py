@@ -15,7 +15,7 @@ from qadence.engines.differentiable_backend import DifferentiableBackend
 from qadence.noise import NoiseHandler
 from qadence.operations import X, Y, Z
 from qadence.transpile.noise import set_noise
-from qadence.types import Endianness, NoiseProtocol
+from qadence.types import BackendName, Endianness, NoiseProtocol
 from torch import Tensor
 
 from qadence_protocols.measurements.utils_shadow.unitaries import UNITARY_TENSOR, pauli_rotations
@@ -189,15 +189,31 @@ def shadow_samples(
     unitary_ids = np.random.randint(0, 3, size=(shadow_size, circuit.n_qubits))
     shadow: list = list()
     all_rotations = extract_operators(unitary_ids, circuit.n_qubits)
-    all_rotations = [
-        QuantumCircuit(circuit.n_qubits, circuit.block, rots)
-        if rots
-        else QuantumCircuit(circuit.n_qubits, circuit.block)
-        for rots in all_rotations
-    ]
+
+    initial_state = state
+    if isinstance(backend, PyQBackend) or backend.backend.name == BackendName.PYQTORCH:
+        # run the initial circuit without rotations
+        # to save computation time
+        conv_circ = backend.circuit(circuit)
+        initial_state = backend.run(
+            circuit=conv_circ,
+            param_values=param_values,
+            state=state,
+            endianness=endianness,
+        )
+        all_rotations = [
+            QuantumCircuit(circuit.n_qubits, rots) if rots else QuantumCircuit(circuit.n_qubits)
+            for rots in all_rotations
+        ]
+    else:
+        all_rotations = [
+            QuantumCircuit(circuit.n_qubits, circuit.block, rots)
+            if rots
+            else QuantumCircuit(circuit.n_qubits, circuit.block)
+            for rots in all_rotations
+        ]
 
     if noise is not None:
-        # temporary fix before qadence bump
         digital_part = noise.filter(NoiseProtocol.DIGITAL)
         if digital_part is not None:
             all_rotations = [set_noise(rots, digital_part) for rots in all_rotations]
@@ -209,7 +225,7 @@ def shadow_samples(
             circuit=conv_circ,
             param_values=param_values,
             n_shots=n_shots,
-            state=state,
+            state=initial_state,
             noise=noise.filter(NoiseProtocol.READOUT) if noise is not None else None,
             endianness=endianness,
         )
