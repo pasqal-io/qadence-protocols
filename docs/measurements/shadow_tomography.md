@@ -16,8 +16,8 @@ import torch
 from qadence import NoiseHandler, NoiseProtocol
 
 torch.manual_seed(0)
-nqbits = 2
-error_probs = torch.clamp(0.1 + 0.02 * torch.randn(nqbits), min=0, max=1)
+n_qubits = 2
+error_probs = torch.clamp(0.1 + 0.02 * torch.randn(n_qubits), min=0, max=1)
 print(f"Error probabilities = {error_probs}") # markdown-exec: hide
 
 noise = NoiseHandler(protocol=NoiseProtocol.DIGITAL.DEPOLARIZING, options={"error_probability": error_probs[0], "target": 0})
@@ -58,16 +58,16 @@ model = QuantumModel(
 )
 ```
 
-For calculating purities, we can use the utility functions `apply_partial_trace` and `compute_purity`:
+For calculating purities, we can use the utility functions `partial_trace` and `purity`:
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
-from qadence_protocols.utils_trace import apply_partial_trace, compute_purity
+from qadence_protocols.utils_trace import partial_trace, purity
 
 def partial_purities(density_mat):
     purities = []
-    for i in range(nqbits):
-        partial_trace_i = apply_partial_trace(density_mat, [i]).squeeze()
-        purities.append(compute_purity(partial_trace_i))
+    for i in range(n_qubits):
+        partial_trace_i = partial_trace(density_mat, [i]).squeeze()
+        purities.append(purity(partial_trace_i))
 
     return torch.tensor(purities)
 

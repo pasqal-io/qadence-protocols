@@ -102,7 +102,7 @@ def expectation_trace(state: Tensor, observables: list[AbstractBlock]) -> Tensor
     return torch.stack(tr_obs_rho, axis=1)
 
 
-def apply_partial_trace(rho: Tensor, keep_indices: list[int]) -> Tensor:
+def partial_trace(rho: Tensor, keep_indices: list[int]) -> Tensor:
     """
     Computes the partial trace of a density matrix for a system of several qubits with batch size.
 
@@ -122,7 +122,7 @@ def apply_partial_trace(rho: Tensor, keep_indices: list[int]) -> Tensor:
     return dm_partial_trace(rho.permute((1, 2, 0)), keep_indices).permute((0, 1, 2))
 
 
-def compute_purity(rho: Tensor) -> Tensor:
+def purity(rho: Tensor) -> Tensor:
     """Compute the purity of a density matrix.
 
     Args:

@@ -14,7 +14,7 @@ from qadence.types import Endianness
 from torch import Tensor
 
 from qadence_protocols.measurements.utils_shadow.data_acquisition import extract_operators
-from qadence_protocols.utils_trace import apply_partial_trace
+from qadence_protocols.utils_trace import partial_trace
 
 
 def _get_noiseless_probas(
@@ -44,7 +44,7 @@ def _get_noiseless_probas(
         )
         for i in range(n_qubits):
             noiseless_probas[r][i] = torch.diagonal(
-                apply_partial_trace(wave_fct, [i]), dim1=1, dim2=2
+                partial_trace(wave_fct, [i]), dim1=1, dim2=2
             ).real.squeeze()
     return noiseless_probas
 
