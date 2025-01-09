@@ -143,9 +143,7 @@ def zero_state_calibration(
             noise=noise.filter(NoiseProtocol.READOUT) if noise is not None else None,
             endianness=endianness,
         )
-        estimated_probas.append(
-            _samples_frequencies(n_qubits, samples[0], endianness) / n_shots
-        )
+        estimated_probas.append(_samples_frequencies(n_qubits, samples[0], endianness) / n_shots)
     estimated_probas = torch.stack(estimated_probas)
 
     calibrations = torch.sum(
