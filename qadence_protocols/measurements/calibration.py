@@ -64,7 +64,7 @@ def _samples_frequencies(
     Returns:
         Tensor: _description_
     """
-    freqs = torch.zeros((n_qubits, 2))
+    frequencies = torch.zeros((n_qubits, 2))
     for bitstring, freq in samples.items():
         for qubit in range(n_qubits):
             kj = (
@@ -72,8 +72,8 @@ def _samples_frequencies(
                 if endianness == Endianness.BIG
                 else int(bitstring[::-1][qubit], 2)
             )
-            freqs[qubit][kj] += freq
-    return freqs
+            frequencies[qubit][kj] += freq
+    return frequencies
 
 
 def zero_state_calibration(

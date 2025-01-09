@@ -51,10 +51,9 @@ values = {
     "theta3": torch.tensor([2.0]),
     "theta4": torch.tensor([2.5]),
 }
-
+# no observable needed here
 model = QuantumModel(
     circuit=circuit,
-    observable=[], # no observable needed here
 )
 ```
 
@@ -90,7 +89,6 @@ noisy_blocks = chain(
 noisy_circuit = QuantumCircuit(2, noisy_blocks)
 noisy_model = QuantumModel(
     circuit=noisy_circuit,
-    observable=[], # no observable needed here
 )
 ```
 
