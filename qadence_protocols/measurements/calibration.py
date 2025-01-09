@@ -17,7 +17,7 @@ from qadence_protocols.measurements.utils_shadow.data_acquisition import extract
 from qadence_protocols.utils_trace import partial_trace
 
 
-def _get_noiseless_probas(
+def _noiseless_probabilites(
     n_qubits: int,
     rotations: list,
     backend: Backend | DifferentiableBackend = PyQBackend(),
@@ -131,7 +131,7 @@ def zero_state_calibration(
         for rots in all_rotations
     ]
 
-    noiseless_probas = _get_noiseless_probas(n_qubits, all_rotations, backend)
+    noiseless_probas = _noiseless_probabilites(n_qubits, all_rotations, backend)
 
     estimated_probas = list()
     for i in range(n_unitaries):

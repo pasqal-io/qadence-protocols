@@ -76,6 +76,7 @@ print(f"Expected purities = {expected_purities}") # markdown-exec: hide
 ```
 
 ### Add noise to circuit
+
 The circuit is defined as follows where we set the previous noise model in the last operations as measurement noise.
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
@@ -96,8 +97,9 @@ noisy_model = QuantumModel(
 ## Shadow estimations
 
 ### Vanilla classical shadows
+
 We will first run vanilla shadows to reconstruct the density matrix representation of the circuit, from which we can estimate the purities.
-As we can see below, the estimated purities diverge from the expected ones due to the presence of noise. Next, we will use robust shadows to mitigate the noise effect.
+
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
 from qadence_protocols import Measurements, MeasurementProtocol
@@ -109,6 +111,8 @@ vanilla_purities = partial_purities(shadow_measurements.reconstruct_state())
 
 print(f"Purities with classical shadows = {vanilla_purities}") # markdown-exec: hide
 ```
+
+As we can see, the estimated purities diverge from the expected ones due to the presence of noise. Next, we will use robust shadows to mitigate the noise effect.
 
 ### Robust shadows
 
