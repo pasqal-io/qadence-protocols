@@ -8,6 +8,7 @@ In this tutorial, we will estimate a physical property out of a quantum system, 
 First, we will set the noise model and a circuit from which we will estimate the purity.
 
 ### Noise model
+
 We will use a depolarizing noise model with a different error probability per qubit.
 
 ```python exec="on" source="material-block" session="shadow_tomo" result="json"
