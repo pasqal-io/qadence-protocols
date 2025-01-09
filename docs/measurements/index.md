@@ -1,6 +1,8 @@
+# Measurement protocols
+
 Sample-based measurement protocols are fundamental tools for the prediction and estimation of a quantum state as the result of NISQ programs executions. Their resource efficient implementation is a current and active research field. Currently, quantum state tomography is implemented in qadence-protocols.
 
-# Quantum state tomography
+## Quantum state tomography
 
 The fundamental task of quantum state tomography is to learn an approximate classical description of an output quantum state described by a density matrix $\rho$, from repeated measurements of copies on a chosen basis. To do so, $\rho$ is expanded in a basis of observables (the tomography step) and for a given observable $\hat{\mathcal{O}}$, the expectation value is calculated with $\langle \hat{\mathcal{O}} \rangle=\textrm{Tr}(\hat{\mathcal{O}}\rho)$. A number of measurement repetitions in a suitable basis is then required to estimate $\langle \hat{\mathcal{O}} \rangle$.
 
@@ -19,6 +21,7 @@ $$
 \langle \hat{\mathcal{P}} \rangle=\sum_{z,z'}\langle z |\bar{a}_z\hat{\mathcal{D}}a_{z'}|z'\rangle = \sum_{z}|a_z|^2(-1)^{\phi_z(\hat{\mathcal{P}})}
 $$
 
+### Using tomography
 
 In Qadence, running a tomographical experiment is made simple by defining a `Measurements` object that captures all options for execution:
 
@@ -59,7 +62,7 @@ print(f"Exact expectation value = {exact_values}") # markdown-exec: hide
 print(f"Estimated expectation value tomo = {estimated_values_tomo}") # markdown-exec: hide
 ```
 
-## Getting measurements
+### Getting measurements
 
 If we are interested in accessing the measurements for computing different quantities of interest other than the expectation values, we can access the measurement data via `data` as follows:
 
@@ -69,7 +72,7 @@ measurements_tomo = tomo_measurement.data
 print(measurements_tomo) # markdown-exec: hide
 ```
 
-# Classical shadows
+## Classical shadows
 
 A much less resource demanding protocol based on _classical shadows_ has been proposed[^1]. It combines ideas from shadow tomography[^2] and randomized measurement protocols [^3] capable of learning a classical shadow of an unknown quantum state $\rho$. It relies on deliberately discarding the full classical characterization of the quantum state, and instead focuses on accurately predicting a restricted set of properties that provide efficient resources for the study of the system.
 
@@ -86,6 +89,8 @@ It is worth noting that the single classical snapshot $\hat{\rho}=\mathcal{M}^{-
 $$
 S(\rho, N) = \{ \hat{\rho}_1=\mathcal{M}^{-1}(U_1^\dagger |\hat{b}_1\rangle\langle \hat{b}_1|U_1),\cdots,\hat{\rho}_N=\mathcal{M}^{-1}(U_N^\dagger |\hat{b}_N\rangle\langle \hat{b}_N|U_N)\}
 $$
+
+### Running classical shadows
 
 Along the same lines as the example before, estimating the expectation value using classical shadows in Qadence only requires to pass the right set of parameters to the `Measurements` object:
 
@@ -108,7 +113,7 @@ number of shots, more samples are realized per unitary accordingly, and a differ
 $$\hat{\rho}^{(r)} = 2^N \bigotimes_{i=1}^N \sum_{b_i} (-2)^{-D[b_i, b_i^{(r)}]} (U^\dagger |\hat{b_i}\rangle\langle \hat{b_i}|U)$$
 
 
-## Getting shadows
+### Getting shadows
 
 If we are interested in accessing the measurement data from shadows, we can access the measurement data via the `manager` attribute as follows:
 
