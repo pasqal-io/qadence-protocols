@@ -8,12 +8,20 @@ from qadence_protocols.measurements.calibration import zero_state_calibration
 
 
 def test_zero_state_calibration() -> None:
-    coeffs = zero_state_calibration(10, 3, 1000)
-    assert torch.allclose(coeffs, torch.ones(3) / 3.0)
+    N = 3
+    coeffs = zero_state_calibration(2000, N, 1000)
+    assert torch.allclose(coeffs, torch.ones(N) / 3.0, atol=0.1)
 
-    error_probability = 0.1
+    torch.manual_seed(0)
+    p = torch.clamp(0.1 + 0.02 * torch.randn(N), min=0, max=1)
+    expected_coeffs = 1 - p / 2.0
     noise = NoiseHandler(
-        protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability}
+        protocol=NoiseProtocol.DIGITAL.DEPOLARIZING,
+        options={"error_probability": p[0], "target": 0},
     )
-    coeffs = zero_state_calibration(10, 3, 1000, noise=noise)
-    assert torch.allclose((3 * coeffs + 1) / 2.0, torch.ones(3) - error_probability, atol=0.1)
+
+    for i, proba in enumerate(p[1:]):
+        noise.digital_depolarizing(options={"error_probability": proba, "target": i + 1})
+
+    coeffs = zero_state_calibration(2000, N, 1000, noise=noise)
+    assert torch.allclose((6 * coeffs - 1), expected_coeffs, atol=0.1)

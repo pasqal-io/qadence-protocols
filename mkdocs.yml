@@ -15,6 +15,7 @@ nav:
 
   - Measurements Protocols:
     - measurements/index.md
+    - measurements/shadow_tomography.md
 
 theme:
   name: material

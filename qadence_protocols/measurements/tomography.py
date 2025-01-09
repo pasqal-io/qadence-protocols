@@ -45,10 +45,9 @@ class Tomography(MeasurementManager):
         if model is None:
             self.observables = observables
         else:
+            model_obs = model._observable or list()
             self.observables = (
-                observables
-                if (len(observables) > 0)
-                else [obs.abstract for obs in model._observable]
+                observables if (len(observables) > 0) else [obs.abstract for obs in model_obs]
             )
         self.data = self.validate_data(data)
 

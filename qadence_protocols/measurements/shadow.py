@@ -39,10 +39,9 @@ class ShadowManager(MeasurementManager):
         if model is None:
             self.observables = observables
         else:
+            model_obs = model._observable or list()
             self.observables = (
-                observables
-                if (len(observables) > 0)
-                else [obs.abstract for obs in model._observable]
+                observables if (len(observables) > 0) else [obs.abstract for obs in model_obs]
             )
         self.param_values = param_values
         self.state = state
@@ -69,8 +68,12 @@ class ShadowManager(MeasurementManager):
                 " 'shadow_size' of type 'int' or 'accuracy' of type 'float'."
             )
         confidence = options.get("confidence", None)
-        if confidence is None:
-            raise KeyError("Shadow protocol requires an option 'confidence' of type 'float'.")
+        shadow_medians = options.get("shadow_medians", None)
+        if confidence is None and shadow_medians is None:
+            raise KeyError(
+                "Shadow protocol requires either an option "
+                "'confidence' of type 'float' or 'shadow_medians' of type 'int'."
+            )
 
         n_shots = options.get("n_shots", 1)
         validated_options = {
@@ -78,6 +81,7 @@ class ShadowManager(MeasurementManager):
             "n_shots": n_shots,
             "accuracy": accuracy,
             "confidence": confidence,
+            "shadow_medians": shadow_medians,
         }
 
         return validated_options
@@ -184,11 +188,12 @@ class ShadowManager(MeasurementManager):
         circuit = self.model._circuit.original
         shadow_size = self.options["shadow_size"]
         accuracy = self.options["accuracy"]
-        confidence = self.options["confidence"]
 
         if shadow_size is None:
             shadow_size = number_of_samples(
-                observables=self.observables, accuracy=accuracy, confidence=confidence
+                observables=self.observables,
+                accuracy=accuracy,
+                confidence=self.options["confidence"],
             )[0]
 
         self.data = shadow_samples(
@@ -224,11 +229,12 @@ class ShadowManager(MeasurementManager):
             if len(observables) > 0
             else [obs.abstract for obs in self.model._observable]
         )
-        _, K = number_of_samples(
+        K = self.options["shadow_medians"]
+        K = number_of_samples(
             observables=observables,
             accuracy=self.options["accuracy"],
             confidence=self.options["confidence"],
-        )
+        )[1]
 
         if self.data.samples.numel() == 0:  # type: ignore[union-attr]
             self.measure()
