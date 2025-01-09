@@ -131,4 +131,4 @@ def compute_purity(rho: Tensor) -> Tensor:
     Returns:
         Tensor: Tr[rho ** 2]
     """
-    return torch.trace(rho**2).real
+    return torch.trace(rho ** 2).real
