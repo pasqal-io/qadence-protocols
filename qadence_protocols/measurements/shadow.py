@@ -72,7 +72,7 @@ class ShadowManager(MeasurementManager):
         shadow_medians = options.get("shadow_medians", None)
         if confidence is None and shadow_medians is None:
             raise KeyError(
-                "Shadow protocol requires either an option"
+                "Shadow protocol requires either an option "
                 "'confidence' of type 'float' or 'shadow_medians' of type 'int'."
             )
 
