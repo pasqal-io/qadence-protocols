@@ -49,7 +49,7 @@ def _get_noiseless_probas(
     return noiseless_probas
 
 
-def _singlebit_freq_from_samples(
+def _samples_frequencies(
     n_qubits: int,
     samples: Counter,
     endianness: Endianness = Endianness.BIG,
@@ -144,7 +144,7 @@ def zero_state_calibration(
             endianness=endianness,
         )
         estimated_probas.append(
-            _singlebit_freq_from_samples(n_qubits, samples[0], endianness) / n_shots
+            _samples_frequencies(n_qubits, samples[0], endianness) / n_shots
         )
     estimated_probas = torch.stack(estimated_probas)
 

@@ -1,6 +1,6 @@
 # Robust shadow tomography
 
-In this tutorial, we will estimate a physical property out of a quantum system, namely the purity of the partial traces, in the presence of measurement noise. To do so, we will use the formalism of classical shadows[^1], and especially their robust version[^2]. This tutorial is inspired from a notebook example of robust shadow tomography from the randomized measurements toolbox in julia[^3].
+In this tutorial, we will estimate a physical property out of a quantum system, namely the purity of the partial traces, in the presence of measurement noise. To do so, we will use the formalism of classical shadows[^1], and especially their robust version[^2]. This tutorial is inspired from a notebook example of robust shadow tomography from the randomized measurements toolbox[^5] in Julia[^3].
 
 
 ## Setting the model
@@ -136,3 +136,5 @@ print(f"Purities with classical shadows = {vanilla_purities}") # markdown-exec: 
 [^3]: [RandomMeas.jl tutorial robust shadow tomography](https://github.com/bvermersch/RandomMeas.jl/blob/main/examples/RobustShadowTomography.ipynb)
 
 [^4]: [Vittorio Vitale, Aniket Rath, Petar Jurcevic, Andreas Elben, Cyril Branciard, and Benoît Vermersch, Robust Estimation of the Quantum Fisher Information on a Quantum Processor (2024)](https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.5.030338)
+
+[^5]: [Andreas Elben, Steven T. Flammia, Hsin-Yuan Huang, Richard Kueng, John Preskill, Benoît Vermersch, and Peter Zoller, The randomized measurement toolbox (2022)](https://www.nature.com/articles/s42254-022-00535-2)
