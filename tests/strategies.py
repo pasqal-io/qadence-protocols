@@ -68,7 +68,7 @@ MAX_N_QUBITS = 4
 MIN_CIRCUIT_DEPTH = 1
 MAX_CIRCUIT_DEPTH = 4
 MIN_BATCH_SIZE = 1
-MAX_BATCH_SIZE = 4
+MAX_BATCH_SIZE = 2
 
 N_QUBITS_STRATEGY: SearchStrategy[int] = st.integers(min_value=MIN_N_QUBITS, max_value=MAX_N_QUBITS)
 CIRCUIT_DEPTH_STRATEGY: SearchStrategy[int] = st.integers(

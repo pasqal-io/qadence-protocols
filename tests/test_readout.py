@@ -6,6 +6,8 @@ from functools import reduce
 import numpy as np
 import numpy.typing as npt
 import pytest
+import strategies as st
+from hypothesis import given, settings
 from metrics import LOW_ACCEPTANCE
 from qadence import (
     AbstractBlock,
@@ -19,6 +21,7 @@ from qadence import (
     kron,
 )
 from qadence.divergences import js_divergence
+from qadence.ml_tools.utils import rand_featureparameters
 from qadence.operations import CNOT, RX, X, Y, Z
 from qadence.types import BackendName, NoiseProtocol
 from scipy.sparse import csr_matrix
@@ -138,43 +141,37 @@ def test_readout_mitigation_quantum_model(
     assert js_mitigated < js_noisy
 
 
-@pytest.mark.parametrize(
-    "error_probability, n_shots, block, backend",
-    [
-        (0.1, 5000, kron(X(0), X(1)), BackendName.PYQTORCH),
-        (0.1, 5000, kron(Z(0), Z(1), Z(2)) + kron(X(0), Y(1), Z(2)), BackendName.PYQTORCH),
-        (0.1, 5000, add(Z(0), Z(1), kron(X(2), X(3))) + add(X(2), X(3)), BackendName.PYQTORCH),
-        (0.1, 5000, add(kron(Z(0), Z(1)), kron(X(2), X(3))), BackendName.PYQTORCH),
-    ],
-)
-def test_compare_readout_methods(
-    error_probability: float,
-    n_shots: int,
-    block: AbstractBlock,
-    backend: BackendName,
-) -> None:
-    diff_mode = "ad" if backend == BackendName.PYQTORCH else "gpsr"
-    circuit = QuantumCircuit(block.n_qubits, block)
+@given(st.digital_circuits())
+@settings(deadline=None)
+def test_compare_readout_methods(circuit: QuantumCircuit) -> None:
+    error_probability = 0.1
+    n_shots = 5000
+    backend = BackendName.PYQTORCH
+    inputs = rand_featureparameters(circuit, 1)
+
+    diff_mode = "ad"
     model = QuantumModel(circuit=circuit, backend=backend, diff_mode=diff_mode)
 
     noise = NoiseHandler(
         protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability}
     )
 
-    noiseless_samples: list[Counter] = model.sample(n_shots=n_shots)
+    noiseless_samples: list[Counter] = model.sample(inputs, n_shots=n_shots)
 
     mitigation_mle = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots},
     )
-    mitigated_samples_mle: list[Counter] = mitigation_mle(model=model, noise=noise)
+    mitigated_samples_mle: list[Counter] = mitigation_mle(
+        model=model, noise=noise, param_values=inputs
+    )
 
     mitigation_constrained_opt = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots},
     )
     mitigated_samples_constrained_opt: list[Counter] = mitigation_constrained_opt(
-        model=model, noise=noise
+        model=model, noise=noise, param_values=inputs
     )
 
     js_mitigated_mle = js_divergence(mitigated_samples_mle[0], noiseless_samples[0])

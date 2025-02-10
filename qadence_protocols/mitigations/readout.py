@@ -288,5 +288,5 @@ def mitigate(
         n_shots = options.get("n_shots", None)
         if n_shots is None:
             raise ValueError("A n_shots option must be provided.")
-        samples = model.sample(noise=noise, n_shots=n_shots)
+        samples = model.sample(param_values, noise=noise, n_shots=n_shots)
     return mitigation_minimization(noise=noise, options=options, samples=samples)
