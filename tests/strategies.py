@@ -58,7 +58,7 @@ minimal_gateset = list(
 )
 digital_gateset = list(set(full_gateset) - set(analog_gateset) - set(non_unitary_gateset))
 
-MIN_N_QUBITS = 1
+MIN_N_QUBITS = 2
 MAX_N_QUBITS = 4
 MIN_CIRCUIT_DEPTH = 1
 MAX_CIRCUIT_DEPTH = 3
