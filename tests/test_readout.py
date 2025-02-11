@@ -16,13 +16,12 @@ from qadence import (
     QuantumCircuit,
     QuantumModel,
     add,
-    chain,
     hamiltonian_factory,
     kron,
 )
 from qadence.divergences import js_divergence
 from qadence.ml_tools.utils import rand_featureparameters
-from qadence.operations import CNOT, RX, X, Y, Z
+from qadence.operations import CNOT, X, Y, Z
 from qadence.types import BackendName, NoiseProtocol
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import gmres
@@ -199,63 +198,35 @@ def test_tensor_rank_mult(qubit_ops: list[npt.NDarray], input_vec: npt.NDArray) 
     )
 
 
-@pytest.mark.parametrize(
-    "error_probability, n_shots, block, backend",
-    [
-        (
-            0.2,
-            10000,
-            chain(kron(RX(0, np.pi / 3), RX(1, np.pi / 3)), CNOT(0, 1)),
-            BackendName.PYQTORCH,
-        ),
-        (
-            0.1,
-            10000,
-            chain(kron(RX(0, np.pi / 4), RX(1, np.pi / 5)), CNOT(0, 1)),
-            BackendName.PYQTORCH,
-        ),
-        (
-            0.15,
-            10000,
-            chain(kron(RX(0, np.pi / 3), RX(1, np.pi / 6)), CNOT(0, 1)),
-            BackendName.PYQTORCH,
-        ),
-        (
-            0.2,
-            10000,
-            chain(kron(RX(0, np.pi / 6), RX(1, np.pi / 4)), CNOT(0, 1)),
-            BackendName.PYQTORCH,
-        ),
-    ],
-)
+@given(st.digital_circuits())
 def test_readout_mthree_mitigation(
-    error_probability: float,
-    n_shots: int,
-    block: AbstractBlock,
-    backend: BackendName,
+    circuit: QuantumCircuit,
 ) -> None:
-    circuit = QuantumCircuit(block.n_qubits, block)
+    values = rand_featureparameters(circuit, 1)
+    n_shots: int = 10000
+    error_probability = np.random.rand()
+    backend = BackendName.PYQTORCH
     noise = NoiseHandler(
         protocol=NoiseProtocol.READOUT.INDEPENDENT, options={"error_probability": error_probability}
     )
 
     model = QuantumModel(circuit=circuit, backend=backend)
 
-    ordered_bitstrings = [bin(k)[2:].zfill(block.n_qubits) for k in range(2**block.n_qubits)]
+    ordered_bitstrings = [bin(k)[2:].zfill(circuit.n_qubits) for k in range(2**circuit.n_qubits)]
 
     mitigation_mle = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots},
     )
 
-    samples_mle = mitigation_mle(model=model, noise=noise)[0]
+    samples_mle = mitigation_mle(model=model, noise=noise, param_values=values)[0]
     p_mle = np.array([samples_mle[bs] for bs in ordered_bitstrings]) / sum(samples_mle.values())
 
     mitigation_mthree = Mitigations(
         protocol=Mitigations.READOUT,
         options={"optimization_type": ReadOutOptimization.MTHREE, "n_shots": n_shots},
     )
-    samples_mthree = mitigation_mthree(model=model, noise=noise)[0]
+    samples_mthree = mitigation_mthree(model=model, noise=noise, param_values=values)[0]
     p_mthree = np.array([samples_mthree[bs] for bs in ordered_bitstrings]) / sum(
         samples_mthree.values()
     )
