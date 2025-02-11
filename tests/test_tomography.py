@@ -4,6 +4,8 @@ from collections import Counter
 from typing import Callable
 
 import pytest
+import strategies as st
+from hypothesis import given, settings
 from qadence import (
     AbstractBlock,
     PrimitiveBlock,
@@ -14,10 +16,11 @@ from qadence import (
     kron,
 )
 from qadence.blocks.utils import unroll_block_with_scaling
-from qadence.operations import CNOT, RX, RY, H, I, SDagger, X, Y, Z
+from qadence.ml_tools.utils import rand_featureparameters
+from qadence.operations import RX, RY, H, I, SDagger, X, Y, Z
 from qadence.parameters import Parameter
 from qadence.types import BackendName, DiffMode
-from torch import allclose, pi, tensor
+from torch import allclose, tensor
 
 from qadence_protocols import Measurements
 from qadence_protocols.measurements.utils_tomography import (
@@ -211,39 +214,35 @@ def test_empirical_average() -> None:
     assert allclose(empirical_average(samples, support), tensor([0.2454]))
 
 
-@pytest.mark.parametrize(
-    "circuit",
-    [
-        QuantumCircuit(2, kron(X(0), X(1))),
-        QuantumCircuit(4, kron(X(0), X(1), X(2), X(3))),
-        QuantumCircuit(
-            2,
-            chain(kron(RX(0, pi / 3), RX(1, pi / 3)), CNOT(0, 1)),
-        ),
-    ],
-)
 @pytest.mark.parametrize("obs_base_op", [X, Z])
 @pytest.mark.parametrize("obs_composition", [add, kron])
+@given(st.digital_circuits())
+@settings(deadline=None)
 def test_tomography(
-    circuit: QuantumCircuit, obs_base_op: AbstractBlock, obs_composition: Callable
+    obs_base_op: AbstractBlock,
+    obs_composition: Callable,
+    circuit: QuantumCircuit,
 ) -> None:
-    observable = obs_composition(obs_base_op(0), obs_base_op(1))
+    inputs = rand_featureparameters(circuit, 1)
+    observable = (
+        obs_composition(obs_base_op(0), obs_base_op(1)) if circuit.n_qubits > 1 else obs_base_op(0)
+    )
     backend = BackendName.PYQTORCH
 
     model = QuantumModel(circuit=circuit, observable=observable, backend=backend)
-    expectation_analytical = model.expectation()
+    expectation_analytical = model.expectation(inputs)
 
     tomo_measurement = Measurements(
         protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 10000},
     )
-    expectation_sampled = tomo_measurement(model)
+    expectation_sampled = tomo_measurement(model, param_values=inputs)
 
     tomo_measurement_more_shots = Measurements(
         protocol=MeasurementProtocol.TOMOGRAPHY,
         options={"n_shots": 1000000},
     )
-    expectation_sampled_more_shots = tomo_measurement_more_shots(model)
+    expectation_sampled_more_shots = tomo_measurement_more_shots(model, param_values=inputs)
 
     assert allclose(expectation_sampled, expectation_analytical, atol=1.0e-01)
     assert allclose(expectation_sampled_more_shots, expectation_analytical, atol=1.0e-02)

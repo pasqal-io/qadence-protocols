@@ -137,6 +137,8 @@ def extract_operators(unitary_ids: np.ndarray, n_qubits: int) -> list:
     operations = nested_operator_indexing(unitary_ids)
     if n_qubits > 1:
         operations = [kron_if_non_empty(ops) for ops in operations]
+    else:
+        operations = [ops[0] for ops in operations]
     return operations
 
 
