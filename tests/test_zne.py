@@ -21,12 +21,11 @@ from qadence_protocols.mitigations.protocols import Mitigations
 
 
 @pytest.mark.parametrize(
-    "analog_block, observable, noise_probs, noise_type",
+    "analog_block, observable, noise_type",
     [
         (
             chain(AnalogRX(PI / 2.0), AnalogRZ(PI)),
             [Z(0) + Z(1)],
-            np.linspace(0.1, 0.5, 8),
             NoiseProtocol.ANALOG.DEPOLARIZING,
         ),
         (
@@ -36,7 +35,6 @@ from qadence_protocols.mitigations.protocols import Mitigations
                 RY(0, 3.0 * PI / 2.0),
             ),
             [hamiltonian_factory(2, detuning=Z)],
-            np.linspace(0.1, 0.5, 8),
             NoiseProtocol.ANALOG.DEPHASING,
         ),
     ],
@@ -44,13 +42,13 @@ from qadence_protocols.mitigations.protocols import Mitigations
 def test_analog_zne_with_noise_levels(
     analog_block: AbstractBlock,
     observable: AbstractBlock,
-    noise_probs: Tensor,
     noise_type: NoiseProtocol.ANALOG,
 ) -> None:
     circuit = QuantumCircuit(2, analog_block)
     model = QuantumModel(
         circuit=circuit, observable=observable, backend=BackendName.PULSER, diff_mode=DiffMode.GPSR
     )
+    noise_probs = np.linspace(0.1, 0.5, 8)
     options = {"noise_probs": noise_probs}
     noise = NoiseHandler(protocol=noise_type, options=options)
     mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE)

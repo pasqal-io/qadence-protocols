@@ -9,6 +9,7 @@ from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
 from qadence.execution import expectation
+from qadence.ml_tools.utils import rand_featureparameters
 from qadence.model import QuantumModel
 from qadence.operations import RX, RY, H, I, X, Y, Z
 from qadence.parameters import Parameter
@@ -165,28 +166,15 @@ blocks = chain(
     kron(RX(0, theta1), RY(1, theta2)),
     kron(RX(0, theta3), RY(1, theta4)),
 )
-
-values = {
-    "theta1": torch.tensor([0.5]),
-    "theta2": torch.tensor([1.5]),
-    "theta3": torch.tensor([2.0]),
-    "theta4": torch.tensor([2.5]),
-}
-
-values2 = {
-    "theta1": torch.tensor([0.5, 1.0]),
-    "theta2": torch.tensor([1.5, 2.0]),
-    "theta3": torch.tensor([2.0, 2.5]),
-    "theta4": torch.tensor([2.5, 3.0]),
-}
+circuit = QuantumCircuit(2, blocks)
 
 
 @pytest.mark.flaky(max_runs=5)
 @pytest.mark.parametrize(
     "circuit, values, diff_mode",
     [
-        (QuantumCircuit(2, blocks), values, DiffMode.AD),
-        (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
+        (circuit, rand_featureparameters(circuit, 1), DiffMode.AD),
+        (circuit, rand_featureparameters(circuit, 2), DiffMode.GPSR),
     ],
 )
 @pytest.mark.parametrize("do_kron", [True, False])
