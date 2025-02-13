@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import numpy as np
 import pytest
 import torch
 from qadence.backends.api import backend_factory
@@ -31,21 +30,9 @@ from qadence_protocols.measurements.utils_shadow.unitaries import (
     P0_MATRIX,
     P1_MATRIX,
     UNITARY_TENSOR,
-    pauli_gates,
 )
 from qadence_protocols.types import MeasurementProtocol
 from qadence_protocols.utils_trace import expectation_trace
-
-
-def random_pauli_kron_observable(n_qubits: int) -> AbstractBlock:
-    pauli_inds = np.random.randint(0, 3, size=n_qubits)
-    observable = (
-        kron(*(pauli_gates[p](i) for i, p in enumerate(pauli_inds)))
-        if n_qubits > 1
-        else pauli_gates[pauli_inds[0]](0)
-    )
-    return observable
-
 
 idmat = torch.eye(2, dtype=torch.complex128)
 
