@@ -10,7 +10,6 @@ from qadence.blocks.composite import CompositeBlock
 from qadence.blocks.primitive import PrimitiveBlock
 from qadence.blocks.utils import unroll_block_with_scaling
 from qadence.operations import I
-from qadence.utils import P0_MATRIX, P1_MATRIX
 from torch import Tensor
 
 from qadence_protocols.measurements.utils_shadow.data_acquisition import (
@@ -25,6 +24,8 @@ from qadence_protocols.measurements.utils_shadow.unitaries import (
 )
 from qadence_protocols.measurements.utils_tomography import get_qubit_indices_for_op
 from qadence_protocols.utils_trace import expectation_trace
+
+from .unitaries import P0_MATRIX, P1_MATRIX
 
 einsum_alphabet = "abcdefghijklmnopqsrtuvwxyz"
 einsum_alphabet_cap = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

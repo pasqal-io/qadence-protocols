@@ -8,11 +8,11 @@ from qadence.blocks.utils import add, chain, kron
 from qadence.circuit import QuantumCircuit
 from qadence.constructors import ising_hamiltonian, total_magnetization
 from qadence.execution import expectation
+from qadence.ml_tools.utils import rand_featureparameters
 from qadence.model import QuantumModel
 from qadence.operations import RX, RY, H, I, X, Y, Z
 from qadence.parameters import Parameter
 from qadence.types import BackendName, DiffMode
-from qadence.utils import P0_MATRIX, P1_MATRIX
 from torch import Tensor
 
 from qadence_protocols import Measurements
@@ -26,7 +26,11 @@ from qadence_protocols.measurements.utils_shadow.post_processing import (
     local_shadow,
     robust_local_shadow,
 )
-from qadence_protocols.measurements.utils_shadow.unitaries import UNITARY_TENSOR
+from qadence_protocols.measurements.utils_shadow.unitaries import (
+    P0_MATRIX,
+    P1_MATRIX,
+    UNITARY_TENSOR,
+)
 from qadence_protocols.types import MeasurementProtocol
 from qadence_protocols.utils_trace import expectation_trace
 
@@ -99,20 +103,19 @@ def test_local_shadow(sample: Tensor, unitary_ids: list, exp_shadow: Tensor) -> 
     assert torch.allclose(rshadow, shadow)
 
 
-theta = Parameter("theta")
-
-
 @pytest.mark.flaky(max_runs=5)
 @pytest.mark.parametrize(
     "circuit, observable, values",
     [
+        (QuantumCircuit(1, X(0)), Z(0), {}),
+        (QuantumCircuit(2, kron(X(0), X(1))), Z(0) @ Z(1), {}),
         (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ X(1), {}),
         (QuantumCircuit(2, kron(X(0), X(1))), X(0) @ Y(1), {}),
         (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ X(1), {}),
         (QuantumCircuit(2, kron(X(0), X(1))), Y(0) @ Y(1), {}),
         (QuantumCircuit(2, kron(Z(0), H(1))), X(0) @ Z(1), {}),
         (
-            QuantumCircuit(2, kron(RX(0, theta), X(1))),
+            QuantumCircuit(2, kron(RX(0, Parameter("theta")), X(1))),
             kron(Z(0), Z(1)),
             {"theta": torch.tensor([0.5, 1.0])},
         ),
@@ -131,7 +134,7 @@ def test_estimations_comparison_exact(
     observables = [observable]
     K = number_of_samples(observables=observables, accuracy=0.1, confidence=0.1)[1]
     estimated_exp = expectation_estimations(
-        observables=[observable],
+        observables=observables,
         unitaries_ids=measurement_data.unitaries,
         batch_shadow_samples=measurement_data.samples,
         K=K,
@@ -150,28 +153,15 @@ blocks = chain(
     kron(RX(0, theta1), RY(1, theta2)),
     kron(RX(0, theta3), RY(1, theta4)),
 )
-
-values = {
-    "theta1": torch.tensor([0.5]),
-    "theta2": torch.tensor([1.5]),
-    "theta3": torch.tensor([2.0]),
-    "theta4": torch.tensor([2.5]),
-}
-
-values2 = {
-    "theta1": torch.tensor([0.5, 1.0]),
-    "theta2": torch.tensor([1.5, 2.0]),
-    "theta3": torch.tensor([2.0, 2.5]),
-    "theta4": torch.tensor([2.5, 3.0]),
-}
+circuit = QuantumCircuit(2, blocks)
 
 
 @pytest.mark.flaky(max_runs=5)
 @pytest.mark.parametrize(
     "circuit, values, diff_mode",
     [
-        (QuantumCircuit(2, blocks), values, DiffMode.AD),
-        (QuantumCircuit(2, blocks), values2, DiffMode.GPSR),
+        (circuit, rand_featureparameters(circuit, 1), DiffMode.AD),
+        (circuit, rand_featureparameters(circuit, 2), DiffMode.GPSR),
     ],
 )
 @pytest.mark.parametrize("do_kron", [True, False])

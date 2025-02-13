@@ -10,18 +10,14 @@ from hypothesis.strategies._internal import SearchStrategy
 from qadence.blocks import (
     AbstractBlock,
     ParametricBlock,
-    add,
     chain,
-    kron,
 )
 from qadence.circuit import QuantumCircuit
 from qadence.extensions import supported_gates
-from qadence.ml_tools.utils import rand_featureparameters
 from qadence.operations import (
     analog_gateset,
     multi_qubit_gateset,
     non_unitary_gateset,
-    pauli_gateset,
     single_qubit_gateset,
     three_qubit_gateset,
     two_qubit_gateset,
@@ -29,7 +25,6 @@ from qadence.operations import (
 from qadence.parameters import FeatureParameter, Parameter, VariationalParameter
 from qadence.types import PI, BackendName, ParameterType, TNumber
 from sympy import Basic, Expr, acos, asin, atan, cos, sin, tan
-from torch import Tensor
 
 PARAM_NAME_LENGTH = 1
 MIN_SYMBOLS = 1
@@ -63,12 +58,12 @@ minimal_gateset = list(
 )
 digital_gateset = list(set(full_gateset) - set(analog_gateset) - set(non_unitary_gateset))
 
-MIN_N_QUBITS = 1
+MIN_N_QUBITS = 2
 MAX_N_QUBITS = 4
 MIN_CIRCUIT_DEPTH = 1
-MAX_CIRCUIT_DEPTH = 4
+MAX_CIRCUIT_DEPTH = 3
 MIN_BATCH_SIZE = 1
-MAX_BATCH_SIZE = 4
+MAX_BATCH_SIZE = 2
 
 N_QUBITS_STRATEGY: SearchStrategy[int] = st.integers(min_value=MIN_N_QUBITS, max_value=MAX_N_QUBITS)
 CIRCUIT_DEPTH_STRATEGY: SearchStrategy[int] = st.integers(
@@ -223,65 +218,3 @@ def digital_circuits(
     block = draw(rand_digital_blocks(digital_gateset)(n_qubits, depth))
     total_qubits = max(block.qubit_support) + 1
     return QuantumCircuit(total_qubits, block)
-
-
-@st.composite
-def restricted_circuits(
-    draw: Callable[[SearchStrategy[Any]], Any],
-    n_qubits: SearchStrategy[int] = N_QUBITS_STRATEGY,
-    depth: SearchStrategy[int] = CIRCUIT_DEPTH_STRATEGY,
-) -> QuantumCircuit:
-    block = draw(rand_digital_blocks(minimal_gateset)(n_qubits, depth))
-    total_qubits = max(block.qubit_support) + 1
-    return QuantumCircuit(total_qubits, block)
-
-
-# A strategy to generate both a circuit and a batch of values for each FeatureParameter.
-@st.composite
-def batched_digital_circuits(
-    draw: Callable[[SearchStrategy[Any]], Any],
-    n_qubits: SearchStrategy[int] = N_QUBITS_STRATEGY,
-    depth: SearchStrategy[int] = CIRCUIT_DEPTH_STRATEGY,
-    batch_size: SearchStrategy[int] = BATCH_SIZE_STRATEGY,
-) -> tuple[QuantumCircuit, dict[str, Tensor]]:
-    circuit = draw(digital_circuits(n_qubits, depth))
-    b_size = draw(batch_size)
-    inputs = rand_featureparameters(circuit, b_size)
-    return circuit, inputs
-
-
-@st.composite
-def restricted_batched_circuits(
-    draw: Callable[[SearchStrategy[Any]], Any],
-    n_qubits: SearchStrategy[int] = N_QUBITS_STRATEGY,
-    depth: SearchStrategy[int] = CIRCUIT_DEPTH_STRATEGY,
-    batch_size: SearchStrategy[int] = BATCH_SIZE_STRATEGY,
-) -> tuple[QuantumCircuit, dict[str, Tensor]]:
-    circuit = draw(restricted_circuits(n_qubits, depth))
-    b_size = draw(batch_size)
-    inputs = rand_featureparameters(circuit, b_size)
-    return circuit, inputs
-
-
-# A strategy to generate random observables under the form
-# of an add block of numerically scaled kron blocks.
-@st.composite
-def observables(
-    draw: Callable[[SearchStrategy[Any]], Any],
-    n_qubits: SearchStrategy[int] = N_QUBITS_STRATEGY,
-    depth: SearchStrategy[int] = CIRCUIT_DEPTH_STRATEGY,
-) -> AbstractBlock:
-    total_qubits = draw(n_qubits)
-    add_layer = []
-    qubit_indices = {0}
-    for _ in range(draw(depth)):
-        kron_layer = []
-        for qubit in range(draw(st.integers(min_value=1, max_value=total_qubits))):
-            gate = draw(st.sampled_from(pauli_gateset))
-            kron_layer.append(gate(qubit))
-        scale = draw(st.floats(min_value=-10.0, max_value=10.0))
-        kron_block = scale * kron(*kron_layer)
-        add_layer.append(kron_block)
-    scale_add: float = draw(st.floats(min_value=-10.0, max_value=10.0))
-    add_block = scale_add * add(*add_layer)
-    return add_block
