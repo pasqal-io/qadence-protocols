@@ -219,13 +219,14 @@ noiseless_samples = model.sample(n_shots=n_shots)
 noisy_samples = model.sample(noise=noise, n_shots=n_shots)
 
 # Define the mitigation method with the sample results
-options={"optimization_type": ReadOutOptimization.MAJ_VOTE, "n_shots": n_shots, "samples": noisy_samples}
+options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots, "samples": noisy_samples}
 mitigation = Mitigations(protocol=Mitigations.READOUT, options=options)
 
 # Run noiseless, noisy and mitigated simulations.
 mitigated_samples_opt = mitigation(noise=noise)
 
-print(mitigated_samples_opt) # markdown-exec: hide
+print(f"Noisy samples: {noisy_samples}") # markdown-exec: hide
+print(f"Mitigates samples: {mitigated_samples_opt}") # markdown-exec: hide
 
 ```
 
