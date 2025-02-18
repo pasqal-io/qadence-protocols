@@ -27,7 +27,7 @@ class Mitigations(Protocol):
 
     def __call__(
         self,
-        model: QuantumModel,
+        model: QuantumModel | None = None,
         noise: NoiseHandler | None = None,
         param_values: dict[str, Tensor] = dict(),
     ) -> list[Counter]:

@@ -90,7 +90,7 @@ from qadence_protocols.types import ReadOutOptimization
         ),
     ],
 )
-def test_readout_mitigation_quantum_model(
+def test_readout_mitigation(
     error_probability: float,
     n_shots: int,
     block: AbstractBlock,
@@ -113,6 +113,17 @@ def test_readout_mitigation_quantum_model(
         options={"optimization_type": optimization_type, "samples": noisy_samples},
     )
     mitigated_samples = mitigate(model=model, noise=noise)
+
+    js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
+    js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
+    assert js_mitigated < js_noisy
+
+    # Pass the noisy samples to the mitigation protocol and run without model
+    mitigate = Mitigations(
+        protocol=Mitigations.READOUT,
+        options={"optimization_type": optimization_type, "samples": noisy_samples},
+    )
+    mitigated_samples = mitigate(noise=noise)
 
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
