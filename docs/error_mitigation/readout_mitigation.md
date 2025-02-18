@@ -197,6 +197,41 @@ print(f"mitigated solution index: {result_index}" ) # markdown-exec: hide
 
 ### Model free mitigation
 
+You can perform the mitigation without a `quantum model` if you have sampled results from previous executions. This eliminates the need to reinitialize the circuit and sample again. Instead, you can directly apply the mitigation method to the existing data. To do this, you need to insert the `samples` at your `options` when initializing the `Mitigations` class.
+
+```python exec="on" source="material-block" session="mitigation" result="json"
+from qadence import QuantumModel, QuantumCircuit, hamiltonian_factory, kron, H, Z, I
+from qadence import NoiseProtocol, NoiseHandler
+from qadence_protocols.mitigations.protocols import Mitigations
+from qadence_protocols.types import ReadOutOptimization
+
+# Simple circuit and observable construction.
+block = kron(H(0), I(1))
+circuit = QuantumCircuit(2, block)
+n_shots = 10000
+
+# Construct a quantum model and noise
+model = QuantumModel(circuit=circuit)
+error_probability = 0.2
+noise = NoiseHandler(protocol=NoiseProtocol.READOUT.INDEPENDENT,options={"error_probability": error_probability})
+
+noiseless_samples = model.sample(n_shots=n_shots)
+noisy_samples = model.sample(noise=noise, n_shots=n_shots)
+
+# Define the mitigation method with the sample results
+options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots, "samples": noisy_samples}
+mitigation = Mitigations(protocol=Mitigations.READOUT, options=options)
+
+# Run noiseless, noisy and mitigated simulations.
+mitigated_samples_opt = mitigation(noise=noise)
+
+print(f"Noisy samples: {noisy_samples}") # markdown-exec: hide
+print(f"Mitigates samples: {mitigated_samples_opt}") # markdown-exec: hide
+
+```
+
+### Twirl mitigation
+
 This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
