@@ -277,7 +277,7 @@ print(f"noiseless expectation value {model.expectation(measurement=tomo_measurem
 print(f"noisy expectation value {noisy_model.expectation(measurement=tomo_measurement,)}") # markdown-exec: hide
 
 mitigate = Mitigations(protocol=Mitigations.TWIRL)
-expectation_mitigated = mitigate(noisy_model)
+expectation_mitigated = mitigate(noise=noise, model=noisy_model)
 
 print(f"expected mitigation value {expectation_mitigated}") # markdown-exec: hide
 
