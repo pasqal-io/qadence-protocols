@@ -160,13 +160,11 @@ def analog_zne(
 def mitigate(
     model: QuantumModel,
     options: dict,
-    noise: NoiseHandler | None = None,
+    noise: NoiseHandler,
     param_values: dict[str, Tensor] = dict(),
 ) -> Tensor:
     if noise.protocol[-1] not in supported_noise_models:
-        raise ValueError(
-            "A NoiseProtocol.ANALOG noise model must be provided to .mitigate()"
-        )
+        raise ValueError("A NoiseProtocol.ANALOG noise model must be provided to .mitigate()")
     mitigation_zne = analog_zne(
         model=model, options=options, noise=noise, param_values=param_values
     )

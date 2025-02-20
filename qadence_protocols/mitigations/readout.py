@@ -273,13 +273,11 @@ def mitigation_minimization(
 def mitigate(
     model: QuantumModel,
     options: dict,
-    noise: NoiseHandler | None = None,
+    noise: NoiseHandler,
     param_values: dict[str, Tensor] = dict(),
 ) -> list[Counter]:
     if noise.filter(NoiseProtocol.READOUT) is None:
-        raise ValueError(
-            "A NoiseProtocol.READOUT model must be provided to .mitigate()"
-        )
+        raise ValueError("A NoiseProtocol.READOUT model must be provided to .mitigate()")
     samples = options.get("samples", None)
     if samples is None:
         n_shots = options.get("n_shots", None)
