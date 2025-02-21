@@ -31,8 +31,6 @@ class Mitigations(Protocol):
         model: QuantumModel | None = None,
         param_values: dict[str, Tensor] = dict(),
     ) -> list[Counter]:
-        if noise is None:
-            raise ValueError("A noise model must be provided to .mitigate()")
         try:
             module = importlib.import_module(PROTOCOL_TO_MODULE[self.protocol])
         except (KeyError, ModuleNotFoundError, ImportError) as e:
