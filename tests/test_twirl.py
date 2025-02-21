@@ -71,5 +71,5 @@ def test_readout_twirl_mitigation(
         backend=backend,
     )
     mitigate = Mitigations(protocol=Mitigations.TWIRL)
-    expectation_mitigated = mitigate(noisy_model)
+    expectation_mitigated = mitigate(noise=noise, model=noisy_model)
     assert torch.allclose(expectation_mitigated, expectation_noiseless, atol=1.0e-1, rtol=5.0e-2)

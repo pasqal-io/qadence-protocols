@@ -112,7 +112,7 @@ def test_readout_mitigation(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
     )
-    mitigated_samples = mitigate(model=model, noise=noise)
+    mitigated_samples = mitigate(noise=noise, model=model)
 
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
@@ -136,7 +136,7 @@ def test_readout_mitigation(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "samples": noisy_samples},
     )
-    mitigated_samples = mitigate(model=noisy_model)
+    mitigated_samples = mitigate(noise=noise, model=noisy_model)
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
     assert js_mitigated < js_noisy
@@ -145,7 +145,7 @@ def test_readout_mitigation(
         protocol=Mitigations.READOUT,
         options={"optimization_type": optimization_type, "n_shots": n_shots},
     )
-    mitigated_samples = mitigate(model=model, noise=noise)
+    mitigated_samples = mitigate(noise=noise, model=model)
     js_mitigated = js_divergence(mitigated_samples[0], noiseless_samples[0])
     js_noisy = js_divergence(noisy_samples[0], noiseless_samples[0])
     assert js_mitigated < js_noisy
@@ -173,7 +173,7 @@ def test_compare_readout_methods(circuit: QuantumCircuit) -> None:
         options={"optimization_type": ReadOutOptimization.MLE, "n_shots": n_shots},
     )
     mitigated_samples_mle: list[Counter] = mitigation_mle(
-        model=model, noise=noise, param_values=inputs
+        noise=noise, model=model, param_values=inputs
     )
 
     mitigation_constrained_opt = Mitigations(
@@ -181,7 +181,7 @@ def test_compare_readout_methods(circuit: QuantumCircuit) -> None:
         options={"optimization_type": ReadOutOptimization.CONSTRAINED, "n_shots": n_shots},
     )
     mitigated_samples_constrained_opt: list[Counter] = mitigation_constrained_opt(
-        model=model, noise=noise, param_values=inputs
+        noise=noise, model=model, param_values=inputs
     )
 
     js_mitigated_mle = js_divergence(mitigated_samples_mle[0], noiseless_samples[0])
