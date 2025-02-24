@@ -18,6 +18,8 @@ print(f"noiseless_expectation = {model_noiseless.expectation()}") # markdown-exe
 
 ```
 
+In analog_zne, you can choose between two ZNE fitting methods: polynomial extrapolation and exponential decay extrapolation. This option can be specified in the mitigate function by setting `zne_type` to `poly` or `exp`, with the default being polynomial extrapolation. When you want to use `exp` method, you need minimum of three data points.
+
 ```python exec="on" source="material-block" session="zne" result="json"
 
 from qadence import NoiseProtocol, NoiseHandler
@@ -29,13 +31,13 @@ model = QuantumModel(
     circuit=circuit, observable=observable, backend=BackendName.PULSER, diff_mode=DiffMode.GPSR
 )
 
-for data_points in [2,5]:
-    options = {"stretches": torch.linspace(1, 3, data_points)}
+for data_points, zne_type in zip([2,5], ["poly", "exp"]):
+    options = {"stretches": torch.linspace(1, 3, data_points), "zen_type": zne_type}
     mitigate = Mitigations(protocol=Mitigations.ANALOG_ZNE, options=options)
 
     mitigated_expectation = mitigate(model=model, noise=noise)
 
-    print(f"noiseless_expectation with {data_points} data points", mitigated_expectation) # markdown-exec: hide
+    print(f"noiseless_expectation with {zne_type} extrapolation and {data_points} data points", mitigated_expectation) # markdown-exec: hide
 
 ```
 

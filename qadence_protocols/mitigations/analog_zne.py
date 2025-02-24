@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import torch
 from qadence import BackendName, QuantumModel
@@ -13,6 +15,7 @@ from qadence.operations import AnalogRot
 from qadence.transpile import apply_fn_to_blocks
 from qadence.types import NoiseProtocol
 from qadence.utils import Endianness
+from scipy.optimize import curve_fit
 from torch import Tensor
 
 supported_noise_models = [NoiseProtocol.ANALOG.DEPOLARIZING, NoiseProtocol.ANALOG.DEPHASING]
@@ -27,6 +30,42 @@ def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
     return torch.tensor(poly_fits)
 
 
+def exp_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
+    return a * np.exp(-b * x) + c
+
+
+def zne_exp(noise_levels: Tensor, zne_datasets: list[list[float]]) -> Tensor:
+    exp_fits: list[float] = []
+    noise_levels_np: np.ndarray = noise_levels.numpy()
+
+    for dataset in zne_datasets:
+        dataset_np: np.ndarray = np.array(dataset)
+
+        # check if datapoints are enough
+        if len(noise_levels_np) < 3:
+            raise ValueError("At least 3 noise levels are required for exponential fitting.")
+
+        try:
+            # Execute fitting
+            popt, _ = curve_fit(
+                exp_func,
+                noise_levels_np,
+                dataset_np,
+                p0=(dataset_np[0], 1, dataset_np[-1]),
+                maxfev=5000,
+            )
+
+            # expected value when noise is zero
+            zero_noise_value: float = float(exp_func(0, *popt))
+            exp_fits.append(zero_noise_value)
+
+        except RuntimeError:
+            print("Warning: Optimal parameters not found, using last known value.")
+            exp_fits.append(dataset_np[-1])
+
+    return torch.tensor(exp_fits)
+
+
 def pulse_experiment(
     backend: Backend,
     circuit: QuantumCircuit,
@@ -35,6 +74,7 @@ def pulse_experiment(
     noise: NoiseHandler,
     stretches: Tensor,
     endianness: Endianness,
+    zne_func: Callable,
     state: Tensor | None = None,
 ) -> Tensor:
     def mutate_params(block: AbstractBlock, stretch: float) -> AbstractBlock:
@@ -91,7 +131,7 @@ def pulse_experiment(
     res = res if len(res.shape) > 0 else res.reshape(1)
 
     # Zero-noise extrapolate.
-    extrapolated_exp_values = zne(
+    extrapolated_exp_values = zne_func(
         noise_levels=stretches,
         zne_datasets=res.real,
     )
@@ -105,6 +145,7 @@ def noise_level_experiment(
     param_values: dict[str, Tensor],
     noise: NoiseHandler,
     endianness: Endianness,
+    zne_func: Callable,
     state: Tensor | None = None,
 ) -> Tensor:
     noise_probs = noise.options[-1].get("noise_probs")
@@ -118,7 +159,8 @@ def noise_level_experiment(
         noise=noise,
         endianness=endianness,
     )
-    return zne(noise_levels=noise_probs, zne_datasets=zne_datasets)
+
+    return zne_func(noise_levels=noise_probs, zne_datasets=zne_datasets)
 
 
 def analog_zne(
@@ -133,6 +175,14 @@ def analog_zne(
         raise ValueError("Only BackendName.PULSER supports analog simulations.")
     backend = backend_factory(backend=model._backend_name, diff_mode=None)
     stretches = options.get("stretches", None)
+    zne_type = options.get("zne_type", None)
+    if zne_type == "exp":
+        zne_func = zne_exp
+    elif zne_type == "poly" or zne_type is None:
+        zne_func = zne
+    else:
+        raise ValueError("analog zne supports only polynomial or exponential extrapolation.")
+
     if stretches is not None:
         extrapolated_exp_values = pulse_experiment(
             backend=backend,
@@ -142,6 +192,7 @@ def analog_zne(
             noise=noise,
             stretches=stretches,
             endianness=endianness,
+            zne_func=zne_func,
             state=state,
         )
     else:
@@ -152,6 +203,7 @@ def analog_zne(
             param_values=param_values,
             noise=noise,
             endianness=endianness,
+            zne_func=zne_func,
             state=state,
         )
     return extrapolated_exp_values
