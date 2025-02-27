@@ -29,6 +29,7 @@ from scipy.stats import wasserstein_distance
 
 from qadence_protocols import Mitigations
 from qadence_protocols.mitigations.readout import (
+    ham_dist_redistribution,
     majority_vote,
     matrix_inv,
     mle_solve,
@@ -273,6 +274,39 @@ def test_readout_mthree_sparse() -> None:
     p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
 
     assert wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle) < LOW_ACCEPTANCE
+
+
+def test_readout_mthree_sparse_ham() -> None:
+    n_qubits = 10
+    exact_prob = np.random.rand(2 ** (n_qubits))
+    exact_prob[2 ** (n_qubits // 2) :] = 0
+    exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2**n_qubits) / 2**n_qubits
+    exact_prob = exact_prob / sum(exact_prob)
+    np.random.shuffle(exact_prob)
+
+    observed_prob = np.array(exact_prob, copy=True)
+    observed_prob[exact_prob < 1 / 2 ** (n_qubits)] = 0
+
+    noise_matrices = []
+    for t in range(n_qubits):
+        t_a, t_b = np.random.rand(2) / 8
+        K = np.array([[1 - t_a, t_a], [t_b, 1 - t_b]]).transpose()  # column sum be 1
+        noise_matrices.append(K)
+
+    confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
+
+    # we consider a small hamming distance for this method and set it to 2
+    confusion_matrix_subspace_ham = ham_dist_redistribution(confusion_matrix_subspace, 2)
+
+    input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
+
+    p_corr_mthree_gmres_ham = gmres(confusion_matrix_subspace_ham, input_csr.toarray())[0]
+    p_corr_mthree_gmres_mle_ham = mle_solve(p_corr_mthree_gmres_ham)
+
+    noise_matrices_inv = list(map(matrix_inv, noise_matrices))
+    p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
+
+    assert wasserstein_distance(p_corr_mthree_gmres_mle_ham, p_corr_inv_mle) < LOW_ACCEPTANCE
 
 
 @pytest.mark.flaky(max_runs=5)

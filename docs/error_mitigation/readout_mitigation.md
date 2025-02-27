@@ -147,10 +147,31 @@ p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
 distance = wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle)
 print(f"Wasserstein distance between the 2 distributions: {distance}")  # markdown-exec: hide
 
-
 ```
 
 We have used `wasserstein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
+
+Additionally, we can further enhance sparsity by integrating the Hamming distance approach into the `MTHREE` method. This method utilizes only the noise matrix values that fall within the specified Hamming distance of the correct quantum state. This functionality can be enabled by setting the `ham_dist` option.
+
+```python exec="on" source="material-block" session="m3" result="json"
+from qadence_protocols.mitigations.readout import ham_dist_redistribution
+
+confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
+
+# we consider a small hamming distance for this method and set it to 2
+confusion_matrix_subspace_ham = ham_dist_redistribution(
+                    confusion_matrix_subspace, ham_dist=2
+                )
+p_corr_mthree_gmres_ham = gmres(confusion_matrix_subspace_ham, input_csr.toarray())[0]
+p_corr_mthree_gmres_mle_ham = mle_solve(p_corr_mthree_gmres_ham)
+
+noise_matrices_inv = list(map(matrix_inv, noise_matrices))
+p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
+
+distance_ham = wasserstein_distance(p_corr_mthree_gmres_mle_ham, p_corr_inv_mle)
+
+print(f"Wasserstein distance between the 2 distributions: {distance_ham}")  # markdown-exec: hide
+```
 
 ### Majority Voting
 
