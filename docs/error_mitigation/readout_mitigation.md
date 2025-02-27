@@ -158,9 +158,9 @@ from qadence_protocols.mitigations.readout import ham_dist_redistribution
 
 confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
 
-# we consider a small hamming distance for this method and set it to 2
+# we consider a small hamming distance for this method and set it to 3
 confusion_matrix_subspace_ham = ham_dist_redistribution(
-                    confusion_matrix_subspace, ham_dist=2
+                    confusion_matrix_subspace, ham_dist=3
                 )
 p_corr_mthree_gmres_ham = gmres(confusion_matrix_subspace_ham, input_csr.toarray())[0]
 p_corr_mthree_gmres_mle_ham = mle_solve(p_corr_mthree_gmres_ham)
@@ -256,7 +256,7 @@ print(f"Mitigates samples: {mitigated_samples_opt}") # markdown-exec: hide
 
 ### Twirl mitigation
 
-This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
+This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling with `twirl_samples` option. The method is exact in that it requires no calibration which might be prone to errors of modelling.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
 from qadence import NoiseHandler, NoiseProtocol
@@ -300,7 +300,14 @@ print(f"noisy expectation value {noisy_model.expectation(measurement=tomo_measur
 mitigate = Mitigations(protocol=Mitigations.TWIRL)
 expectation_mitigated = mitigate(noise=noise, model=noisy_model)
 
+
+# we set a number of qubits as the sample count. It can be changed for higher accuracy.
+options={"twirl_samples": block.n_qubits}
+mitigate_sample = Mitigations(protocol=Mitigations.TWIRL, options=options)
+expectation_mitigated_sample = mitigate_sample(noise=noise, model=noisy_model)
+
 print(f"expected mitigation value {expectation_mitigated}") # markdown-exec: hide
+print(f"expected sampled mitigation value {expectation_mitigated_sample}") # markdown-exec: hide
 
 ```
 

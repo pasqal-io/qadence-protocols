@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import random
 from collections import Counter
 
 import torch
@@ -55,6 +56,14 @@ def mitigate(
             ]
         )
     )
+
+    # Random sample gate strings for scalability
+    twirl_samples = options.get("twirl_samples")
+    if isinstance(twirl_samples, int) and twirl_samples > 0:
+        twirls = random.sample(twirls, twirl_samples)
+    elif twirl_samples is not None:
+        raise ValueError("twirl_samples must be a positive integer")
+
     # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
     samples_twirl_den_list = []

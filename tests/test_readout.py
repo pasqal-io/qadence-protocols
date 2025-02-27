@@ -295,8 +295,7 @@ def test_readout_mthree_sparse_ham() -> None:
 
     confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
 
-    # we consider a small hamming distance for this method and set it to 2
-    confusion_matrix_subspace_ham = ham_dist_redistribution(confusion_matrix_subspace, 2)
+    confusion_matrix_subspace_ham = ham_dist_redistribution(confusion_matrix_subspace, 3)
 
     input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
 
