@@ -46,23 +46,28 @@ def mitigate(
     block = model._circuit.original.block
     n_shots = model._measurement.options["n_shots"]
 
-    # Generates a list of all possible X gate string combinations
-    # Applied at the end of circuit before measurements are made
-    twirls = list(
-        itertools.chain.from_iterable(
-            [
-                list(itertools.combinations(range(block.n_qubits), k))
-                for k in range(1, block.n_qubits + 1)
-            ]
-        )
-    )
+    twirl_samples = options.get("twirl_samples", None)
+    all_qubits = list(range(block.n_qubits))
 
-    # Random sample gate strings for scalability
-    twirl_samples = options.get("twirl_samples")
-    if isinstance(twirl_samples, int) and twirl_samples > 0:
-        twirls = random.sample(twirls, twirl_samples)
-    elif twirl_samples is not None:
+    # Ensure twirl_samples is valid
+    if twirl_samples is not None and (not isinstance(twirl_samples, int) or twirl_samples <= 0):
         raise ValueError("twirl_samples must be a positive integer")
+
+    # If twirl_samples is None, generate all combinations
+    elif twirl_samples is None:
+        twirls = list(
+            itertools.chain.from_iterable(
+                itertools.combinations(all_qubits, k) for k in range(1, block.n_qubits + 1)
+            )
+        )
+
+    # If twirl_samples is set, generate samples with the given sample count
+    else:
+        sampled_twirls: set[tuple[int, ...]] = set()
+        while len(sampled_twirls) < twirl_samples:
+            k = random.randint(1, block.n_qubits)  # Random size of the combination
+            sampled_twirls.add(tuple(random.sample(all_qubits, k)))
+        twirls = list(sampled_twirls)
 
     # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
