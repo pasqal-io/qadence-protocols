@@ -102,24 +102,34 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import gmres
 
 n_qubits = 10
-exact_prob = np.random.rand(2 ** (n_qubits))
-exact_prob[2 ** (n_qubits//2):]=0
-exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2**n_qubits) / 2**n_qubits
-exact_prob = exact_prob / sum(exact_prob)
+
+# Prepare a probability distribution with sparsity
+exact_prob = np.random.rand(2 ** n_qubits)
+exact_prob[2 ** (n_qubits // 2):] = 0
+exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2 ** n_qubits) / 2 ** n_qubits
+exact_prob /= sum(exact_prob)
 np.random.shuffle(exact_prob)
 
+# Create an observed probability distribution with thresholded values
 observed_prob = np.array(exact_prob, copy=True)
-observed_prob[exact_prob < 1 / 2 ** (n_qubits)] = 0
+observed_prob[exact_prob < 1 / 2 ** n_qubits] = 0
+observed_prob /= sum(observed_prob)
 
-observed_prob = observed_prob / sum(observed_prob)
+# Convert the observed probability distribution into a sparse matrix
+input_csr_matrix = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
 
-input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
-print({bin(x)[2:].zfill(n_qubits):np.round(input_csr[x,0],3) for x in input_csr.nonzero()[0]}) # markdown-exec: hide
-print(f"Filling percentage {len(input_csr.nonzero()[0])/2**n_qubits} %") # markdown-exec: hide
+# Print the binary representation of states with nonzero probabilities
+print({
+    bin(x)[2:].zfill(n_qubits): np.round(input_csr_matrix[x, 0], 3)
+    for x in input_csr_matrix.nonzero()[0]
+}) # markdown-exec: hide
+
+# Compute and display the percentage of nonzero entries
+filling_percentage = len(input_csr_matrix.nonzero()[0]) / 2**n_qubits
+print(f"Filling percentage: {filling_percentage:.6f} %") # markdown-exec: hide
 ```
 
-We have generated a probability distribution within a small subspace of bitstrings being filled. We use `csr_matrix` for efficient representation and computation. Now we use MTHREE to do mitigation on the probability distribution
-
+We have constructed a probability distribution over a small subspace of bitstrings, leveraging a `csr_matrix` for efficient storage and computation. Now, we apply `MTHREE` to mitigate errors in the probability distribution. Within `MTHREE`, sparsity can be further improved by incorporating the Hamming distance approach. This method considers only the noise matrix elements corresponding to quantum states within a specified Hamming distance of the correct state. This feature can be activated by setting the `hamming_dist` option.
 
 ```python exec="on" source="material-block" session="m3" result="json"
 from scipy.stats import wasserstein_distance
@@ -128,50 +138,38 @@ from qadence_protocols.mitigations.readout import (
     mle_solve,
     matrix_inv,
     tensor_rank_mult
-    )
+)
 
+# Generate noise transition matrices for each qubit
 noise_matrices = []
-for t in range(n_qubits):
-    t_a, t_b = np.random.rand(2) / 8
-    K = np.array([[1 - t_a, t_a], [t_b, 1 - t_b]]).transpose()  # column sum be 1
-    noise_matrices.append(K)
+for qubit_idx in range(n_qubits):
+    transition_prob_a, transition_prob_b = np.random.rand(2) / 8
+    transition_matrix = np.array([[1 - transition_prob_a, transition_prob_a],
+                                  [transition_prob_b, 1 - transition_prob_b]]).T  # Ensure column sums to 1
+    noise_matrices.append(transition_matrix)
 
-confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
 
-p_corr_mthree_gmres = gmres(confusion_matrix_subspace, input_csr.toarray())[0]
-p_corr_mthree_gmres_mle = mle_solve(p_corr_mthree_gmres)
+# Hamming distance for filtering out noisy states that are far from the correct state
+hamming_dist = 1
 
-noise_matrices_inv = list(map(matrix_inv, noise_matrices))
-p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
+# Compute the subspace confusion matrix using noise transition matrices
+subspace_confusion_matrix = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0], hamming_dist)
 
-distance = wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle)
-print(f"Wasserstein distance between the 2 distributions: {distance}")  # markdown-exec: hide
+# Apply GMRES (Generalized Minimal Residual Method) to correct the probability distribution using MTHREE
+corrected_prob_mthree_gmres = gmres(subspace_confusion_matrix, input_csr_matrix.toarray())[0]
+corrected_prob_mthree_mle = mle_solve(corrected_prob_mthree_gmres)  # Apply Maximum Likelihood Estimation (MLE)
 
+# Use tensor rank multiplication to apply the inverse noise matrices to the observed probability distribution, followed by MLE correction
+inverse_noise_matrices = list(map(matrix_inv, noise_matrices))
+corrected_prob_inverse_mle = mle_solve(tensor_rank_mult(inverse_noise_matrices, observed_prob))
+
+# Compute the Wasserstein distance between the two corrected probability distributions
+wasserstein_dist = wasserstein_distance(corrected_prob_mthree_mle, corrected_prob_inverse_mle)
+print(f"Wasserstein distance between the two distributions: {wasserstein_dist}")  # markdown-exec: hide
 ```
 
 We have used `wasserstein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
 
-Additionally, we can further enhance sparsity by integrating the Hamming distance approach into the `MTHREE` method. This method utilizes only the noise matrix values that fall within the specified Hamming distance of the correct quantum state. This functionality can be enabled by setting the `ham_dist` option.
-
-```python exec="on" source="material-block" session="m3" result="json"
-from qadence_protocols.mitigations.readout import ham_dist_redistribution
-
-confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
-
-# we consider a small hamming distance for this method and set it to 3
-confusion_matrix_subspace_ham = ham_dist_redistribution(
-                    confusion_matrix_subspace, ham_dist=3
-                )
-p_corr_mthree_gmres_ham = gmres(confusion_matrix_subspace_ham, input_csr.toarray())[0]
-p_corr_mthree_gmres_mle_ham = mle_solve(p_corr_mthree_gmres_ham)
-
-noise_matrices_inv = list(map(matrix_inv, noise_matrices))
-p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
-
-distance_ham = wasserstein_distance(p_corr_mthree_gmres_mle_ham, p_corr_inv_mle)
-
-print(f"Wasserstein distance between the 2 distributions: {distance_ham}")  # markdown-exec: hide
-```
 
 ### Majority Voting
 

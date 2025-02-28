@@ -22,7 +22,39 @@ from qadence_protocols.types import ReadOutOptimization
 logger = get_logger(__name__)
 
 
-def normalized_subspace_kron(noise_matrices: npt.NDArrary, subspace: npt.NDArray) -> npt.NDArray:
+def hamming_dist_redistribution(conf_matrix: npt.NDArray, hamming_dist: int) -> npt.NDArray:
+    """Redistributes the confusion matrix based on a given Hamming distance."""
+
+    def get_hamming_dist(row_index: int, col_index: int) -> int:
+        """Compute Hamming Distance between two integers."""
+        return bin(row_index ^ col_index).count("1")
+
+    def get_valid_rows(num_rows: int, col_index: int, hamming_dist: int) -> list:
+        """Find valid rows within the given Hamming distance."""
+        return [row for row in range(num_rows) if get_hamming_dist(row, col_index) <= hamming_dist]
+
+    def get_col_sum(conf_matrix: npt.NDArray, valid_rows: list, col_index: int) -> float:
+        """Compute sum of column values for valid rows."""
+        return float(sum(conf_matrix[row, col_index] for row in valid_rows))
+
+    num_rows, num_cols = conf_matrix.shape
+    redistributed_matrix = np.zeros((num_rows, num_cols))
+    for col in range(num_cols):
+        # Retrieve rows that are within the hamming distance
+        valid_rows = get_valid_rows(num_rows, col, hamming_dist)
+
+        # Compute the effective value in confusion matrix
+        partial_sum = get_col_sum(conf_matrix, valid_rows, col)
+        if partial_sum > 0:
+            for row in valid_rows:
+                redistributed_matrix[row, col] = conf_matrix[row, col] / partial_sum
+
+    return redistributed_matrix
+
+
+def normalized_subspace_kron(
+    noise_matrices: npt.NDArrary, subspace: npt.NDArray, hamming_dist: int | None = None
+) -> npt.NDArray:
     """
     Compute a specified tensor producted subspace of index locations.
 
@@ -49,35 +81,10 @@ def normalized_subspace_kron(noise_matrices: npt.NDArrary, subspace: npt.NDArray
 
         conf_matrix[:, j] /= np.sum(conf_matrix[:, j])
 
+    if hamming_dist is not None:
+        conf_matrix = hamming_dist_redistribution(conf_matrix, hamming_dist)
+
     return conf_matrix
-
-
-def ham_dist_redistribution(conf_matrix: npt.NDArray, ham_dist: int) -> npt.NDArray:
-    """Redistributes the confusion matrix based on a given Hamming distance."""
-
-    def get_ham_dist(row_index: int, col_index: int) -> int:
-        """Compute Hamming Distance between two integers."""
-        return bin(row_index ^ col_index).count("1")
-
-    def get_valid_rows(num_rows: int, col_index: int, ham_dist: int) -> list:
-        """Find valid rows within the given Hamming distance."""
-        return [row for row in range(num_rows) if get_ham_dist(row, col_index) < ham_dist]
-
-    def get_col_sum(conf_matrix: npt.NDArray, valid_rows: list, col_index: int) -> float:
-        """Compute sum of column values for valid rows."""
-        return float(sum(conf_matrix[row, col_index] for row in valid_rows))
-
-    num_rows, num_cols = conf_matrix.shape
-    redistributed_matrix = np.zeros((num_rows, num_cols))
-    for col in range(num_cols):
-        valid_rows = get_valid_rows(num_rows, col, ham_dist)
-        partial_sum = get_col_sum(conf_matrix, valid_rows, col)
-
-        if partial_sum > 0:  # Avoid division by zero
-            for row in valid_rows:
-                redistributed_matrix[row, col] = conf_matrix[row, col] / partial_sum
-
-    return redistributed_matrix
 
 
 def tensor_rank_mult(qubit_ops: npt.NDArray, prob_vect: npt.NDArray) -> npt.NDArray:
@@ -264,15 +271,12 @@ def mitigation_minimization(
             p_corr = mle_solve(tensor_rank_mult(noise_matrices_inv, p_raw))
 
         elif optimization_type == ReadOutOptimization.MTHREE:
-            confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, p_raw.nonzero()[0])
-
-            ham_dist = options.get("ham_dist")
-            if ham_dist:
-                if not isinstance(ham_dist, int):
-                    raise ValueError("ham_dist value must be of type int.")
-                confusion_matrix_subspace = ham_dist_redistribution(
-                    confusion_matrix_subspace, ham_dist
-                )
+            hamming_dist = options.get("hamming_dist", None)
+            if hamming_dist is not None and not isinstance(hamming_dist, int):
+                raise ValueError("hamming_dist value must be of type int.")
+            confusion_matrix_subspace = normalized_subspace_kron(
+                noise_matrices, p_raw.nonzero()[0], hamming_dist
+            )
 
             # GMRES (Generalized minimal residual) for linear equations in higher dimension
             p_corr, exit_code = gmres(confusion_matrix_subspace, p_raw)

@@ -21,7 +21,7 @@ from torch import Tensor
 supported_noise_models = [NoiseProtocol.ANALOG.DEPOLARIZING, NoiseProtocol.ANALOG.DEPHASING]
 
 
-def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
+def zne_poly(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
     poly_fits = []
     for dataset in zne_datasets:  # Looping over batched observables.
         poly_fit = np.poly1d(np.polyfit(noise_levels, dataset, len(noise_levels) - 1))
@@ -30,11 +30,10 @@ def zne(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
     return torch.tensor(poly_fits)
 
 
-def exp_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
-    return a * np.exp(-b * x) + c
-
-
 def zne_exp(noise_levels: Tensor, zne_datasets: list[list[float]]) -> Tensor:
+    def exp_fn(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
+        return a * np.exp(-b * x) + c
+
     exp_fits: list[float] = []
     noise_levels_np: np.ndarray = noise_levels.numpy()
 
@@ -48,7 +47,7 @@ def zne_exp(noise_levels: Tensor, zne_datasets: list[list[float]]) -> Tensor:
         try:
             # Execute fitting
             popt, _ = curve_fit(
-                exp_func,
+                exp_fn,
                 noise_levels_np,
                 dataset_np,
                 p0=(dataset_np[0], 1, dataset_np[-1]),
@@ -56,12 +55,13 @@ def zne_exp(noise_levels: Tensor, zne_datasets: list[list[float]]) -> Tensor:
             )
 
             # expected value when noise is zero
-            zero_noise_value: float = float(exp_func(0, *popt))
+            zero_noise_value: float = float(exp_fn(0, *popt))
             exp_fits.append(zero_noise_value)
 
         except RuntimeError:
-            print("Warning: Optimal parameters not found, using last known value.")
-            exp_fits.append(dataset_np[-1])
+            raise ValueError(
+                "Optimal parameters not found, try with other datapoints or fitting configuration."
+            )
 
     return torch.tensor(exp_fits)
 
@@ -179,9 +179,11 @@ def analog_zne(
     if zne_type == "exp":
         zne_func = zne_exp
     elif zne_type == "poly" or zne_type is None:
-        zne_func = zne
+        zne_func = zne_poly
     else:
-        raise ValueError("analog zne supports only polynomial or exponential extrapolation.")
+        raise ValueError(
+            f"Analog ZNE supports only polynomial or exponential extrapolation. Got {zne_type}."
+        )
 
     if stretches is not None:
         extrapolated_exp_values = pulse_experiment(

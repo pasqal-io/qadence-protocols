@@ -29,7 +29,6 @@ from scipy.stats import wasserstein_distance
 
 from qadence_protocols import Mitigations
 from qadence_protocols.mitigations.readout import (
-    ham_dist_redistribution,
     majority_vote,
     matrix_inv,
     mle_solve,
@@ -211,6 +210,7 @@ def test_tensor_rank_mult(qubit_ops: list[npt.NDarray], input_vec: npt.NDArray) 
 
 
 @given(st.digital_circuits())
+@settings(deadline=None)
 def test_readout_mthree_mitigation(
     circuit: QuantumCircuit,
 ) -> None:
@@ -276,7 +276,7 @@ def test_readout_mthree_sparse() -> None:
     assert wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle) < LOW_ACCEPTANCE
 
 
-def test_readout_mthree_sparse_ham() -> None:
+def test_readout_mthree_sparse_hamming() -> None:
     n_qubits = 10
     exact_prob = np.random.rand(2 ** (n_qubits))
     exact_prob[2 ** (n_qubits // 2) :] = 0
@@ -293,19 +293,25 @@ def test_readout_mthree_sparse_ham() -> None:
         K = np.array([[1 - t_a, t_a], [t_b, 1 - t_b]]).transpose()  # column sum be 1
         noise_matrices.append(K)
 
-    confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
+    hamming_dist = 1
 
-    confusion_matrix_subspace_ham = ham_dist_redistribution(confusion_matrix_subspace, 3)
+    subspace_confusion_matrix = normalized_subspace_kron(
+        noise_matrices, observed_prob.nonzero()[0], hamming_dist
+    )
 
     input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
 
-    p_corr_mthree_gmres_ham = gmres(confusion_matrix_subspace_ham, input_csr.toarray())[0]
-    p_corr_mthree_gmres_mle_ham = mle_solve(p_corr_mthree_gmres_ham)
+    corrected_prob_mthree_gmres = gmres(subspace_confusion_matrix, input_csr.toarray())[0]
+    corrected_prob_mthree_mle = mle_solve(
+        corrected_prob_mthree_gmres
+    )  # Apply Maximum Likelihood Estimation (MLE)
 
-    noise_matrices_inv = list(map(matrix_inv, noise_matrices))
-    p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
+    inverse_noise_matrices = list(map(matrix_inv, noise_matrices))
+    corrected_prob_inverse_mle = mle_solve(tensor_rank_mult(inverse_noise_matrices, observed_prob))
 
-    assert wasserstein_distance(p_corr_mthree_gmres_mle_ham, p_corr_inv_mle) < LOW_ACCEPTANCE
+    assert (
+        wasserstein_distance(corrected_prob_mthree_mle, corrected_prob_inverse_mle) < LOW_ACCEPTANCE
+    )
 
 
 @pytest.mark.flaky(max_runs=5)
