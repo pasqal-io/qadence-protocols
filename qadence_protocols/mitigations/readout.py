@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from itertools import combinations
 
 import numpy as np
 import numpy.typing as npt
@@ -23,40 +24,55 @@ logger = get_logger(__name__)
 
 
 def normalized_subspace_kron(
-    noise_matrices: npt.NDArrary, subspace: npt.NDArray, hamming_dist: int | None = None
+    noise_matrices: npt.NDArray, subspace: npt.NDArray, hamming_dist: int | None = None
 ) -> npt.NDArray:
     """
-    Compute a specified tensor producted subspace of index locations.
+    Compute a specified tensor-producted subspace of index locations.
 
     Args:
-        noise: Specifies an array of noise_matrices acting indpedent qubits
-        subspace: List of index locations that defines the subspace for computation
+        noise_matrices: Array of noise matrices acting on independent qubits.
+        subspace: List of index locations defining the subspace for computation.
+        hamming_dist: Optional Hamming distance threshold for including nearby indices.
 
     Returns:
-        A sparse matrix construced from the tensorproduct of noise matrices in the subspace
+        A sparse matrix constructed from the tensor product of noise matrices in the subspace.
     """
 
     n_qubits = len(noise_matrices)
     conf_matrix = csr_matrix((2**n_qubits, 2**n_qubits))
 
+    # Expand subspace based on Hamming distance if specified
+    if hamming_dist is not None:
+        valid_indices = set(subspace)
+        for idx in subspace:
+            binary_str = bin(idx)[2:].zfill(n_qubits)
+
+            # Generate all possible indices within hamming_dist
+            for dist in range(1, hamming_dist + 1):
+                for flip_positions in combinations(range(n_qubits), dist):
+                    flipped_binary = list(binary_str)
+                    for pos in flip_positions:
+                        flipped_binary[pos] = "1" if flipped_binary[pos] == "0" else "0"
+                    valid_indices.add(int("".join(flipped_binary), 2))
+        subspace = sorted(valid_indices)
+
+    # Compute tensor-producted confusion matrix for the subspace
     for j in subspace:
         for i in subspace:
-            bin_i = bin(i)[2:].zfill(n_qubits)
-            bin_j = bin(j)[2:].zfill(n_qubits)
+            bin_i, bin_j = bin(i)[2:].zfill(n_qubits), bin(j)[2:].zfill(n_qubits)
 
             # Manually computing the entries of tensor product for only the subspace
             conf_matrix[i, j] = np.prod(
                 [noise_matrices[k][int(bin_i[k])][int(bin_j[k])] for k in range(n_qubits)]
             )
-
         conf_matrix[:, j] /= np.sum(conf_matrix[:, j])
 
-    # Redistributes the confusion matrix based on a given Hamming distance.
+    # Redistribute matrix based on Hamming distance
     if hamming_dist is not None:
         num_rows, num_cols = conf_matrix.shape
         redistributed_matrix = np.zeros((num_rows, num_cols))
+
         for col in range(num_cols):
-            # Retrieve rows that are within the hamming distance
             valid_rows = [
                 row for row in range(num_rows) if bin(row ^ col).count("1") <= hamming_dist
             ]
