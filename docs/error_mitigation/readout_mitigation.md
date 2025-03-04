@@ -149,15 +149,12 @@ for qubit_idx in range(n_qubits):
     noise_matrices.append(transition_matrix)
 
 
-# Hamming distance for filtering out noisy states that are far from the correct state
-hamming_dist = 1
 
-# Compute the subspace confusion matrix using noise transition matrices
-subspace_confusion_matrix = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0], hamming_dist)
+# Compute the subspace confusion matrix using noise transition matrices. We set hamming distance for filtering out noisy states that are far from the correct state
+subspace_confusion_matrix = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0], hamming_dist=1)
 
-# Apply GMRES (Generalized Minimal Residual Method) to correct the probability distribution using MTHREE
-corrected_prob_mthree_gmres = gmres(subspace_confusion_matrix, input_csr_matrix.toarray())[0]
-corrected_prob_mthree_mle = mle_solve(corrected_prob_mthree_gmres)  # Apply Maximum Likelihood Estimation (MLE)
+# Apply GMRES (Generalized Minimal Residual Method) to correct the probability distribution using MTHREE. Then we apply Maximum Likelihood Estimation (MLE) to ensure valid probability distribution.
+corrected_prob_mthree_mle = mle_solve(gmres(subspace_confusion_matrix, input_csr_matrix.toarray())[0])
 
 # Use tensor rank multiplication to apply the inverse noise matrices to the observed probability distribution, followed by MLE correction
 inverse_noise_matrices = list(map(matrix_inv, noise_matrices))
@@ -168,7 +165,7 @@ wasserstein_dist = wasserstein_distance(corrected_prob_mthree_mle, corrected_pro
 print(f"Wasserstein distance between the two distributions: {wasserstein_dist}")  # markdown-exec: hide
 ```
 
-We have used `wasserstein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
+We have used `wasserstein_distance` instead of `kl_divergence` as many bistrings have 0 probabilities. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
 
 
 ### Majority Voting
@@ -254,7 +251,7 @@ print(f"Mitigates samples: {mitigated_samples_opt}") # markdown-exec: hide
 
 ### Twirl mitigation
 
-This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling with `twirl_samples` option. The method is exact in that it requires no calibration which might be prone to errors of modelling.
+This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before and after the measurement [^5]. The number of twirl operations can be reduced through random sampling with the `twirl_samples` option. The method is exact in that it requires no calibration which might be prone to modelling errors.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
 from qadence import NoiseHandler, NoiseProtocol
@@ -299,7 +296,7 @@ mitigate = Mitigations(protocol=Mitigations.TWIRL)
 expectation_mitigated = mitigate(noise=noise, model=noisy_model)
 
 
-# we set a number of qubits as the sample count. It can be changed for higher accuracy.
+# We set a number of qubits as the sample count. The number of twirl_samples can range from 1 to the maximum number of qubit index combinations. For example,  In general, using a higher number of samples can improve accuracy.
 options={"twirl_samples": block.n_qubits}
 mitigate_sample = Mitigations(protocol=Mitigations.TWIRL, options=options)
 expectation_mitigated_sample = mitigate_sample(noise=noise, model=noisy_model)

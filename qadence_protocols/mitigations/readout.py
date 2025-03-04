@@ -257,8 +257,12 @@ def mitigation_minimization(
 
         elif optimization_type == ReadOutOptimization.MTHREE:
             hamming_dist = options.get("hamming_dist", None)
-            if hamming_dist is not None and not isinstance(hamming_dist, int):
-                raise ValueError("hamming_dist value must be of type int.")
+            if hamming_dist is not None:
+                if not (isinstance(hamming_dist, int) and 1 <= hamming_dist <= n_qubits):
+                    raise ValueError(
+                        f"hamming_dist must be an integer type between 1 and {n_qubits}."
+                    )
+
             confusion_matrix_subspace = normalized_subspace_kron(
                 noise_matrices, p_raw.nonzero()[0], hamming_dist
             )

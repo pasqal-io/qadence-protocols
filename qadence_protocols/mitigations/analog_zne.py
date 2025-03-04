@@ -23,6 +23,11 @@ supported_noise_models = [NoiseProtocol.ANALOG.DEPOLARIZING, NoiseProtocol.ANALO
 
 def zne_poly(noise_levels: Tensor, zne_datasets: list[list]) -> Tensor:
     poly_fits = []
+
+    # check if datapoints are enough
+    if len(noise_levels) < 2:
+        raise ValueError("At least 2 noise levels are required for polynomial fitting.")
+
     for dataset in zne_datasets:  # Looping over batched observables.
         poly_fit = np.poly1d(np.polyfit(noise_levels, dataset, len(noise_levels) - 1))
         # Return the zero-noise extrapolated value.
@@ -175,11 +180,12 @@ def analog_zne(
         raise ValueError("Only BackendName.PULSER supports analog simulations.")
     backend = backend_factory(backend=model._backend_name, diff_mode=None)
     stretches = options.get("stretches", None)
-    zne_type = options.get("zne_type", None)
-    if zne_type == "exp":
-        zne_func = zne_exp
-    elif zne_type == "poly" or zne_type is None:
+    zne_type = options.get("zne_type", "poly")
+
+    if zne_type == "poly":
         zne_func = zne_poly
+    elif zne_type == "exp":
+        zne_func = zne_exp
     else:
         raise ValueError(
             f"Analog ZNE supports only polynomial or exponential extrapolation. Got {zne_type}."
