@@ -188,7 +188,8 @@ def analog_zne(
         zne_func = zne_exp
     else:
         raise ValueError(
-            f"Analog ZNE supports only polynomial or exponential extrapolation. Got {zne_type}."
+            f'Analog ZNE supports only polynomial ("poly") or exponential ("exp") '
+            f"extrapolation options. Got {zne_type}."
         )
 
     if stretches is not None:

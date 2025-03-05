@@ -50,7 +50,7 @@ def mitigate(
     all_qubits = list(range(block.n_qubits))
     num_total_comb = (2**block.n_qubits) - 1
 
-    # Ensure twirl_samples is valid
+    # Validity check for twirl_samples
     if twirl_samples is not None:
         if not (isinstance(twirl_samples, int) and 1 <= twirl_samples <= num_total_comb):
             raise ValueError(
@@ -59,13 +59,11 @@ def mitigate(
 
     # If twirl_samples is None, generate all combinations
     if twirl_samples is None:
-        twirls = list(
-            itertools.chain.from_iterable(
-                itertools.combinations(all_qubits, k) for k in range(1, block.n_qubits + 1)
-            )
+        twirls = sum(
+            (list(itertools.combinations(all_qubits, k)) for k in range(1, block.n_qubits + 1)), []
         )
 
-    # If twirl_samples is set, generate samples with the given sample count
+    # If twirl_samples is given, generate samples with the given value
     else:
         sampled_twirls: set[tuple[int, ...]] = set()
         while len(sampled_twirls) < twirl_samples:

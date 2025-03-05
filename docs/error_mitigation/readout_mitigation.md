@@ -129,7 +129,7 @@ filling_percentage = len(input_csr_matrix.nonzero()[0]) / 2**n_qubits
 print(f"Filling percentage: {filling_percentage:.6f} %") # markdown-exec: hide
 ```
 
-We have constructed a probability distribution over a small subspace of bitstrings, leveraging a `csr_matrix` for efficient storage and computation. Now, we apply `MTHREE` to mitigate errors in the probability distribution. Within `MTHREE`, sparsity can be further improved by incorporating the Hamming distance approach. This method considers only the noise matrix elements corresponding to quantum states within a specified Hamming distance of the correct state. This feature can be activated by setting the `hamming_dist` option.
+We have constructed a probability distribution over a small subspace of bitstrings, leveraging a `csr_matrix` for efficient storage and computation. Now, we apply `MTHREE` to mitigate errors in the probability distribution. Within `MTHREE`, sparsity can be further improved by incorporating the Hamming distance approach. This method considers only the noise matrix elements corresponding to quantum states within a specified Hamming distance of the correct state. This feature can be used by setting the `hamming_dist` option.
 
 ```python exec="on" source="material-block" session="m3" result="json"
 from scipy.stats import wasserstein_distance
@@ -150,22 +150,22 @@ for qubit_idx in range(n_qubits):
 
 
 
-# Compute the subspace confusion matrix using noise transition matrices. We set hamming distance for filtering out noisy states that are far from the correct state
+# Compute the subspace confusion matrix using noise transition matrices. We set the hamming distance for filtering out noisy states that are far from the correct state
 subspace_confusion_matrix = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0], hamming_dist=1)
 
-# Apply GMRES (Generalized Minimal Residual Method) to correct the probability distribution using MTHREE. Then we apply Maximum Likelihood Estimation (MLE) to ensure valid probability distribution.
+# Apply GMRES (Generalized Minimal Residual Method) to correct the probability distribution using MTHREE. Then we apply Maximum Likelihood Estimation (MLE) to ensure the validity of the probability distribution.
 corrected_prob_mthree_mle = mle_solve(gmres(subspace_confusion_matrix, input_csr_matrix.toarray())[0])
 
-# Use tensor rank multiplication to apply the inverse noise matrices to the observed probability distribution, followed by MLE correction
+# Next, we use tensor rank multiplication to apply the inverse noise matrices to the observed probability distribution, followed by the same MLE correction
 inverse_noise_matrices = list(map(matrix_inv, noise_matrices))
 corrected_prob_inverse_mle = mle_solve(tensor_rank_mult(inverse_noise_matrices, observed_prob))
 
-# Compute the Wasserstein distance between the two corrected probability distributions
+# Finally, we compute the Wasserstein distance between the two corrected probability distributions
 wasserstein_dist = wasserstein_distance(corrected_prob_mthree_mle, corrected_prob_inverse_mle)
 print(f"Wasserstein distance between the two distributions: {wasserstein_dist}")  # markdown-exec: hide
 ```
 
-We have used `wasserstein_distance` instead of `kl_divergence` as many bistrings have 0 probabilities. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
+In `MTHREE`, we assume quantum circuits that exceed 20 qubits, which results in a high sparsity in the probability distribution of the output bitstrings, leading to many 0 probability bitstrings. Therefore, we use `Wasserstein Distance` instead of `KL divergence` and its derivative, `JS divergence`, as they put true values (which is 0 here) in the denominator and may diverge in such cases, whereas `Wasserstein Distance` remains stable for comparisons.
 
 
 ### Majority Voting
@@ -296,7 +296,7 @@ mitigate = Mitigations(protocol=Mitigations.TWIRL)
 expectation_mitigated = mitigate(noise=noise, model=noisy_model)
 
 
-# We set a number of qubits as the sample count. The number of twirl_samples can range from 1 to the maximum number of qubit index combinations. For example,  In general, using a higher number of samples can improve accuracy.
+# We set a number of qubits as the sample count. The number of twirl_samples can range from 1 to the maximum number of qubit index combinations. For example, using a higher number of samples can improve accuracy.
 options={"twirl_samples": block.n_qubits}
 mitigate_sample = Mitigations(protocol=Mitigations.TWIRL, options=options)
 expectation_mitigated_sample = mitigate_sample(noise=noise, model=noisy_model)
