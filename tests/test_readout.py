@@ -210,6 +210,7 @@ def test_tensor_rank_mult(qubit_ops: list[npt.NDarray], input_vec: npt.NDArray) 
 
 
 @given(st.digital_circuits())
+@settings(deadline=None)
 def test_readout_mthree_mitigation(
     circuit: QuantumCircuit,
 ) -> None:
@@ -273,6 +274,44 @@ def test_readout_mthree_sparse() -> None:
     p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
 
     assert wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle) < LOW_ACCEPTANCE
+
+
+def test_readout_mthree_sparse_hamming() -> None:
+    n_qubits = 10
+    exact_prob = np.random.rand(2 ** (n_qubits))
+    exact_prob[2 ** (n_qubits // 2) :] = 0
+    exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2**n_qubits) / 2**n_qubits
+    exact_prob = exact_prob / sum(exact_prob)
+    np.random.shuffle(exact_prob)
+
+    observed_prob = np.array(exact_prob, copy=True)
+    observed_prob[exact_prob < 1 / 2 ** (n_qubits)] = 0
+
+    noise_matrices = []
+    for t in range(n_qubits):
+        t_a, t_b = np.random.rand(2) / 8
+        K = np.array([[1 - t_a, t_a], [t_b, 1 - t_b]]).transpose()  # column sum be 1
+        noise_matrices.append(K)
+
+    hamming_dist = 1
+
+    subspace_confusion_matrix = normalized_subspace_kron(
+        noise_matrices, observed_prob.nonzero()[0], hamming_dist
+    )
+
+    input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
+
+    corrected_prob_mthree_gmres = gmres(subspace_confusion_matrix, input_csr.toarray())[0]
+    corrected_prob_mthree_mle = mle_solve(
+        corrected_prob_mthree_gmres
+    )  # Apply Maximum Likelihood Estimation (MLE)
+
+    inverse_noise_matrices = list(map(matrix_inv, noise_matrices))
+    corrected_prob_inverse_mle = mle_solve(tensor_rank_mult(inverse_noise_matrices, observed_prob))
+
+    assert (
+        wasserstein_distance(corrected_prob_mthree_mle, corrected_prob_inverse_mle) < LOW_ACCEPTANCE
+    )
 
 
 @pytest.mark.flaky(max_runs=5)

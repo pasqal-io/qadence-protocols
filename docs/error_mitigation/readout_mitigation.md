@@ -102,24 +102,34 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import gmres
 
 n_qubits = 10
-exact_prob = np.random.rand(2 ** (n_qubits))
-exact_prob[2 ** (n_qubits//2):]=0
-exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2**n_qubits) / 2**n_qubits
-exact_prob = exact_prob / sum(exact_prob)
+
+# Prepare a probability distribution with sparsity
+exact_prob = np.random.rand(2 ** n_qubits)
+exact_prob[2 ** (n_qubits // 2):] = 0
+exact_prob = 0.90 * exact_prob + 0.1 * np.ones(2 ** n_qubits) / 2 ** n_qubits
+exact_prob /= sum(exact_prob)
 np.random.shuffle(exact_prob)
 
+# Create an observed probability distribution with thresholded values
 observed_prob = np.array(exact_prob, copy=True)
-observed_prob[exact_prob < 1 / 2 ** (n_qubits)] = 0
+observed_prob[exact_prob < 1 / 2 ** n_qubits] = 0
+observed_prob /= sum(observed_prob)
 
-observed_prob = observed_prob / sum(observed_prob)
+# Convert the observed probability distribution into a sparse matrix
+input_csr_matrix = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
 
-input_csr = csr_matrix(observed_prob, shape=(1, 2**n_qubits)).T
-print({bin(x)[2:].zfill(n_qubits):np.round(input_csr[x,0],3) for x in input_csr.nonzero()[0]}) # markdown-exec: hide
-print(f"Filling percentage {len(input_csr.nonzero()[0])/2**n_qubits} %") # markdown-exec: hide
+# Print the binary representation of states with nonzero probabilities
+print({
+    bin(x)[2:].zfill(n_qubits): np.round(input_csr_matrix[x, 0], 3)
+    for x in input_csr_matrix.nonzero()[0]
+}) # markdown-exec: hide
+
+# Compute and display the percentage of nonzero entries
+filling_percentage = len(input_csr_matrix.nonzero()[0]) / 2**n_qubits
+print(f"Filling percentage: {filling_percentage:.6f} %") # markdown-exec: hide
 ```
 
-We have generated a probability distribution within a small subspace of bitstrings being filled. We use `csr_matrix` for efficient representation and computation. Now we use MTHREE to do mitigation on the probability distribution
-
+We have constructed a probability distribution over a small subspace of bitstrings, leveraging a `csr_matrix` for efficient storage and computation. Now, we apply `MTHREE` to mitigate errors in the probability distribution. Within `MTHREE`, sparsity can be further improved by incorporating the Hamming distance approach. This method considers only the noise matrix elements corresponding to quantum states within a specified Hamming distance of the correct state. This feature can be used by setting the `hamming_dist` option.
 
 ```python exec="on" source="material-block" session="m3" result="json"
 from scipy.stats import wasserstein_distance
@@ -128,29 +138,35 @@ from qadence_protocols.mitigations.readout import (
     mle_solve,
     matrix_inv,
     tensor_rank_mult
-    )
+)
 
+# Generate noise transition matrices for each qubit
 noise_matrices = []
-for t in range(n_qubits):
-    t_a, t_b = np.random.rand(2) / 8
-    K = np.array([[1 - t_a, t_a], [t_b, 1 - t_b]]).transpose()  # column sum be 1
-    noise_matrices.append(K)
-
-confusion_matrix_subspace = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0])
-
-p_corr_mthree_gmres = gmres(confusion_matrix_subspace, input_csr.toarray())[0]
-p_corr_mthree_gmres_mle = mle_solve(p_corr_mthree_gmres)
-
-noise_matrices_inv = list(map(matrix_inv, noise_matrices))
-p_corr_inv_mle = mle_solve(tensor_rank_mult(noise_matrices_inv, observed_prob))
-
-distance = wasserstein_distance(p_corr_mthree_gmres_mle, p_corr_inv_mle)
-print(f"Wasserstein distance between the 2 distributions: {distance}")  # markdown-exec: hide
+for qubit_idx in range(n_qubits):
+    transition_prob_a, transition_prob_b = np.random.rand(2) / 8
+    transition_matrix = np.array([[1 - transition_prob_a, transition_prob_a],
+                                  [transition_prob_b, 1 - transition_prob_b]]).T  # Ensure column sums to 1
+    noise_matrices.append(transition_matrix)
 
 
+
+# Compute the subspace confusion matrix using noise transition matrices. We set the hamming distance for filtering out noisy states that are far from the correct state
+subspace_confusion_matrix = normalized_subspace_kron(noise_matrices, observed_prob.nonzero()[0], hamming_dist=1)
+
+# Apply GMRES (Generalized Minimal Residual Method) to correct the probability distribution using MTHREE. Then we apply Maximum Likelihood Estimation (MLE) to ensure the validity of the probability distribution.
+corrected_prob_mthree_mle = mle_solve(gmres(subspace_confusion_matrix, input_csr_matrix.toarray())[0])
+
+# Next, we use tensor rank multiplication to apply the inverse noise matrices to the observed probability distribution, followed by the same MLE correction
+inverse_noise_matrices = list(map(matrix_inv, noise_matrices))
+corrected_prob_inverse_mle = mle_solve(tensor_rank_mult(inverse_noise_matrices, observed_prob))
+
+# Finally, we compute the Wasserstein distance between the two corrected probability distributions
+wasserstein_dist = wasserstein_distance(corrected_prob_mthree_mle, corrected_prob_inverse_mle)
+print(f"Wasserstein distance between the two distributions: {wasserstein_dist}")  # markdown-exec: hide
 ```
 
-We have used `wasserstein_distance` instead of `kl_divergence` as many of the bistrings have 0 probabilites. If the expected solution lies outside the space of observed bitstrings, `MTHREE` will fail. We next look at majority voting to circument this problem when the expected output is a single bitstring.
+In `MTHREE`, we assume quantum circuits that exceed 20 qubits, which results in a high sparsity in the probability distribution of the output bitstrings, leading to many 0 probability bitstrings. Therefore, we use `Wasserstein Distance` instead of `KL divergence` and its derivative, `JS divergence`, as they put true values (which is 0 here) in the denominator and may diverge in such cases, whereas `Wasserstein Distance` remains stable for comparisons.
+
 
 ### Majority Voting
 
@@ -235,7 +251,7 @@ print(f"Mitigates samples: {mitigated_samples_opt}") # markdown-exec: hide
 
 ### Twirl mitigation
 
-This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before the measurement and after the measurement is obtained[^5]. The number of twirl operations can be reduced through random sampling. The method is exact in that it requires no calibration which might be prone to errors of modelling.
+This protocol makes use of all possible so-called twirl operations to average out the effect of readout errors into an effective scaling. The twirl operation consists of using bit flip operators before and after the measurement [^5]. The number of twirl operations can be reduced through random sampling with the `twirl_samples` option. The method is exact in that it requires no calibration which might be prone to modelling errors.
 
 ```python exec="on" source="material-block" session="mfm" result="json"
 from qadence import NoiseHandler, NoiseProtocol
@@ -279,7 +295,14 @@ print(f"noisy expectation value {noisy_model.expectation(measurement=tomo_measur
 mitigate = Mitigations(protocol=Mitigations.TWIRL)
 expectation_mitigated = mitigate(noise=noise, model=noisy_model)
 
+
+# We set a number of qubits as the sample count. The number of twirl_samples can range from 1 to the maximum number of qubit index combinations. For example, using a higher number of samples can improve accuracy.
+options={"twirl_samples": block.n_qubits}
+mitigate_sample = Mitigations(protocol=Mitigations.TWIRL, options=options)
+expectation_mitigated_sample = mitigate_sample(noise=noise, model=noisy_model)
+
 print(f"expected mitigation value {expectation_mitigated}") # markdown-exec: hide
+print(f"expected sampled mitigation value {expectation_mitigated_sample}") # markdown-exec: hide
 
 ```
 

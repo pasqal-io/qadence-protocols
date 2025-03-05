@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import random
 from collections import Counter
 
 import torch
@@ -45,16 +46,30 @@ def mitigate(
     block = model._circuit.original.block
     n_shots = model._measurement.options["n_shots"]
 
-    # Generates a list of all possible X gate string combinations
-    # Applied at the end of circuit before measurements are made
-    twirls = list(
-        itertools.chain.from_iterable(
-            [
-                list(itertools.combinations(range(block.n_qubits), k))
-                for k in range(1, block.n_qubits + 1)
-            ]
+    twirl_samples = options.get("twirl_samples", None)
+    all_qubits = list(range(block.n_qubits))
+    num_total_comb = (2**block.n_qubits) - 1
+
+    # Validity check for twirl_samples
+    if twirl_samples is not None:
+        if not (isinstance(twirl_samples, int) and 1 <= twirl_samples <= num_total_comb):
+            raise ValueError(
+                f"twirl_samples must be an integer type between 1 and {num_total_comb}"
+            )
+
+        # If twirl_samples is given, generate samples with the given value
+        sampled_twirls: set[tuple[int, ...]] = set()
+        while len(sampled_twirls) < twirl_samples:
+            k = random.randint(1, block.n_qubits)  # Random size of the combination
+            sampled_twirls.add(tuple(random.sample(all_qubits, k)))
+        twirls = list(sampled_twirls)
+
+    # If twirl_samples is None, generate all combinations
+    else:
+        twirls = sum(
+            (list(itertools.combinations(all_qubits, k)) for k in range(1, block.n_qubits + 1)), []
         )
-    )
+
     # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
     samples_twirl_den_list = []
