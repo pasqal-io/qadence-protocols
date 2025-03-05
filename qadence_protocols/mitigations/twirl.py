@@ -57,19 +57,18 @@ def mitigate(
                 f"twirl_samples must be an integer type between 1 and {num_total_comb}"
             )
 
-    # If twirl_samples is None, generate all combinations
-    if twirl_samples is None:
-        twirls = sum(
-            (list(itertools.combinations(all_qubits, k)) for k in range(1, block.n_qubits + 1)), []
-        )
-
-    # If twirl_samples is given, generate samples with the given value
-    else:
+        # If twirl_samples is given, generate samples with the given value
         sampled_twirls: set[tuple[int, ...]] = set()
         while len(sampled_twirls) < twirl_samples:
             k = random.randint(1, block.n_qubits)  # Random size of the combination
             sampled_twirls.add(tuple(random.sample(all_qubits, k)))
         twirls = list(sampled_twirls)
+
+    # If twirl_samples is None, generate all combinations
+    else:
+        twirls = sum(
+            (list(itertools.combinations(all_qubits, k)) for k in range(1, block.n_qubits + 1)), []
+        )
 
     # Generate samples for all twirls of circuit
     samples_twirl_num_list = []
