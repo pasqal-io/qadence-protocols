@@ -67,24 +67,6 @@ def normalized_subspace_kron(
             )
         conf_matrix[:, j] /= np.sum(conf_matrix[:, j])
 
-    # Redistribute matrix based on Hamming distance
-    if hamming_dist is not None:
-        num_rows, num_cols = conf_matrix.shape
-        redistributed_matrix = np.zeros((num_rows, num_cols))
-
-        for col in range(num_cols):
-            valid_rows = [
-                row for row in range(num_rows) if bin(row ^ col).count("1") <= hamming_dist
-            ]
-
-            # Compute sum of column values for valid rows
-            partial_sum = float(sum(conf_matrix[row, col] for row in valid_rows))
-            if partial_sum > 0:
-                for row in valid_rows:
-                    redistributed_matrix[row, col] = conf_matrix[row, col] / partial_sum
-
-        conf_matrix = redistributed_matrix
-
     return conf_matrix
 
 
